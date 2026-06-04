@@ -40,6 +40,8 @@ interface TotelepepMatch {
 }
 
 class TotelepepExtractor {
+  // Use CORS proxy for GitHub Pages deployment
+  private corsProxy = 'https://api.allorigins.win/raw?url=';
   private baseUrl = 'https://www.totelepep.mu/webapi/GetSport';
   private cache: Map<string, { data: TotelepepMatch[]; timestamp: number }> = new Map();
   private cacheTimeout = 1 * 60 * 1000; // 1 minute instead of 5 minutes
@@ -148,7 +150,10 @@ class TotelepepExtractor {
       
       const apiUrl = `https://www.totelepep.mu/webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
       
-      const response = await fetch(apiUrl, {
+      // Use CORS proxy
+      const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
+      
+      const response = await fetch(fetchUrl, {
         headers: {
           'Accept': 'application/json',
         }
@@ -394,7 +399,11 @@ class TotelepepExtractor {
     
     console.log(`🌐 API URL for ${dateToFetch || 'all dates'}:`, apiUrl);
     
-    const response = await fetch(apiUrl, {
+    // Use CORS proxy for browser requests
+    const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
+    console.log(`🌐 Using CORS proxy:`, fetchUrl.substring(0, 100) + '...');
+    
+    const response = await fetch(fetchUrl, {
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'en-US,en;q=0.5',
