@@ -41,7 +41,7 @@ interface TotelepepMatch {
 
 class TotelepepExtractor {
   // Use CORS proxy for GitHub Pages deployment
-  private corsProxy = 'https://api.allorigins.win/raw?url=';
+  private corsProxy = 'https://corsproxy.io/?';
   private baseUrl = 'https://www.totelepep.mu/webapi/GetSport';
   private cache: Map<string, { data: TotelepepMatch[]; timestamp: number }> = new Map();
   private cacheTimeout = 1 * 60 * 1000; // 1 minute instead of 5 minutes
