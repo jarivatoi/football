@@ -15,7 +15,10 @@ exports.handler = async (event, context) => {
     const targetUrl = 'https://www.totelepep.mu/webapi/placebet';
     
     console.log('📡 Proxying bet placement request to:', targetUrl);
-    console.log('📝 Request body:', event.body);
+    console.log('📝 Event body type:', typeof event.body);
+    console.log('📝 Event body:', event.body);
+    console.log('📝 Event body length:', event.body ? event.body.length : 0);
+    console.log('📝 Content-Type header:', event.headers['content-type']);
     
     const response = await fetch(targetUrl, {
       method: 'POST',
@@ -29,7 +32,7 @@ exports.handler = async (event, context) => {
 
     const data = await response.json();
     
-    console.log('✅ Received response from Totelepep API');
+    console.log('✅ Received response from Totelepep API:', JSON.stringify(data).substring(0, 200));
     
     return {
       statusCode: 200,
