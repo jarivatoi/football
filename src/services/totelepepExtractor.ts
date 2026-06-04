@@ -202,7 +202,10 @@ class TotelepepExtractor {
         try {
           const apiUrl = `https://www.totelepep.mu/webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
           
-          const response = await fetch(apiUrl, {
+          // Use CORS proxy
+          const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
+          
+          const response = await fetch(fetchUrl, {
             headers: {
               'Accept': 'application/json',
             }
