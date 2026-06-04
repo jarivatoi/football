@@ -383,8 +383,11 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
       }
     });
     
-    // Use CORS proxy for bet placement
-    const betUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://www.totelepep.mu/webapi/placebet');
+    // Use CORS proxy for bet placement - try different proxy
+    const betUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent('https://www.totelepep.mu/webapi/placebet');
+    
+    console.log('📡 Sending bet request via CORS proxy to:', betUrl);
+    console.log('📝 Form data:', formData.toString());
     
     const response = await fetch(betUrl, {
       method: 'POST',
@@ -394,7 +397,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
         'X-Requested-With': 'XMLHttpRequest'
       },
       body: formData
-      // Removed credentials: 'include' to work with CORS proxy
     });
     
     if (!response.ok) {
