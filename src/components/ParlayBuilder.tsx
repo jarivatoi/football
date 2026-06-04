@@ -275,13 +275,8 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
       console.log(`🔍 DETAILED MARKETBOOKNO DEBUG for selection ${index}:`, {
         originalSelectionMarketBookNo: selection.marketBookNo,
         finalMarketBookNo: finalMarketBookNo,
-        hasUsableMarketBookNo: hasUsableMarketBookNo,
-        hasUsableMarketBookNoForMarketId: hasUsableMarketBookNoForMarketId,
-        isLikelyValidMarketId: isLikelyValidMarketId,
-        isLikelyValidMarketIdForMarketId: isLikelyValidMarketIdForMarketId,
-        isFinalMarketBookNoValid: finalMarketBookNo && !isNaN(Number(finalMarketBookNo)) && Number(finalMarketBookNo) > 0,
-        // Special check for the correct value
-        isExactMatch: selection.marketBookNo === '5160495'
+        safeMarketBookNo: safeMarketBookNo,
+        isFinalMarketBookNoValid: safeMarketBookNo && !isNaN(Number(safeMarketBookNo)) && Number(safeMarketBookNo) > 0
       });
       
       // Additional debugging for safe values
