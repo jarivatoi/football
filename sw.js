@@ -82,7 +82,7 @@ self.addEventListener('fetch', (event) => {
       .catch(() => {
         // Fallback for offline
         if (request.destination === 'document') {
-          return caches.match('/index.html');
+          return caches.match('/football/index.html');
         }
       })
   );
