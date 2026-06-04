@@ -402,7 +402,10 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
       }
     });
     
-    const response = await fetch('/api/webapi/placebet', {
+    // Use CORS proxy for bet placement
+    const betUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://www.totelepep.mu/webapi/placebet');
+    
+    const response = await fetch(betUrl, {
       method: 'POST',
       headers: {
         'Accept': '*/*',
