@@ -633,28 +633,48 @@ const formatMatchTime = (kickoff?: string): string => {
 const getOptionDetails = (selection: ParlaySelection) => {
   switch (selection.priceType) {
     case 'home':
-      return {
-        optionNo: '1',
-        optionCode: 'H',
-        optionName: selection.homeTeam
-      };
     case 'draw':
-      return {
-        optionNo: '2',
-        optionCode: 'D',
-        optionName: 'Draw'
-      };
     case 'away':
       return {
-        optionNo: '3',
-        optionCode: 'A',
-        optionName: selection.awayTeam
+        optionNo: selection.priceType === 'home' ? '1' : selection.priceType === 'draw' ? '2' : '3',
+        optionCode: selection.priceType === 'home' ? 'H' : selection.priceType === 'draw' ? 'D' : 'A',
+        optionName: selection.priceType === 'home' ? selection.homeTeam : selection.priceType === 'draw' ? 'Draw' : selection.awayTeam,
+        marketType: '1X2' // Win-Draw-Win market
+      };
+    case 'over':
+      return {
+        optionNo: '1',
+        optionCode: 'O',
+        optionName: 'Over',
+        marketType: 'OU' // Over/Under market
+      };
+    case 'under':
+      return {
+        optionNo: '2',
+        optionCode: 'U',
+        optionName: 'Under',
+        marketType: 'OU' // Over/Under market
+      };
+    case 'btts_yes':
+      return {
+        optionNo: '1',
+        optionCode: 'Y',
+        optionName: 'Yes',
+        marketType: 'BTTS' // Both Teams To Score
+      };
+    case 'btts_no':
+      return {
+        optionNo: '2',
+        optionCode: 'N',
+        optionName: 'No',
+        marketType: 'BTTS' // Both Teams To Score
       };
     default:
       return {
         optionNo: '1',
         optionCode: 'H',
-        optionName: selection.homeTeam
+        optionName: selection.homeTeam,
+        marketType: '1X2'
       };
   }
 };
