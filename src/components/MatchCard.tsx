@@ -5,7 +5,7 @@ import { totelepepExtractor } from '../services/totelepepExtractor';
 
 interface MatchCardProps {
   match: TotelepepMatch;
-  onPriceClick: (matchId: string, priceType: string, odds: number | string) => void;
+  onPriceClick: (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string) => void;
   selectedPrices: string[];
 }
 
@@ -103,7 +103,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onPriceClick(match.id, 'home', match.homeOdds);
+              onPriceClick(match.id, 'home', match.homeOdds, match.marketBookNo, match.marketCode);
             }}
             className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all ${
               isSelected('home')
@@ -117,7 +117,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onPriceClick(match.id, 'draw', match.drawOdds);
+              onPriceClick(match.id, 'draw', match.drawOdds, match.marketBookNo, match.marketCode);
             }}
             className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all ${
               isSelected('draw')
@@ -131,7 +131,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onPriceClick(match.id, 'away', match.awayOdds);
+              onPriceClick(match.id, 'away', match.awayOdds, match.marketBookNo, match.marketCode);
             }}
             className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all ${
               isSelected('away')
@@ -188,7 +188,9 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                         onClick={() => onPriceClick(
                           match.id, 
                           `${market.marketBookNo}-${selection.name}`,
-                          selection.odds
+                          selection.odds,
+                          market.marketBookNo,
+                          match.marketCode
                         )}
                         className={`flex-1 min-w-[80px] py-2 px-2 rounded text-sm font-medium transition-all ${
                           isSelected(`${market.marketBookNo}-${selection.name}`)

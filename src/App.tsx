@@ -270,7 +270,7 @@ function App() {
     console.log('📊 Matches per date:', Object.entries(groupedMatches).map(([date, matches]) => `${date}: ${(matches as TotelepepMatch[]).length}`));
   }, [groupedMatches]);
 
-  const handlePriceClick = (matchId: string, priceType: string, odds: number | string) => {
+  const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string) => {
     // Find the match details
     const match = matches.find(m => m.id === matchId);
     if (match) {
@@ -286,31 +286,20 @@ function App() {
         // Log match data for debugging
         console.log('🔍 Adding selection from match:', match);
         console.log(`🔍 Price type: ${priceType}, Odds: ${odds}`);
+        console.log(`🔍 Market data from click - marketBookNo: ${marketBookNo}, marketCode: ${marketCode}`);
         
-        // Validate market data before adding to parlay
-        // Use similar validation logic as in ParlayBuilder
-        console.log(`🔍 App.tsx - match data:`, match);
-        console.log(`🔍 App.tsx - match.marketBookNo:`, match.marketBookNo);
-        console.log(`🔍 App.tsx - match.id:`, match.id);
-        const hasUsableMarketBookNo = match.marketBookNo && match.marketBookNo !== 'undefined' && match.marketBookNo !== 'null' && match.marketBookNo.trim() !== '' && match.marketBookNo.trim() !== '0' && !isNaN(Number(match.marketBookNo)) && Number(match.marketBookNo) > 0;
+        // Use the marketBookNo and marketCode passed from the click event
+        const finalMarketBookNo = (marketBookNo && marketBookNo !== 'undefined' && marketBookNo !== 'null') 
+          ? marketBookNo 
+          : (match.marketBookNo || match.id);
         
-        // Additional validation for 7-digit market IDs which are common
-        const isLikelyValidMarketId = hasUsableMarketBookNo && match.marketBookNo &&
-          ((match.marketBookNo.length === 7 && Number(match.marketBookNo) > 1000000 && Number(match.marketBookNo) < 9999999) ||
-           (match.marketBookNo.length === 6 && Number(match.marketBookNo) > 100000 && Number(match.marketBookNo) < 999999) ||
-           (match.marketBookNo.length === 8 && Number(match.marketBookNo) > 10000000 && Number(match.marketBookNo) < 99999999));
-        
-        const marketBookNo = hasUsableMarketBookNo ? match.marketBookNo : (match.id || undefined);
-        
-        const marketCode = (match.marketCode && match.marketCode !== 'undefined' && match.marketCode !== 'null' && match.marketCode.trim() !== '') 
-          ? match.marketCode 
-          : 'CP';
+        const finalMarketCode = (marketCode && marketCode !== 'undefined' && marketCode !== 'null') 
+          ? marketCode 
+          : (match.marketCode || 'CP');
         
         // Debug the final values
-        console.log(`🔍 App.tsx - hasUsableMarketBookNo: ${hasUsableMarketBookNo}`);
-        console.log(`🔍 App.tsx - isLikelyValidMarketId: ${isLikelyValidMarketId}`);
-        console.log(`🔍 App.tsx - final marketBookNo:`, marketBookNo);
-        console.log(`🔍 App.tsx - final marketCode:`, marketCode);
+        console.log(`🔍 App.tsx - final marketBookNo:`, finalMarketBookNo);
+        console.log(`🔍 App.tsx - final marketCode:`, finalMarketCode);
       
         // Add new selection
         const newSelection: ParlaySelection = {
@@ -322,8 +311,8 @@ function App() {
           league: match.league,
           kickoff: match.kickoff,
           competitionId: match.competitionId,
-          marketBookNo: marketBookNo,
-          marketCode: marketCode,
+          marketBookNo: finalMarketBookNo,
+          marketCode: finalMarketCode,
         };
         
         console.log(`🔍 App.tsx - newSelection with market data:`, newSelection);
@@ -335,9 +324,8 @@ function App() {
           console.log(`   marketBookNo:`, match.marketBookNo);
           console.log(`   marketCode:`, match.marketCode);
           console.log(`   competitionId:`, match.competitionId);
-          console.log(`   Final selection marketBookNo:`, marketBookNo);
-          console.log(`   hasUsableMarketBookNo:`, hasUsableMarketBookNo);
-          console.log(`   isLikelyValidMarketId:`, isLikelyValidMarketId);
+          console.log(`   Final selection marketBookNo:`, finalMarketBookNo);
+          console.log(`   Final selection marketCode:`, finalMarketCode);
           
           // Additional validation debugging
           if (match.marketBookNo) {
