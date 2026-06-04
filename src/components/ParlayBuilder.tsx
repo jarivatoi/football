@@ -412,8 +412,8 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         'X-Requested-With': 'XMLHttpRequest'
       },
-      body: formData,
-      credentials: 'include'
+      body: formData
+      // Removed credentials: 'include' to work with CORS proxy
     });
     
     if (!response.ok) {
