@@ -40,7 +40,7 @@ interface TotelepepMatch {
 }
 
 class TotelepepExtractor {
-  private baseUrl = '/api/webapi/GetSport';
+  private baseUrl = 'https://www.totelepep.mu/webapi/GetSport';
   private cache: Map<string, { data: TotelepepMatch[]; timestamp: number }> = new Map();
   private cacheTimeout = 1 * 60 * 1000; // 1 minute instead of 5 minutes
   private rateLimitDelay = 2000; // 2 seconds between requests
@@ -146,7 +146,7 @@ class TotelepepExtractor {
     try {
       console.log(`📡 Fetching markets for match ${match.id} (${match.homeTeam} vs ${match.awayTeam})...`);
       
-      const apiUrl = `/api/webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
+      const apiUrl = `https://www.totelepep.mu/webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
       
       const response = await fetch(apiUrl, {
         headers: {
@@ -195,7 +195,7 @@ class TotelepepExtractor {
       // Fetch all matches in this batch IN PARALLEL
       const fetchPromises = batch.map(async (match) => {
         try {
-          const apiUrl = `/api/webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
+          const apiUrl = `https://www.totelepep.mu/webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
           
           const response = await fetch(apiUrl, {
             headers: {
