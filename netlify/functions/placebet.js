@@ -14,11 +14,19 @@ exports.handler = async (event, context) => {
     // Forward the request to Totelepep API
     const targetUrl = 'https://www.totelepep.mu/webapi/placebet';
     
-    console.log('📡 Proxying bet placement request to:', targetUrl);
+    console.log('📡 Proxying bet placement request');
     console.log('📝 Event body type:', typeof event.body);
-    console.log('📝 Event body:', event.body);
-    console.log('📝 Event body length:', event.body ? event.body.length : 0);
-    console.log('📝 Content-Type header:', event.headers['content-type']);
+    console.log('📝 Event body isBase64Encoded:', event.isBase64Encoded);
+    
+    // Handle body - it might be base64 encoded
+    let bodyToSend = event.body;
+    if (event.isBase64Encoded) {
+      bodyToSend = Buffer.from(event.body, 'base64').toString('utf-8');
+      console.log('📝 Decoded from base64');
+    }
+    
+    console.log('📝 Body length:', bodyToSend ? bodyToSend.length : 0);
+    console.log('📝 First 200 chars:', bodyToSend ? bodyToSend.substring(0, 200) : 'EMPTY');
     
     const response = await fetch(targetUrl, {
       method: 'POST',
@@ -27,12 +35,13 @@ exports.handler = async (event, context) => {
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         'X-Requested-With': 'XMLHttpRequest',
       },
-      body: event.body,
+      body: bodyToSend,
     });
 
     const data = await response.json();
     
-    console.log('✅ Received response from Totelepep API:', JSON.stringify(data).substring(0, 200));
+    console.log('✅ Response received, ticketNo:', data.ticketNo || 'none');
+    console.log('✅ Response received, errorMessage:', data.errorMessage || 'none');
     
     return {
       statusCode: 200,
