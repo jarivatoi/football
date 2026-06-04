@@ -435,8 +435,27 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
     console.log('🔍 TICKET NUMBER EXTRACTION DEBUG:', {
       rawTicketNo: result.ticketNo,
       betList: result.betList,
-      typeofTicketNo: typeof result.ticketNo
+      typeofTicketNo: typeof result.ticketNo,
+      allResponseKeys: Object.keys(result),
+      fullResponse: result
     });
+    
+    // Try multiple possible field names for ticket number
+    if (!ticketNo) {
+      const possibleFields = [
+        'ticketNo', 'ticket', 'bookingRef', 'bookingRefNo', 'bookingNo',
+        'refNo', 'referenceNo', 'reference', 'ticketId', 'betSlipNo',
+        'slipNo', 'receiptNo', 'receiptNumber'
+      ];
+      
+      for (const field of possibleFields) {
+        if (result[field]) {
+          ticketNo = result[field];
+          console.log(`🎯 Found ticket in field '${field}':`, ticketNo);
+          break;
+        }
+      }
+    }
     
     // Check if ticketNo is in the betList
     if (!ticketNo && result.betList && Array.isArray(result.betList) && result.betList.length > 0) {
