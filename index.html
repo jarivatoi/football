@@ -2,18 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/football/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Real-time football betting odds, live scores and match data" />
     <meta name="theme-color" content="#2563eb" />
-    <link rel="manifest" href="/football/manifest.json" />
-    <link rel="apple-touch-icon" href="/football/icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icon.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Football" />
     <title>Football - Live Betting Odds & Scores</title>
-    <script type="module" crossorigin src="/football/assets/index-DiH5tKIO.js"></script>
-    <link rel="stylesheet" crossorigin href="/football/assets/index-BuI9lCqO.css">
+    <script type="module" crossorigin src="/assets/index-DiH5tKIO.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BuI9lCqO.css">
   </head>
   <body>
     <div id="root"></div>
@@ -21,7 +21,7 @@
       // Register service worker
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/football/sw.js')
+          navigator.serviceWorker.register('/sw.js')
             .then((registration) => {
               console.log('SW registered: ', registration);
             })
