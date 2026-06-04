@@ -1,0 +1,27 @@
+{
+  "name": "Football - Live Betting Odds & Scores",
+  "short_name": "Football",
+  "description": "Real-time football betting odds, live scores and match data",
+  "start_url": "/football/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/football/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/football/icon.png", 
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["sports", "entertainment"],
+  "lang": "en",
+  "dir": "ltr"
+}

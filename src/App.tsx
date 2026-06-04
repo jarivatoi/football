@@ -1,0 +1,493 @@
+import React, { useState, useEffect } from 'react';
+import { RefreshCw, Search, Calendar, AlertCircle, Calculator, Database, Lightbulb, Trash2, Play, Pause } from 'lucide-react';
+import { Target, Ticket } from 'lucide-react';
+import DateGroupedMatches from './components/DateGroupedMatches';
+import DateSelector from './components/DateSelector';
+import Header from './components/Header';
+import StatsCards from './components/StatsCards';
+import ParlayBuilder, { ParlaySelection } from './components/ParlayBuilder';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
+import DataExtractor from './components/DataExtractor';
+import EndpointDiscovery from './components/EndpointDiscovery';
+import ResponseAnalyzer from './components/ResponseAnalyzer';
+import AlternativeSolutions from './components/AlternativeSolutions';
+import MatchSpecificTester from './components/MatchSpecificTester';
+import BetPlacementAnalyzer from './components/BetPlacementAnalyzer';
+import BookingDiscoveryGuide from './components/BookingDiscoveryGuide';
+import { totelepepService } from './services/totelepepService';
+import { totelepepExtractor } from './services/totelepepExtractor';
+import type { TotelepepMatch } from './services/totelepepExtractor';
+import { registerServiceWorker, requestNotificationPermission, scheduleBackgroundSync } from './utils/pwaUtils';
+
+// Helper function to get today's date in local timezone
+const getTodayDate = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Add a safety check for React hooks
+const useSafeState = <T,>(initialState: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
+  // Check if we're in a browser environment and React is properly initialized
+  if (typeof window === 'undefined' || !React || !React.useState) {
+    return [initialState, (() => {}) as React.Dispatch<React.SetStateAction<T>>];
+  }
+  
+  try {
+    return React.useState(initialState);
+  } catch (error) {
+    console.warn('Error initializing state:', error);
+    return [initialState, (() => {}) as React.Dispatch<React.SetStateAction<T>>];
+  }
+};
+
+// Add a safety check for useEffect
+const useSafeEffect = (effect: React.EffectCallback, deps?: React.DependencyList) => {
+  // Check if we're in a browser environment and React is properly initialized
+  if (typeof window === 'undefined' || !React || !React.useEffect) {
+    return;
+  }
+  
+  try {
+    React.useEffect(effect, deps);
+  } catch (error) {
+    console.warn('Error initializing effect:', error);
+  }
+};
+
+function App() {
+  // Add a simple test to see if the component is rendering
+  console.log('App component is rendering');
+  
+  
+  // Use safe state initialization
+  const [matches, setMatches] = useSafeState<TotelepepMatch[]>([]);
+  const [groupedMatches, setGroupedMatches] = useSafeState<Record<string, TotelepepMatch[]>>({});
+  const [loading, setLoading] = useSafeState(false);
+  const [error, setError] = useSafeState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useSafeState('');
+  const [lastUpdated, setLastUpdated] = useSafeState<Date>(new Date());
+  const [parlaySelections, setParlaySelections] = useSafeState<ParlaySelection[]>([]);
+  const [showExtractor, setShowExtractor] = useSafeState(false);
+  const [showEndpointDiscovery, setShowEndpointDiscovery] = useSafeState(false);
+  const [showResponseAnalyzer, setShowResponseAnalyzer] = useSafeState(false);
+  const [showAlternatives, setShowAlternatives] = useSafeState(false);
+  const [showMatchTester, setShowMatchTester] = useSafeState(false);
+  const [showBetAnalyzer, setShowBetAnalyzer] = useSafeState(false);
+  const [showBookingGuide, setShowBookingGuide] = useSafeState(false);
+  const [selectedDate, setSelectedDate] = useSafeState<string>(getTodayDate());
+  const [lastScrapeTime, setLastScrapeTime] = useSafeState<number>(0); // Track last scrape time
+  const [isOnline, setIsOnline] = useSafeState<boolean>(true);
+  const [availableDates, setAvailableDates] = useSafeState<Array<{date: string, matchCount: number, displayName: string}>>([]);
+  const [calendarList, setCalendarList] = useSafeState<Array<{date: string, matchCount: number, displayName: string}>>([]);
+
+  // Initialize online status
+  useSafeEffect(() => {
+    const updateOnlineStatus = () => {
+      setIsOnline(navigator.onLine);
+    };
+    
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
+    };
+  }, []);
+
+  // Initialize PWA features
+  useSafeEffect(() => {
+    registerServiceWorker();
+    requestNotificationPermission();
+    scheduleBackgroundSync();
+    
+    console.log('🚀 App initialized - Direct API mode (no Supabase)');
+  }, [selectedDate]);
+  
+  const loadData = async (targetDate?: string) => {
+    setLoading(true);
+    setError(null);
+    const dateToFetch = targetDate || selectedDate;
+    try {
+      console.log('🔍 Fetching data for date:', dateToFetch);
+      
+      // Fetch matches DIRECTLY from Totelepep API (not Supabase) to get allMarkets
+      console.log('📡 Fetching from Totelepep API...');
+      const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch);
+      
+      console.log(`📊 Loaded ${fetchedMatches.length} matches with allMarkets:`, 
+        fetchedMatches.slice(0, 3).map((m: TotelepepMatch) => ({
+          id: m.id,
+          marketCount: m.marketCount,
+          hasAllMarkets: !!m.allMarkets,
+          allMarketsLength: m.allMarkets?.length || 0
+        }))
+      );
+      
+      // Sort matches by date and time
+      const sortedMatches = fetchedMatches.sort((a, b) => {
+        // First sort by date
+        const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
+        if (dateComparison !== 0) return dateComparison;
+        
+        // Then sort by kickoff time
+        return a.kickoff.localeCompare(b.kickoff);
+      });
+      
+      setMatches(sortedMatches);
+      
+      // Group matches by date
+      const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+      setGroupedMatches(grouped);
+      
+      setLastUpdated(new Date());
+      console.log(`✅ Loaded ${sortedMatches.length} matches for ${dateToFetch}`);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      setError('Failed to load data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load calendar list data
+  const loadCalendarList = async () => {
+    try {
+      console.log('📅 Fetching calendar list data from Totelepep API...');
+      const calendarData = await totelepepService.getAvailableDatesWithCounts();
+      setCalendarList(calendarData);
+      console.log('📅 Calendar list data loaded:', calendarData);
+    } catch (error) {
+      console.error('Error loading calendar list:', error);
+      setError('Failed to load calendar data from Totelepep API.');
+    }
+  };
+
+
+
+
+  // Load data when selected date changes
+  useSafeEffect(() => {
+    console.log('📅 Selected date changed to:', selectedDate);
+    // Load data when selected date changes
+    loadData(selectedDate);
+    // Also load calendar list data
+    loadCalendarList();
+  }, [selectedDate]); // Only run when selectedDate changes, not on every render
+
+  // Filter matches and maintain grouping
+  const filteredGroupedMatches = React.useMemo ? React.useMemo(() => {
+    if (!searchTerm) return groupedMatches;
+    
+    const filtered: Record<string, TotelepepMatch[]> = {};
+    
+    Object.entries(groupedMatches).forEach(([date, dateMatches]) => {
+      const filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match =>
+        match.homeTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        match.awayTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        match.league.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      
+      if (filteredDateMatches.length > 0) {
+        filtered[date] = filteredDateMatches;
+      }
+    });
+    
+    return filtered;
+  }, [groupedMatches, searchTerm]) : groupedMatches;
+
+  const totalMatches = matches.length;
+  const totalFilteredMatches = Object.values(filteredGroupedMatches)
+    .reduce((sum, dateMatches) => sum + (dateMatches as TotelepepMatch[]).length, 0);
+  
+  // Get available dates with match counts from Totelepep API calendarList data
+  const availableDatesWithCounts = React.useMemo ? React.useMemo(() => {
+    console.log('📅 Using calendar list data from Totelepep API for date tabs...');
+    console.log('📅 Calendar list data:', calendarList);
+    
+    // Use the calendarList data directly - this is the source of truth
+    if (calendarList && calendarList.length > 0) {
+      console.log('📅 Using Totelepep calendar list as source of truth');
+      return calendarList;
+    }
+    
+    // Fallback to local calculation if calendarList is not available
+    console.log('⚠️ Calendar list not available, falling back to local calculation');
+    
+    // Get all unique dates from the matches
+    const dates = new Set<string>();
+    matches.forEach(match => {
+      if (match.date) {
+        dates.add(match.date);
+      }
+    });
+    
+    // Convert to array and sort
+    const sortedDates = Array.from(dates).sort();
+    
+    // Create date objects with match counts
+    const result = sortedDates.map(dateString => {
+      const date = new Date(dateString);
+      // Count from local matches as fallback
+      const matchCount = matches.filter(match => match.date === dateString).length;
+      
+      let displayName = '';
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      
+      if (date.toDateString() === today.toDateString()) {
+        displayName = 'Today';
+      } else if (date.toDateString() === tomorrow.toDateString()) {
+        displayName = 'Tomorrow';
+      } else {
+        displayName = date.toLocaleDateString('en-GB', { 
+          weekday: 'short', 
+          day: 'numeric', 
+          month: 'short' 
+        });
+      }
+      
+      console.log(`📅 Date ${dateString}: Local count = ${matches.filter(match => match.date === dateString).length}, Final count = ${matchCount}`);
+      
+      return {
+        date: dateString,
+        matchCount,
+        displayName
+      };
+    });
+    
+    console.log('📅 Available dates with counts (fallback):', result);
+    return result;
+  }, [calendarList, matches]) : [];
+
+  // Debug: Log grouped matches to see what dates we have
+  useSafeEffect(() => {
+    console.log('📅 Available dates in groupedMatches:', Object.keys(groupedMatches));
+    console.log('📊 Matches per date:', Object.entries(groupedMatches).map(([date, matches]) => `${date}: ${(matches as TotelepepMatch[]).length}`));
+  }, [groupedMatches]);
+
+  const handlePriceClick = (matchId: string, priceType: string, odds: number | string) => {
+    // Find the match details
+    const match = matches.find(m => m.id === matchId);
+    if (match) {
+      // Check if this selection already exists
+      const existingIndex = parlaySelections.findIndex(
+        s => s.matchId === matchId && s.priceType === priceType
+      );
+    
+      if (existingIndex >= 0) {
+        // Remove existing selection
+        setParlaySelections(prev => prev.filter((_, index) => index !== existingIndex));
+      } else {
+        // Log match data for debugging
+        console.log('🔍 Adding selection from match:', match);
+        console.log(`🔍 Price type: ${priceType}, Odds: ${odds}`);
+        
+        // Validate market data before adding to parlay
+        // Use similar validation logic as in ParlayBuilder
+        console.log(`🔍 App.tsx - match data:`, match);
+        console.log(`🔍 App.tsx - match.marketBookNo:`, match.marketBookNo);
+        console.log(`🔍 App.tsx - match.id:`, match.id);
+        const hasUsableMarketBookNo = match.marketBookNo && match.marketBookNo !== 'undefined' && match.marketBookNo !== 'null' && match.marketBookNo.trim() !== '' && match.marketBookNo.trim() !== '0' && !isNaN(Number(match.marketBookNo)) && Number(match.marketBookNo) > 0;
+        
+        // Additional validation for 7-digit market IDs which are common
+        const isLikelyValidMarketId = hasUsableMarketBookNo && match.marketBookNo &&
+          ((match.marketBookNo.length === 7 && Number(match.marketBookNo) > 1000000 && Number(match.marketBookNo) < 9999999) ||
+           (match.marketBookNo.length === 6 && Number(match.marketBookNo) > 100000 && Number(match.marketBookNo) < 999999) ||
+           (match.marketBookNo.length === 8 && Number(match.marketBookNo) > 10000000 && Number(match.marketBookNo) < 99999999));
+        
+        const marketBookNo = hasUsableMarketBookNo ? match.marketBookNo : (match.id || undefined);
+        
+        const marketCode = (match.marketCode && match.marketCode !== 'undefined' && match.marketCode !== 'null' && match.marketCode.trim() !== '') 
+          ? match.marketCode 
+          : 'CP';
+        
+        // Debug the final values
+        console.log(`🔍 App.tsx - hasUsableMarketBookNo: ${hasUsableMarketBookNo}`);
+        console.log(`🔍 App.tsx - isLikelyValidMarketId: ${isLikelyValidMarketId}`);
+        console.log(`🔍 App.tsx - final marketBookNo:`, marketBookNo);
+        console.log(`🔍 App.tsx - final marketCode:`, marketCode);
+      
+        // Add new selection
+        const newSelection: ParlaySelection = {
+          matchId,
+          homeTeam: match.homeTeam,
+          awayTeam: match.awayTeam,
+          priceType,
+          odds,
+          league: match.league,
+          kickoff: match.kickoff,
+          competitionId: match.competitionId,
+          marketBookNo: marketBookNo,
+          marketCode: marketCode,
+        };
+        
+        console.log(`🔍 App.tsx - newSelection with market data:`, newSelection);
+        
+        // Debug specific match data
+        if (match.homeTeam && match.awayTeam) {
+          console.log(`🎯 MATCH SELECTION DEBUG: ${match.homeTeam} vs ${match.awayTeam}`);
+          console.log(`   matchId:`, match.id);
+          console.log(`   marketBookNo:`, match.marketBookNo);
+          console.log(`   marketCode:`, match.marketCode);
+          console.log(`   competitionId:`, match.competitionId);
+          console.log(`   Final selection marketBookNo:`, marketBookNo);
+          console.log(`   hasUsableMarketBookNo:`, hasUsableMarketBookNo);
+          console.log(`   isLikelyValidMarketId:`, isLikelyValidMarketId);
+          
+          // Additional validation debugging
+          if (match.marketBookNo) {
+            console.log(`🔍 MARKETBOOKNO VALIDATION:`, {
+              value: match.marketBookNo,
+              type: typeof match.marketBookNo,
+              length: match.marketBookNo.length,
+              isNumeric: !isNaN(Number(match.marketBookNo)),
+              numericValue: Number(match.marketBookNo),
+              isValid: !isNaN(Number(match.marketBookNo)) && Number(match.marketBookNo) > 0,
+              // Special check for the correct value
+              isExactMatch: match.marketBookNo === '5160495'
+            });
+            
+            // Special handling for the correct marketBookNo
+            if (match.marketBookNo === '5160495') {
+              console.log(`🎯 FOUND EXACT MATCH MARKETBOOKNO for match ${match.homeTeam} vs ${match.awayTeam}!`);
+            }
+          }
+        }
+      
+        console.log('📋 New selection with market data:', newSelection);
+        setParlaySelections(prev => [...prev, newSelection]);
+      }
+    }
+  };
+
+  const handleRemoveSelection = (matchId: string) => {
+    setParlaySelections(prev => prev.filter(s => s.matchId !== matchId));
+  };
+
+  const handleRemoveSelectionByMatch = (matchId: string) => {
+    setParlaySelections(prev => prev.filter(s => s.matchId !== matchId));
+  };
+
+  const handleClearAll = () => {
+    setParlaySelections([]);
+  };
+  const handleDataExtracted = (extractedData: any[]) => {
+    // Convert extracted data to TotelepepMatch format
+    const convertedMatches: TotelepepMatch[] = extractedData.map(match => ({
+      ...match,
+      // Ensure all required fields are present
+      overUnder: match.overUnder || { over: 1.85, under: 1.85, line: 2.5 },
+      bothTeamsScore: match.bothTeamsScore || { yes: 1.70, no: 2.10 }
+    }));
+
+    setMatches(convertedMatches);
+    
+    // Group matches by date
+    const grouped = totelepepService.groupMatchesByDate(convertedMatches);
+    setGroupedMatches(grouped);
+    
+    setLastUpdated(new Date());
+    setError(null);
+    setShowExtractor(false);
+  };
+
+  const handleDateChange = (newDate: string) => {
+    console.log('📅 Date changed to:', newDate);
+    setSelectedDate(newDate);
+    // loadData will be called automatically by useEffect
+  };
+
+
+
+
+
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <Header />
+      
+      <div className="max-w-3xl mx-auto">
+        {/* Stats Cards */}
+        <StatsCards 
+          matches={matches}
+        />
+        
+        {/* Search and Controls */}
+        <div className="bg-white shadow-sm mb-2">
+          <div className="px-3 py-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search matches..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div className="mt-2 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              <button
+                onClick={() => loadData(selectedDate)}
+                disabled={loading}
+                className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+
+            </div>
+          </div>
+        </div>
+        
+        
+        {/* Date Selector */}
+        <div className="bg-white shadow-sm mb-2">
+          <DateSelector 
+            selectedDate={selectedDate} 
+            onDateChange={handleDateChange}
+            availableDates={availableDatesWithCounts}
+          />
+        </div>
+        
+        {/* Matches Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-2">
+            <div className="flex items-center gap-2 text-red-800">
+              <AlertCircle className="w-4 h-4" />
+              <span className="font-medium text-sm">Error</span>
+            </div>
+            <p className="mt-1 text-red-700 text-sm">{error}</p>
+          </div>
+        )}
+        
+        <DateGroupedMatches 
+          groupedMatches={filteredGroupedMatches}
+          loading={loading}
+          onPriceClick={handlePriceClick}
+          selectedPrices={parlaySelections.map((s, index) => `${s.matchId}-${s.priceType}`)}
+        />
+      </div>
+      
+      {/* Parlay Builder */}
+      {parlaySelections.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+          <ParlayBuilder 
+            selections={parlaySelections}
+            onRemoveSelection={handleRemoveSelection}
+            onClearAll={handleClearAll}
+          />
+        </div>
+      )}
+      
+      <PWAInstallPrompt />
+    </div>
+  );
+}
+
+export default App;
