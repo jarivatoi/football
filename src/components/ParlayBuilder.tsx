@@ -30,31 +30,14 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
         console.log(`   competitionId:`, selection.competitionId);
       }
       
-      // Generate betRef (format: marketBookNo-optionNo or matchId-optionNo as fallback)
-      // Use marketBookNo when available, with enhanced validation
-      console.log(`🔍 betRef generation - selection:`, selection);
-      const hasUsableMarketBookNo = selection.marketBookNo && 
-        selection.marketBookNo !== 'undefined' && 
-        selection.marketBookNo !== 'null' && 
-        selection.marketBookNo.trim() !== '' && 
-        selection.marketBookNo.trim() !== '0' &&
-        !isNaN(Number(selection.marketBookNo)) &&
-        Number(selection.marketBookNo) > 0;
-      
-      // Additional validation for 7-digit market IDs which are common
-      const isLikelyValidMarketId = hasUsableMarketBookNo && selection.marketBookNo &&
-        ((selection.marketBookNo.length === 7 && Number(selection.marketBookNo) > 1000000 && Number(selection.marketBookNo) < 9999999) ||
-         (selection.marketBookNo.length === 6 && Number(selection.marketBookNo) > 100000 && Number(selection.marketBookNo) < 999999) ||
-         (selection.marketBookNo.length === 8 && Number(selection.marketBookNo) > 10000000 && Number(selection.marketBookNo) < 99999999));
-      
-      const betRef = (hasUsableMarketBookNo && selection.marketBookNo)
-        ? `${selection.marketBookNo}-1`
-        : `${selection.matchId || '0'}-1`; // Fallback to matchId
-      console.log(`🔍 betRef result - hasUsableMarketBookNo: ${hasUsableMarketBookNo}, isLikelyValidMarketId: ${isLikelyValidMarketId}, betRef: ${betRef}, selection.marketBookNo: ${selection.marketBookNo}, selection.matchId: ${selection.matchId}`);
-      
-      // Map selection type to option details
+      // Map selection type to option details FIRST (needed for betRef)
       const optionDetails = getOptionDetails(selection);
       console.log(`📋 Option details for selection ${index}:`, optionDetails);
+      
+      // Generate betRef (format: marketBookNo-optionNo)
+      const marketBookNoToUse = selection.marketBookNo || selection.matchId;
+      const betRef = `${marketBookNoToUse}-${optionDetails.optionNo}`;
+      console.log(`🔍 betRef result - marketBookNoToUse: ${marketBookNoToUse}, optionNo: ${optionDetails.optionNo}, betRef: ${betRef}`);
       
       // Extract real market data from the match
       const marketData = extractMarketData(selection);
@@ -337,9 +320,11 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
       formData.append(`data[SingleBets][${index}][marketIsLive]`, '0');
       formData.append(`data[SingleBets][${index}][marketIsRacing]`, '0');
       formData.append(`data[SingleBets][${index}][marketPeriodCode]`, 'FT');
-      formData.append(`data[SingleBets][${index}][marketDisplayName]`, '1 X 2');
+      // Update market display name based on market type
+      const marketDisplayName = optionDetails.marketType === '1X2' ? '1 X 2' : optionDetails.marketType === 'OU' ? 'Over/Under 2.5' : 'Both Teams To Score';
+      formData.append(`data[SingleBets][${index}][marketDisplayName]`, marketDisplayName);
       formData.append(`data[SingleBets][${index}][stake]`, stake.toString());
-      formData.append(`data[SingleBets][${index}][returnAmount]`, (stake * (typeof selection.odds === 'string' ? 1 : selection.odds)).toFixed(2));
+      formData.append(`data[SingleBets][${index}][returnAmount]`, (Number(stake) * Number(selection.odds)).toFixed(2));
       formData.append(`data[SingleBets][${index}][potentialPayout]`, '');
       formData.append(`data[SingleBets][${index}][ticketNo]`, '');
       formData.append(`data[SingleBets][${index}][taxAmount]`, '');
