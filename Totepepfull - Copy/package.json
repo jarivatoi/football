@@ -1,13 +1,13 @@
 {
-  "name": "football",
-  "private": false,
-  "version": "1.0.1",
+  "name": "vite-react-typescript-starter",
+  "private": true,
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "deploy": "npm run build && netlify deploy --prod"
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.75.0",
