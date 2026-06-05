@@ -1154,7 +1154,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               </div>
               <div className="flex-1 p-3 text-center bg-gray-50">
                 <div className="text-xs text-gray-600">Stake</div>
-                <div className="text-lg font-bold text-gray-800">{betAmount.toFixed(2)}</div>
+                <div className="text-lg font-bold text-gray-800">{parseInt(String(betAmount))}</div>
               </div>
             </div>
 
