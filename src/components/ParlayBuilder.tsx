@@ -310,7 +310,7 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
       formData.append(`data[SingleBets][${index}][marketId]`, marketId);
       formData.append(`data[SingleBets][${index}][marketBookNo]`, safeMarketBookNo);
       // Use optionDetails.marketType (e.g., '1X2', 'OU', 'BTTS') instead of selection.marketCode
-      formData.append(`data[SingleBets][${index}][marketCode]`, optionDetails.marketType);
+      formData.append(`data[SingleBets][${index}][marketCode]`, selection.marketCode || 'CP');  // Use CP for Win-Draw-Win
       formData.append(`data[SingleBets][${index}][marketLine]`, '');
       formData.append(`data[SingleBets][${index}][marketIsLive]`, '0');
       formData.append(`data[SingleBets][${index}][marketIsRacing]`, '0');
