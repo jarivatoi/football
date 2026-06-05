@@ -260,9 +260,12 @@ class TotelepepService {
     return null;
   }
   
-  // Method to sort matches by date and time
+  // Method to sort matches by date and time (only upcoming matches)
   public sortMatchesByDate(matches: TotelepepMatch[]): TotelepepMatch[] {
-    return matches.sort((a, b) => {
+    // Filter out live and finished matches - only show upcoming
+    const upcomingMatches = matches.filter(match => match.status === 'upcoming');
+    
+    return upcomingMatches.sort((a, b) => {
       // Sort by date first
       const dateA = new Date(a.date || new Date().toISOString().split('T')[0]);
       const dateB = new Date(b.date || new Date().toISOString().split('T')[0]);
