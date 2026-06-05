@@ -381,6 +381,7 @@ function App() {
 
   const handleClearAll = () => {
     setParlaySelections([]);
+    setShowParlayBuilder(false); // Close parlay builder when clearing all
   };
   const handleDataExtracted = (extractedData: any[]) => {
     // Convert extracted data to TotelepepMatch format
@@ -407,17 +408,10 @@ function App() {
     setSelectedDate(newDate);
     // loadData will be called automatically by useEffect
   };
-
+  
   const toggleParlayBuilder = () => {
     setShowParlayBuilder(prev => !prev);
   };
-
-  // Auto-open parlay builder when selections are added
-  useEffect(() => {
-    if (parlaySelections.length > 0) {
-      setShowParlayBuilder(true);
-    }
-  }, [parlaySelections]);
 
 
 

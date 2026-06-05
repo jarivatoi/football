@@ -90,7 +90,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
             >
               <span>{match.marketCount || 1} Markets</span>
               {isExpanded ? (
-                <ChevronDown className="w-3 h-3" />
+                <X className="w-3 h-3 text-red-600" />
               ) : (
                 <ChevronRight className="w-3 h-3" />
               )}
