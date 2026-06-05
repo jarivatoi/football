@@ -262,10 +262,9 @@ class TotelepepService {
   
   // Method to sort matches by date and time (only upcoming matches)
   public sortMatchesByDate(matches: TotelepepMatch[]): TotelepepMatch[] {
-    // Filter out live and finished matches - only show upcoming
-    const upcomingMatches = matches.filter(match => match.status === 'upcoming');
-    
-    return upcomingMatches.sort((a, b) => {
+    // Don't filter here - let the API handle filtering
+    // The GetSport API should already be filtering out live/finished matches
+    return matches.sort((a, b) => {
       // Sort by date first
       const dateA = new Date(a.date || new Date().toISOString().split('T')[0]);
       const dateB = new Date(b.date || new Date().toISOString().split('T')[0]);
