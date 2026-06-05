@@ -1112,18 +1112,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               })}
             </div>
 
-            {/* Combine All Summary */}
-            <div className="p-3 bg-blue-600 text-white">
-              <div className="text-sm font-semibold">
-                COMBINE ALL ({selections.length}) @ Odds {totalOdds.toFixed(2)}
-              </div>
-              <div className="text-xs mt-2 space-y-1">
-                <div>Rebate: {bonusAmount.toFixed(2)}</div>
-                <div>Bonus: {bonusAmount.toFixed(2)}</div>
-                <div>Tax: {(betAmount * 0.0614).toFixed(2)}</div>
-              </div>
-            </div>
-
             {/* Booking Reference */}
             <div className="p-3 bg-green-500 text-white text-center">
               <div className="text-sm font-semibold">
