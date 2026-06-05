@@ -44,8 +44,7 @@ interface TotelepepMatch {
 class TotelepepExtractor {
   // Use CORS proxy for API requests (required for GitHub Pages)
   private corsProxy = 'https://corsproxy.io/?';
-  // Netlify Function URL - replace with your actual Netlify site URL
-  private corsProxyGetMatch = 'https://lepep.netlify.app/.netlify/functions/api?endpoint=';
+  private corsProxyGetMatch = 'https://api.allorigins.win/raw?url=';  // Different proxy for GetMatch
   private baseUrl = 'https://www.totelepep.mu/webapi/GetSport';
   private cache: Map<string, { data: TotelepepMatch[]; timestamp: number }> = new Map();
   private cacheTimeout = 1 * 60 * 1000; // 1 minute instead of 5 minutes
@@ -154,8 +153,9 @@ class TotelepepExtractor {
       
       const apiUrl = `webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
       
-      // Use Netlify Function for GetMatch (reliable, no CORS issues)
-      const fetchUrl = this.corsProxyGetMatch + encodeURIComponent(apiUrl);
+      // Use different CORS proxy for GetMatch (corsproxy.io doesn't work for this endpoint)
+      const fullUrl = `https://www.totelepep.mu/${apiUrl}`;
+      const fetchUrl = this.corsProxyGetMatch + encodeURIComponent(fullUrl);
       
       const response = await fetch(fetchUrl, {
         headers: {

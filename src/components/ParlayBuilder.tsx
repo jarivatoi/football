@@ -1084,39 +1084,76 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           )}
         </div>
 
-        {/* Booking Result Display */}
-        {lastResult && (
-          <div className={`p-4 rounded-lg mb-4 ${lastResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-            <div className="flex items-center gap-2">
-              {lastResult.success ? (
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              ) : (
-                <AlertCircle className="w-5 h-5 text-red-600" />
-              )}
-              <span className={`font-medium ${lastResult.success ? 'text-green-800' : 'text-red-800'}`}>
-                {lastResult.message}
-              </span>
+        {/* Booking Result Display - Betslip Style */}
+        {lastResult && lastResult.success && lastResult.fullResponse && lastResult.fullResponse.betList && (
+          <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white">
+            {/* Bet Selections */}
+            <div className="max-h-60 overflow-y-auto">
+              {lastResult.fullResponse.betList.map((bet: any, index: number) => {
+                const selection = selections[index];
+                return (
+                  <div key={index} className="p-3 border-b border-gray-200 bg-yellow-50 last:border-b-0">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">
+                          {bet.optionOdd || selection?.odds}
+                        </div>
+                        <div className="text-sm font-semibold text-gray-800">
+                          {selection?.homeTeam} vs {selection?.awayTeam}
+                        </div>
+                      </div>
+                      <Trash2 className="w-4 h-4 text-gray-500 cursor-pointer hover:text-red-600" />
+                    </div>
+                    <div className="mt-1 text-xs text-gray-600">
+                      <div>{selection?.kickoff || 'Today'} {selection?.priceType === 'home' ? '1 X 2' : selection?.priceType === 'draw' ? '1 X 2' : selection?.priceType === 'away' ? '1 X 2' : selection?.priceType}</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            
-            {lastResult.success && lastResult.ticketNo && (
-              <div className="mt-3 p-3 bg-white rounded-lg border border-green-300">
-                <div className="text-sm text-green-700">Booking Reference Number</div>
-                <div className="text-xl font-bold text-green-600 mt-1">{lastResult.ticketNo}</div>
+
+            {/* Combine All Summary */}
+            <div className="p-3 bg-blue-600 text-white">
+              <div className="text-sm font-semibold">
+                COMBINE ALL ({selections.length}) @ Odds {totalOdds.toFixed(2)}
               </div>
-            )}
-            
-            {lastResult.fullResponse && (
-              <details className="mt-3">
-                <summary className="text-sm text-gray-600 cursor-pointer">View Full Response</summary>
-                <pre className="mt-2 p-3 bg-gray-800 text-gray-100 rounded text-xs overflow-x-auto max-h-40">
-                  {JSON.stringify(lastResult.fullResponse, null, 2)}
-                </pre>
-              </details>
-            )}
-            
-            {/* New Bet button after successful booking */}
-            {lastResult.success && showNewBetButton && (
-              <div className="mt-4">
+              <div className="text-xs mt-2 space-y-1">
+                <div>Rebate: {bonusAmount.toFixed(2)}</div>
+                <div>Bonus: {bonusAmount.toFixed(2)}</div>
+                <div>Tax: {(betAmount * 0.0614).toFixed(2)}</div>
+              </div>
+            </div>
+
+            {/* Booking Reference */}
+            <div className="p-3 bg-green-500 text-white text-center">
+              <div className="text-sm font-semibold">
+                Booking Ref# {lastResult.ticketNo}
+              </div>
+            </div>
+
+            {/* SMS Option */}
+            <div className="p-3 bg-yellow-400 text-center border-t border-yellow-500">
+              <div className="flex items-center justify-center gap-2 text-sm font-semibold text-gray-800">
+                <span>📱</span>
+                <span>SMS BET{lastResult.ticketNo}</span>
+              </div>
+            </div>
+
+            {/* Stake and Potential Win */}
+            <div className="flex border-t border-gray-200">
+              <div className="flex-1 p-3 text-center border-r border-gray-200">
+                <div className="text-xs text-gray-600">Win</div>
+                <div className="text-lg font-bold text-gray-800">{(betAmount * totalOdds).toFixed(2)}</div>
+              </div>
+              <div className="flex-1 p-3 text-center bg-gray-50">
+                <div className="text-xs text-gray-600">Stake</div>
+                <div className="text-lg font-bold text-gray-800">{betAmount.toFixed(2)}</div>
+              </div>
+            </div>
+
+            {/* Place New Bet Button */}
+            {showNewBetButton && (
+              <div className="p-3 border-t border-gray-200">
                 <button
                   onClick={onClearAll}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
@@ -1125,6 +1162,18 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Error Display */}
+        {lastResult && !lastResult.success && (
+          <div className="p-4 rounded-lg mb-4 bg-red-50 border border-red-200">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-600" />
+              <span className="font-medium text-red-800">
+                {lastResult.message}
+              </span>
+            </div>
           </div>
         )}
 
