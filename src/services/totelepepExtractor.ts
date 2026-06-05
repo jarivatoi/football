@@ -40,9 +40,9 @@ interface TotelepepMatch {
 }
 
 class TotelepepExtractor {
-  // Use Netlify Function for API requests (avoids CORS issues)
-  private corsProxy = '/.netlify/functions/api?endpoint=';
-  private baseUrl = 'webapi/GetSport';
+  // Use CORS proxy for API requests (required for GitHub Pages)
+  private corsProxy = 'https://corsproxy.io/?';
+  private baseUrl = 'https://www.totelepep.mu/webapi/GetSport';
   private cache: Map<string, { data: TotelepepMatch[]; timestamp: number }> = new Map();
   private cacheTimeout = 1 * 60 * 1000; // 1 minute instead of 5 minutes
   private rateLimitDelay = 2000; // 2 seconds between requests

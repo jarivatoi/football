@@ -383,10 +383,10 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
       }
     });
     
-    // Use Netlify Function for bet placement (avoids CORS issues)
-    const betUrl = '/.netlify/functions/placebet';
+    // Place bet on Totelepep API (same as backup)
+    const betUrl = 'https://www.totelepep.mu/webapi/placebet';
     
-    console.log('📡 Sending bet request to Netlify Function');
+    console.log('📡 Sending bet request to Totelepep API');
     console.log('📝 Form data:', formData.toString());
     
     const response = await fetch(betUrl, {
@@ -396,8 +396,7 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         'X-Requested-With': 'XMLHttpRequest'
       },
-      body: formData,
-      credentials: 'include' // Include cookies for session
+      body: formData
     });
     
     if (!response.ok) {
