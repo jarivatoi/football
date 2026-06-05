@@ -182,13 +182,18 @@ const DateSelector: React.FC<DateSelectorProps> = ({
             <div>Total dates shown: {datesToShow.length}</div>
             <div>Selected date: {selectedDate}</div>
             <div>Today's date: {new Date().toISOString().split('T')[0]}</div>
-            <div>Match counts by date:</div>
+            <div>Match counts by date (upcoming only):</div>
             <ul className="list-disc pl-5 mt-1">
-              {datesToShow.map(dateInfo => (
-                <li key={dateInfo.date}>
-                  {dateInfo.date}: {dateInfo.matchCount} matches
-                </li>
-              ))}
+              {datesToShow.map(dateInfo => {
+                // Calculate upcoming matches for this date
+                const now = new Date();
+                const upcomingCount = (window as any).__upcomingMatchesByDate?.[dateInfo.date] || dateInfo.matchCount;
+                return (
+                  <li key={dateInfo.date}>
+                    {dateInfo.date}: {upcomingCount} matches
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>

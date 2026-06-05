@@ -210,6 +210,15 @@ function App() {
   const totalFilteredMatches = Object.values(filteredGroupedMatches)
     .reduce((sum, dateMatches) => sum + (dateMatches as TotelepepMatch[]).length, 0);
   
+  // Store upcoming match counts by date for debug display
+  if (typeof window !== 'undefined') {
+    const upcomingCounts: Record<string, number> = {};
+    Object.entries(filteredGroupedMatches).forEach(([date, dateMatches]) => {
+      upcomingCounts[date] = (dateMatches as TotelepepMatch[]).length;
+    });
+    (window as any).__upcomingMatchesByDate = upcomingCounts;
+  }
+  
   // Get available dates with match counts from Totelepep API calendarList data
   const availableDatesWithCounts = React.useMemo ? React.useMemo(() => {
     console.log('📅 Using calendar list data from Totelepep API for date tabs...');
