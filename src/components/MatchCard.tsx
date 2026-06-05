@@ -176,7 +176,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                     <span className="text-xs text-gray-500">({market.periodCode})</span>
                   )}
                 </div>
-                <span className="text-xs text-gray-500 bg-yellow-400 px-2 py-1 rounded">{market.marketBookNo}</span>
               </button>
               
               {expandedMarkets[market.marketBookNo] && market.selections && market.selections.length > 0 && (
