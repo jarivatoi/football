@@ -396,7 +396,8 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         'X-Requested-With': 'XMLHttpRequest'
       },
-      body: formData
+      body: formData,
+      credentials: 'include' // Include cookies for session
     });
     
     if (!response.ok) {
@@ -443,10 +444,22 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
     // Check if ticketNo is in the betList
     if (!ticketNo && result.betList && Array.isArray(result.betList) && result.betList.length > 0) {
       const firstBet = result.betList[0];
+      // Try ticketNo first
       if (firstBet.ticketNo) {
         ticketNo = firstBet.ticketNo;
         console.log('🎯 Found ticketNo in betList:', ticketNo);
       }
+      // Fallback to bookingReference
+      else if (firstBet.bookingReference) {
+        ticketNo = firstBet.bookingReference;
+        console.log('🎯 Found bookingReference in betList:', ticketNo);
+      }
+    }
+    
+    // Also check top-level bookingReference
+    if (!ticketNo && result.bookingReference) {
+      ticketNo = result.bookingReference;
+      console.log('🎯 Found bookingReference at top level:', ticketNo);
     }
     
     // If ticketNo is in the format "Booking Ref# 123456789", extract just the number

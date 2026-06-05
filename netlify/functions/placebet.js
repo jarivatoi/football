@@ -27,6 +27,7 @@ exports.handler = async (event, context) => {
     
     console.log('📝 Body length:', bodyToSend ? bodyToSend.length : 0);
     console.log('📝 First 200 chars:', bodyToSend ? bodyToSend.substring(0, 200) : 'EMPTY');
+    console.log('📝 Original cookies:', event.headers.cookie || 'none');
     
     const response = await fetch(targetUrl, {
       method: 'POST',
@@ -34,6 +35,8 @@ exports.handler = async (event, context) => {
         'Accept': '*/*',
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         'X-Requested-With': 'XMLHttpRequest',
+        // Forward cookies if present
+        'Cookie': event.headers.cookie || '',
       },
       body: bodyToSend,
     });
