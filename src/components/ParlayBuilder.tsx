@@ -1131,7 +1131,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             <div className="flex border-t border-gray-200">
               <div className="flex-1 p-3 text-center border-r border-gray-200">
                 <div className="text-xs text-gray-600">Win</div>
-                <div className="text-lg font-bold text-gray-800">{(betAmount * totalOdds).toFixed(2)}</div>
+                <div className="text-lg font-bold text-gray-800">
+                  {lastResult?.fullResponse?.potentialPayout || potentialPayout.toFixed(2)}
+                </div>
               </div>
               <div className="flex-1 p-3 text-center bg-gray-50">
                 <div className="text-xs text-gray-600">Stake</div>
