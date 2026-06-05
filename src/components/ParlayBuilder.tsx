@@ -166,36 +166,21 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
       formData.append(`data[SingleBets][${index}][sportIcon]`, 'soccer_icn');
       formData.append(`data[SingleBets][${index}][competitionName]`, marketData.competitionName);
       formData.append(`data[SingleBets][${index}][competitionId]`, marketData.competitionId);
-      // Use marketBookNo as marketId if available, otherwise fall back to matchId
-      // Use marketBookNo when available, with enhanced validation
+      // Use selection.marketId if available (from GetMatch API), otherwise fall back to marketBookNo or matchId
       console.log(`🔍 marketId generation - selection:`, selection);
-      const hasUsableMarketBookNoForMarketId = selection.marketBookNo && 
-        selection.marketBookNo !== 'undefined' && 
-        selection.marketBookNo !== 'null' && 
-        selection.marketBookNo.trim() !== '' && 
-        selection.marketBookNo.trim() !== '0' &&
-        !isNaN(Number(selection.marketBookNo)) &&
-        Number(selection.marketBookNo) > 0;
       
-      // Additional validation for 7-digit market IDs which are common
-      const isLikelyValidMarketIdForMarketId = hasUsableMarketBookNoForMarketId && selection.marketBookNo &&
-        ((selection.marketBookNo.length === 7 && Number(selection.marketBookNo) > 1000000 && Number(selection.marketBookNo) < 9999999) ||
-         (selection.marketBookNo.length === 6 && Number(selection.marketBookNo) > 100000 && Number(selection.marketBookNo) < 999999) ||
-         (selection.marketBookNo.length === 8 && Number(selection.marketBookNo) > 10000000 && Number(selection.marketBookNo) < 99999999));
-      
-      const marketId = (hasUsableMarketBookNoForMarketId && selection.marketBookNo)
+      const marketId = (selection.marketId && selection.marketId !== '0')
+        ? selection.marketId
+        : (selection.marketBookNo && selection.marketBookNo !== '0')
         ? selection.marketBookNo
         : (selection.matchId || '0');
-      console.log(`🔍 marketId result - hasUsableMarketBookNoForMarketId: ${hasUsableMarketBookNoForMarketId}, isLikelyValidMarketIdForMarketId: ${isLikelyValidMarketIdForMarketId}, marketId: ${marketId}, selection.marketBookNo: ${selection.marketBookNo}, selection.matchId: ${selection.matchId}`);
       
-      // Additional debugging for marketId issues
+      console.log(`🔍 marketId result - selection.marketId: ${selection.marketId}, selection.marketBookNo: ${selection.marketBookNo}, final marketId: ${marketId}`);
+      
       console.log(`🔍 DETAILED MARKET ID DEBUGGING:`);
+      console.log(`   selection.marketId:`, selection.marketId);
       console.log(`   selection.marketBookNo:`, selection.marketBookNo);
-      console.log(`   selection.marketBookNo type:`, typeof selection.marketBookNo);
-      console.log(`   selection.marketBookNo length:`, selection.marketBookNo ? selection.marketBookNo.length : 'N/A');
       console.log(`   selection.matchId:`, selection.matchId);
-      console.log(`   selection.matchId type:`, typeof selection.matchId);
-      console.log(`   hasUsableMarketBookNoForMarketId:`, hasUsableMarketBookNoForMarketId);
       console.log(`   Final marketId:`, marketId);
       console.log(`   Final marketId type:`, typeof marketId);
       
@@ -757,6 +742,7 @@ export interface ParlaySelection {
   kickoff?: string;
   marketBookNo?: string;
   marketCode?: string;
+  marketId?: string;  // Actual market ID from GetMatch API
   competitionId?: string;
 }
 
