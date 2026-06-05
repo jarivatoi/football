@@ -311,6 +311,7 @@ function App() {
           league: match.league,
           kickoff: match.kickoff,
           competitionId: match.competitionId,
+          marketId: match.marketId || finalMarketBookNo,  // Use actual market ID if available
           marketBookNo: finalMarketBookNo,
           marketCode: finalMarketCode,
         };

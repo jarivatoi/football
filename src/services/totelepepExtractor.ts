@@ -842,202 +842,40 @@ class TotelepepExtractor {
       const { date, time } = this.parseTotelepepDateTime(datetime);
       
       // Get competition name from competitionData if available
-      // Try to extract marketBookNo and marketCode from later fields if they exist
+      // Extract marketId from field 12 (the actual market ID from API)
+      let marketId = undefined;
+      if (fields.length > 12) {
+        const potentialMarketId = fields[12];
+        if (potentialMarketId && typeof potentialMarketId === 'string' && 
+            potentialMarketId.trim() !== '' && !isNaN(Number(potentialMarketId)) && Number(potentialMarketId) > 0) {
+          marketId = potentialMarketId;
+          console.log(`   🎯 Found marketId in field 12: "${marketId}"`);
+        }
+      }
+      
+      // Extract marketBookNo from field 13
       let marketBookNo = undefined;
+      if (fields.length > 13) {
+        const potentialMarketBookNo = fields[13];
+        if (potentialMarketBookNo && typeof potentialMarketBookNo === 'string' && 
+            potentialMarketBookNo.trim() !== '' && !isNaN(Number(potentialMarketBookNo)) && Number(potentialMarketBookNo) > 0) {
+          marketBookNo = potentialMarketBookNo;
+          console.log(`   🎯 Found marketBookNo in field 13: "${marketBookNo}"`);
+        }
+      }
+      
+      // Extract marketCode from field 15
       let marketCode = undefined;
-      
-      // Look for marketBookNo and marketCode in later fields
-      console.log(`   🔍 Checking fields for marketBookNo and marketCode`);
-      console.log(`   🔍 Fields length: ${fields.length}`);
-      console.log(`   🔍 Fields:`, fields);
-      
-      // Search for marketBookNo in multiple fields to find the correct one
-      // Log all potential marketBookNo candidates for debugging
-      console.log(`   🔍 Searching for marketBookNo in all fields:`);
-      const marketBookNoCandidates: Array<{index: number, value: string, length: number, isNumeric: boolean}> = [];
-      
-      // Look through all fields for potential marketBookNo values
-      for (let i = 0; i < fields.length; i++) {
-        const field = fields[i];
-        console.log(`   Field ${i}: "${field}" (type: ${typeof field})`);
-        
-        // Collect all potential candidates for analysis
-        if (field && typeof field === 'string' && field.trim() !== '') {
-          const isNumeric = !isNaN(Number(field));
-          const length = field.length;
-          marketBookNoCandidates.push({index: i, value: field, length, isNumeric});
-          
-          // Check if this field looks like a valid marketBookNo (numeric and reasonable length)
-          // Relax the length constraint to accommodate 5-10 digit market IDs
-          // Also check for the specific pattern we know should work (5160495)
-          if (isNumeric && length >= 5 && length <= 10 && Number(field) > 0) {
-            // Special check for the specific correct value mentioned by the user
-            if (field === '5160495') {
-              marketBookNo = field;
-              console.log(`   🎯 Found EXACT MATCH marketBookNo in field ${i}: "${marketBookNo}" (type: ${typeof marketBookNo})`);
-              console.log(`   ✅ marketBookNo is EXACT MATCH: ${marketBookNo}`);
-              break;
-            }
-            
-            // Additional check for common market ID patterns
-            const fieldValue = Number(field);
-            // Prioritize 7-digit numbers as they seem to be the correct format
-            // Also prioritize the specific correct value if we can identify it
-            if (length === 7 && fieldValue > 1000000 && fieldValue < 9999999) {
-              marketBookNo = field;
-              console.log(`   📋 Found 7-digit marketBookNo in field ${i}: "${marketBookNo}" (type: ${typeof marketBookNo})`);
-              console.log(`   ✅ marketBookNo is valid (7-digit): ${marketBookNo}`);
-              break;
-            }
-            // Check for 6-digit numbers (but with lower priority)
-            else if (length === 6 && fieldValue > 100000 && fieldValue < 999999) {
-              // Only set if we don't already have a 7-digit number
-              if (!marketBookNo) {
-                marketBookNo = field;
-                console.log(`   📋 Found 6-digit marketBookNo in field ${i}: "${marketBookNo}" (type: ${typeof marketBookNo})`);
-                console.log(`   ⚠️ marketBookNo is valid (6-digit): ${marketBookNo}`);
-              }
-            }
-            // Check for 8-digit numbers (but with lower priority)
-            else if (length === 8 && fieldValue > 10000000 && fieldValue < 99999999) {
-              // Only set if we don't already have a 7-digit number
-              if (!marketBookNo) {
-                marketBookNo = field;
-                console.log(`   📋 Found 8-digit marketBookNo in field ${i}: "${marketBookNo}" (type: ${typeof marketBookNo})`);
-                console.log(`   ⚠️ marketBookNo is valid (8-digit): ${marketBookNo}`);
-              }
-            }
-            // If we haven't found one yet, take the first valid numeric field
-            else if (!marketBookNo) {
-              marketBookNo = field;
-              console.log(`   📋 Found potential marketBookNo in field ${i}: "${marketBookNo}" (type: ${typeof marketBookNo})`);
-              console.log(`   ⚠️ marketBookNo is potentially valid: ${marketBookNo}`);
-            }
-          }
-        }
-      }
-      
-      // Log all candidates for debugging
-      console.log(`   📊 All marketBookNo candidates:`, marketBookNoCandidates);
-      
-      // If we still don't have marketBookNo, try to find the best candidate
-      if (!marketBookNo && marketBookNoCandidates.length > 0) {
-        // Look for the exact match first (special case for the user's correct value)
-        const exactMatchCandidate = marketBookNoCandidates.find(candidate => 
-          candidate.isNumeric && 
-          candidate.value === '5160495'
-        );
-        
-        if (exactMatchCandidate) {
-          marketBookNo = exactMatchCandidate.value;
-          console.log(`   🎯 Found EXACT MATCH marketBookNo candidate in field ${exactMatchCandidate.index}: "${marketBookNo}"`);
-        } else {
-          // Look for the best candidate based on our criteria, prioritizing 7-digit numbers
-          const sevenDigitCandidate = marketBookNoCandidates.find(candidate => 
-            candidate.isNumeric && 
-            candidate.length === 7 && 
-            Number(candidate.value) > 1000000 && Number(candidate.value) < 9999999
-          );
-          
-          if (sevenDigitCandidate) {
-            marketBookNo = sevenDigitCandidate.value;
-            console.log(`   📋 Found 7-digit marketBookNo candidate in field ${sevenDigitCandidate.index}: "${marketBookNo}"`);
-          } else {
-            // Look for 6-digit candidates
-            const sixDigitCandidate = marketBookNoCandidates.find(candidate => 
-              candidate.isNumeric && 
-              candidate.length === 6 && 
-              Number(candidate.value) > 100000 && Number(candidate.value) < 999999
-            );
-            
-            if (sixDigitCandidate) {
-              marketBookNo = sixDigitCandidate.value;
-              console.log(`   📋 Found 6-digit marketBookNo candidate in field ${sixDigitCandidate.index}: "${marketBookNo}"`);
-            } else {
-              // Look for 8-digit candidates
-              const eightDigitCandidate = marketBookNoCandidates.find(candidate => 
-                candidate.isNumeric && 
-                candidate.length === 8 && 
-                Number(candidate.value) > 10000000 && Number(candidate.value) < 99999999
-              );
-              
-              if (eightDigitCandidate) {
-                marketBookNo = eightDigitCandidate.value;
-                console.log(`   📋 Found 8-digit marketBookNo candidate in field ${eightDigitCandidate.index}: "${marketBookNo}"`);
-              } else {
-                // Take the first valid numeric candidate
-                const firstNumericCandidate = marketBookNoCandidates.find(candidate => candidate.isNumeric && Number(candidate.value) > 0);
-                if (firstNumericCandidate) {
-                  marketBookNo = firstNumericCandidate.value;
-                  console.log(`   📋 Found first numeric marketBookNo candidate in field ${firstNumericCandidate.index}: "${marketBookNo}"`);
-                }
-              }
-            }
-          }
-        }
-      }
-      
-      // If we still don't have marketBookNo, try the original field 15 as fallback
-      if (!marketBookNo && fields.length > 15) {
-        marketBookNo = fields[15];
-        console.log(`   📋 Found marketBookNo in field 15 (fallback): "${marketBookNo}" (type: ${typeof marketBookNo})`);
-        // Check if it's a valid marketBookNo (should be numeric)
-        if (marketBookNo && typeof marketBookNo === 'string' && marketBookNo.trim() !== '' && !isNaN(Number(marketBookNo)) && Number(marketBookNo) > 0) {
-          console.log(`   ✅ marketBookNo is valid: ${marketBookNo}`);
-        } else {
-          console.log(`   ⚠️ marketBookNo is invalid or empty: "${marketBookNo}"`);
-          marketBookNo = undefined;
-        }
-      } else if (!marketBookNo) {
-        console.log(`   ⚠️ Not enough fields for marketBookNo (need > 15, have ${fields.length})`);
-      }
-      
-      // Search for marketCode in multiple fields
-      for (let i = 15; i < Math.min(fields.length, 25); i++) {
-        const field = fields[i];
-        // Check if this field looks like a valid marketCode (non-empty string)
-        // Allow both numeric and non-numeric market codes, but ensure they're not just numbers that look like market IDs
-        if (field && typeof field === 'string' && field.trim() !== '' && field.length > 0) {
-          // If it's numeric but very long, it's likely a market code
-          // If it's not numeric, it's likely a market code
-          const isNumeric = !isNaN(Number(field));
-          if (!isNumeric || (isNumeric && field.length > 10) || (isNumeric && field.length >= 2 && field.length <= 4)) {
-            marketCode = field;
-            console.log(`   📋 Found marketCode in field ${i}: "${marketCode}" (type: ${typeof marketCode})`);
-            console.log(`   ✅ marketCode is valid: ${marketCode}`);
-            break;
-          }
-        }
-      }
-      
-      // If we still don't have marketCode, try the original field 16 as fallback
-      if (!marketCode && fields.length > 16) {
-        marketCode = fields[16];
-        console.log(`   📋 Found marketCode in field 16 (fallback): "${marketCode}" (type: ${typeof marketCode})`);
-        // Check if it's a valid marketCode (should be non-empty string)
+      if (fields.length > 15) {
+        marketCode = fields[15];
         if (marketCode && typeof marketCode === 'string' && marketCode.trim() !== '') {
-          console.log(`   ✅ marketCode is valid: ${marketCode}`);
+          console.log(`   🎯 Found marketCode in field 15: "${marketCode}"`);
         } else {
-          console.log(`   ⚠️ marketCode is invalid or empty: "${marketCode}"`);
-          // Try a more generic fallback - look for non-numeric values in fields 15-25
-          for (let j = 15; j < Math.min(fields.length, 25); j++) {
-            const fallbackField = fields[j];
-            if (fallbackField && typeof fallbackField === 'string' && fallbackField.trim() !== '' && 
-                (isNaN(Number(fallbackField)) || fallbackField.length > 10 || (fallbackField.length >= 2 && fallbackField.length <= 4))) {
-              marketCode = fallbackField;
-              console.log(`   📋 Fallback found marketCode in field ${j}: "${marketCode}"`);
-              break;
-            }
-          }
-          if (!marketCode) {
-            marketCode = undefined;
-          }
+          marketCode = undefined;
         }
-      } else if (!marketCode) {
-        console.log(`   ⚠️ Not enough fields for marketCode (need > 16, have ${fields.length})`);
       }
       
-      console.log(`   📊 Final marketBookNo: ${marketBookNo}, marketCode: ${marketCode}`);
+      console.log(`   📊 Final extracted values - marketId: ${marketId}, marketBookNo: ${marketBookNo}, marketCode: ${marketCode}`);
       
       // Get the league name directly from the API competition data
       let league = 'Football League';
@@ -1116,6 +954,9 @@ class TotelepepExtractor {
         awayTeam: teamNames.away,
         league,
         competitionId,
+        marketId,  // Actual market ID from API (field 12)
+        marketBookNo,  // Market book number from API (field 13)
+        marketCode,  // Market code from API (field 15)
         kickoff: time,
         date,
         status: 'upcoming' as const,
