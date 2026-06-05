@@ -405,11 +405,22 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
     
     const result = await response.json();
     console.log('📄 Totelepep response:', result);
+    console.log('📄 FULL RESULT JSON:', JSON.stringify(result, null, 2));
     
     // Debug response details
     console.log('📊 Response Status:', response.status);
     console.log('📊 Response OK:', response.ok);
     console.log('📊 Response Headers:', [...response.headers.entries()]);
+    
+    // Log betList if it exists
+    if (result.betList && result.betList.length > 0) {
+      console.log('📋 BETLIST DETAILS:');
+      console.log('  - ticketNo:', result.betList[0].ticketNo);
+      console.log('  - bookingReference:', result.betList[0].bookingReference);
+      console.log('  - betErrorCode:', result.betList[0].betErrorCode);
+      console.log('  - betErrorMessage:', result.betList[0].betErrorMessage);
+      console.log('  - Full betList[0]:', result.betList[0]);
+    }
     
     // Extract ticket number from the response
     let ticketNo = result.ticketNo;
