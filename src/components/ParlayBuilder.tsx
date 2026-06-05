@@ -383,10 +383,10 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
       }
     });
     
-    // Place bet on Totelepep API (same as backup)
-    const betUrl = 'https://www.totelepep.mu/webapi/placebet';
+    // Place bet on Totelepep API (with CORS proxy for GitHub Pages)
+    const betUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://www.totelepep.mu/webapi/placebet');
     
-    console.log('📡 Sending bet request to Totelepep API');
+    console.log('📡 Sending bet request to Totelepep API (via CORS proxy)');
     console.log('📝 Form data:', formData.toString());
     
     const response = await fetch(betUrl, {
