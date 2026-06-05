@@ -1135,13 +1135,15 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 <div className="text-xs text-gray-600">Win</div>
                 <div className="text-lg font-bold text-gray-800">
                   {(() => {
-                    // Try to get win amount from betList in API response
+                    // Get win amount from betList in API response
                     if (lastResult?.fullResponse?.betList && lastResult.fullResponse.betList.length > 0) {
                       const firstBet = lastResult.fullResponse.betList[0];
-                      // Check for potentialWin, winAmount, or payout fields
-                      return firstBet.potentialWin || firstBet.winAmount || firstBet.payout || potentialPayout.toFixed(2);
+                      // Use potentialPayout from betList (this is the correct value from totelepep API)
+                      if (firstBet.potentialPayout) {
+                        return firstBet.potentialPayout;
+                      }
                     }
-                    // Fallback to potentialPayout from API response
+                    // Fallback to potentialPayout from top-level API response
                     if (lastResult?.fullResponse?.potentialPayout) {
                       return lastResult.fullResponse.potentialPayout;
                     }
