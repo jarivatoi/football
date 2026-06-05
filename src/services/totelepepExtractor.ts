@@ -933,20 +933,18 @@ class TotelepepExtractor {
       
       console.log(`🔍 Match ${matchId}: ${teamNames.home} vs ${teamNames.away} - Competition ID: ${competitionId}, League: ${league}`);
       
-      // Extract market information from fields
-      let marketCount = 25; // Default value
-      let availableMarkets: string[] = ['1X2', 'Over/Under 2.5', 'Both Teams To Score']; // Default markets
-      
-      // Try to extract market count from fields (typically in later positions)
-      for (let i = 15; i < Math.min(fields.length, 30); i++) {
-        const field = fields[i].trim();
-        // Look for market count indicators
-        if (field.match(/^\d+$/) && parseInt(field) > 5 && parseInt(field) < 100) {
-          marketCount = parseInt(field);
-          console.log(`   📊 Found market count: ${marketCount} in field ${i}`);
-          break;
+      // Extract market count from field 14 (actual market count from API)
+      let marketCount = 1; // Default value
+      if (fields.length > 14) {
+        const potentialMarketCount = fields[14];
+        if (potentialMarketCount && typeof potentialMarketCount === 'string' && 
+            potentialMarketCount.trim() !== '' && !isNaN(Number(potentialMarketCount))) {
+          marketCount = parseInt(potentialMarketCount);
+          console.log(`   📊 Found marketCount in field 14: ${marketCount}`);
         }
       }
+      
+      let availableMarkets: string[] = ['1X2', 'Over/Under 2.5', 'Both Teams To Score']; // Default markets
       
       const match: TotelepepMatch = {
         id: matchId,
