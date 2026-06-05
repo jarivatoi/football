@@ -5,6 +5,7 @@ interface TotelepepMatch {
   league: string;
   competitionId: string;
   marketBookNo?: string;
+  marketId?: string;  // Actual market ID from API (different from marketBookNo!)
   marketCode?: string;
   kickoff: string;
   date: string;
@@ -27,6 +28,7 @@ interface TotelepepMatch {
   marketCount?: number; // Total number of available markets
   availableMarkets?: string[]; // List of all available market names
   allMarkets?: Array<{ // Detailed market information
+    id?: string;  // Actual market ID from API
     name: string;
     marketBookNo: string;
     marketCode: string;
