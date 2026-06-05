@@ -14,8 +14,21 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
     console.log(`   Stake amount:`, stake);
     console.log(`   Number of selections:`, selections.length);
     
-    // Multi-bet data (empty for single bets)
-    formData.append('data[MultiStake]', '');
+    // Multi-bet data (populate when multiple selections for parlay)
+    if (selections.length > 1) {
+      // Calculate total odds for multi-bet
+      const totalOdds = selections.reduce((acc, sel) => {
+        const odds = typeof sel.odds === 'string' ? parseFloat(sel.odds) : sel.odds;
+        return acc * odds;
+      }, 1);
+      
+      // Set MultiStake for parlay bets
+      formData.append('data[MultiStake]', stake.toString());
+      formData.append('data[MultiReturn]', (stake * totalOdds).toFixed(2));
+      console.log(`🔗 Multi-bet (Parlay) - Total Odds: ${totalOdds.toFixed(2)}, MultiStake: ${stake}`);
+    } else {
+      formData.append('data[MultiStake]', '');
+    }
     
     // Add each selection as SingleBets array
     selections.forEach((selection, index) => {

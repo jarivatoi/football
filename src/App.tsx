@@ -291,18 +291,18 @@ function App() {
     // Find the match details
     const match = matches.find(m => m.id === matchId);
     if (match) {
-      // Check if this selection already exists
+      // Check if this exact selection already exists
       const existingIndex = parlaySelections.findIndex(
         s => s.matchId === matchId && s.priceType === priceType
       );
-    
+      
       if (existingIndex >= 0) {
-        // Remove existing selection
+        // Remove existing selection (toggle off)
         setParlaySelections(prev => prev.filter((_, index) => index !== existingIndex));
       } else {
         // Log match data for debugging
-        console.log('🔍 Adding selection from match:', match);
-        console.log(`🔍 Price type: ${priceType}, Odds: ${odds}`);
+        console.log(' Adding selection from match:', match);
+        console.log(` Price type: ${priceType}, Odds: ${odds}`);
         console.log(`🔍 Market data from click - marketBookNo: ${marketBookNo}, marketCode: ${marketCode}`);
         
         // Use the marketBookNo and marketCode passed from the click event
