@@ -408,11 +408,6 @@ function App() {
       <Header />
       
       <div className="max-w-3xl mx-auto">
-        {/* Stats Cards */}
-        <StatsCards 
-          matches={matches}
-        />
-        
         {/* Search and Controls */}
         <div className="bg-white shadow-sm mb-2">
           <div className="px-3 py-2">
