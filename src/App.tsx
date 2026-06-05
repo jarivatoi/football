@@ -178,13 +178,20 @@ function App() {
     loadCalendarList();
   }, [selectedDate]); // Only run when selectedDate changes, not on every render
 
-  // Filter matches and maintain grouping
+  // Filter matches by selected date and maintain grouping
   const filteredGroupedMatches = React.useMemo ? React.useMemo(() => {
-    if (!searchTerm) return groupedMatches;
+    // First filter by selected date
+    const dateFiltered: Record<string, TotelepepMatch[]> = {};
+    if (groupedMatches[selectedDate]) {
+      dateFiltered[selectedDate] = groupedMatches[selectedDate];
+    }
+    
+    // Then filter by search term if provided
+    if (!searchTerm) return dateFiltered;
     
     const filtered: Record<string, TotelepepMatch[]> = {};
     
-    Object.entries(groupedMatches).forEach(([date, dateMatches]) => {
+    Object.entries(dateFiltered).forEach(([date, dateMatches]) => {
       const filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match =>
         match.homeTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
         match.awayTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -197,7 +204,7 @@ function App() {
     });
     
     return filtered;
-  }, [groupedMatches, searchTerm]) : groupedMatches;
+  }, [groupedMatches, searchTerm, selectedDate]) : groupedMatches;
 
   const totalMatches = matches.length;
   const totalFilteredMatches = Object.values(filteredGroupedMatches)
