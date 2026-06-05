@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Search, Calendar, AlertCircle, Calculator, Database, Lightbulb, Trash2, Play, Pause } from 'lucide-react';
-import { Target, Ticket } from 'lucide-react';
+import { RefreshCw, Search, Calendar, AlertCircle, Calculator, Database, Lightbulb, Trash2, Play, Pause, X, Ticket } from 'lucide-react';
+import { Target } from 'lucide-react';
 import DateGroupedMatches from './components/DateGroupedMatches';
 import DateSelector from './components/DateSelector';
 import Header from './components/Header';
@@ -82,6 +82,7 @@ function App() {
   const [isOnline, setIsOnline] = useSafeState<boolean>(true);
   const [availableDates, setAvailableDates] = useSafeState<Array<{date: string, matchCount: number, displayName: string}>>([]);
   const [calendarList, setCalendarList] = useSafeState<Array<{date: string, matchCount: number, displayName: string}>>([]);
+  const [showParlayBuilder, setShowParlayBuilder] = useSafeState(false); // Control parlay builder slide animation
 
   // Initialize online status
   useSafeEffect(() => {
@@ -407,6 +408,17 @@ function App() {
     // loadData will be called automatically by useEffect
   };
 
+  const toggleParlayBuilder = () => {
+    setShowParlayBuilder(prev => !prev);
+  };
+
+  // Auto-open parlay builder when selections are added
+  useEffect(() => {
+    if (parlaySelections.length > 0) {
+      setShowParlayBuilder(true);
+    }
+  }, [parlaySelections]);
+
 
 
 
@@ -414,7 +426,10 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header />
+      <Header 
+        selectionCount={parlaySelections.length}
+        onSlipClick={toggleParlayBuilder}
+      />
       
       <div className="max-w-3xl mx-auto">
         {/* Search and Controls */}
@@ -474,16 +489,26 @@ function App() {
         />
       </div>
       
-      {/* Parlay Builder */}
-      {parlaySelections.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
-          <ParlayBuilder 
-            selections={parlaySelections}
-            onRemoveSelection={handleRemoveSelection}
-            onClearAll={handleClearAll}
-          />
-        </div>
-      )}
+      {/* Parlay Builder - Slide in from right */}
+      <div className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${showParlayBuilder ? 'translate-x-0' : 'translate-x-full'}`}>
+        {parlaySelections.length > 0 && (
+          <>
+            {/* Close button */}
+            <button
+              onClick={() => setShowParlayBuilder(false)}
+              className="absolute top-4 right-4 p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <ParlayBuilder 
+              selections={parlaySelections}
+              onRemoveSelection={handleRemoveSelection}
+              onClearAll={handleClearAll}
+            />
+          </>
+        )}
+      </div>
       
       <PWAInstallPrompt />
     </div>

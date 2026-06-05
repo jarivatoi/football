@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Clock } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, X } from 'lucide-react';
 import { TotelepepMatch } from '../services/totelepepExtractor';
 import { totelepepExtractor } from '../services/totelepepExtractor';
 
@@ -167,7 +167,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               >
                 <div className="flex items-center gap-2">
                   {expandedMarkets[market.marketBookNo] ? (
-                    <ChevronDown className="w-4 h-4 text-gray-600" />
+                    <X className="w-4 h-4 text-red-600" />
                   ) : (
                     <ChevronRight className="w-4 h-4 text-gray-600" />
                   )}
