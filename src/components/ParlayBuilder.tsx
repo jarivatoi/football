@@ -499,7 +499,9 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
     return {
       success: isSuccessful,
       ticketNo: ticketNo,
-      potentialPayout: result.potentialPayout,
+      potentialPayout: result.betList && result.betList.length > 0 
+        ? result.betList[0].potentialPayout  // Use potentialPayout from betList
+        : result.potentialPayout,  // Fallback to top-level
       errorMessage: result.errorMessage,
       multiErrorMessage: result.multiErrorMessage,
       balanceAmount: result.balanceAmount,
