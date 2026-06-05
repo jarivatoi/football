@@ -860,20 +860,26 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       
       // Enhanced success checking to handle cases where ticket is generated but errors are present
       const hasTicket = bookingResult.ticketNo && bookingResult.ticketNo.trim() !== '';
-      const hasErrors = (bookingResult.errorMessage && bookingResult.errorMessage.trim() !== '') || 
-                        (bookingResult.multiErrorMessage && bookingResult.multiErrorMessage.trim() !== '');
-      
-      console.log('🎯 FRONTEND SUCCESS DETERMINATION:', {
+      const hasErrors = (bookingResult.errorMessage && bookingResult.errorMessage.trim() !== '' && bookingResult.errorMessage !== 'None') || 
+                        (bookingResult.multiErrorMessage && bookingResult.multiErrorMessage.trim() !== '' && bookingResult.multiErrorMessage !== 'None');
+            
+      // Check betList for error codes
+      const hasBetErrors = bookingResult.betList && bookingResult.betList.length > 0 && 
+                           bookingResult.betList.some((bet: any) => bet.betErrorCode && bet.betErrorCode !== 0);
+            
+      console.log(' FRONTEND SUCCESS DETERMINATION:', {
         hasTicket: hasTicket,
         hasErrors: hasErrors,
+        hasBetErrors: hasBetErrors,
         ticketNo: bookingResult.ticketNo,
         errorMessage: bookingResult.errorMessage,
-        multiErrorMessage: bookingResult.multiErrorMessage
+        multiErrorMessage: bookingResult.multiErrorMessage,
+        betListErrors: bookingResult.betList?.map((bet: any) => ({ betErrorCode: bet.betErrorCode, betErrorMessage: bet.betErrorMessage }))
       });
       
-      // Consider successful if we have a ticket, even if there are warning messages
-      if (hasTicket) {
-        console.log('✅ Totelepep booking successful (has ticket):', bookingResult);
+      // Consider successful ONLY if we have a ticket AND no bet errors
+      if (hasTicket && !hasBetErrors && !hasErrors) {
+        console.log('✅ Totelepep booking successful (has ticket, no errors):', bookingResult);
         
         setLastResult({
           success: true,
