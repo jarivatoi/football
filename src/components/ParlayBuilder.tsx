@@ -853,6 +853,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       const bookingResult = await placeTotelepepBet(selections, betAmount);
       
       console.log('📄 Full Totelepep response:', bookingResult);
+      console.log('📄 betList details:', JSON.stringify(bookingResult.betList, null, 2));
+      console.log(' potentialPayout:', bookingResult.potentialPayout);
       
       // Enhanced success checking to handle cases where ticket is generated but errors are present
       const hasTicket = bookingResult.ticketNo && bookingResult.ticketNo.trim() !== '';
@@ -1132,7 +1134,20 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               <div className="flex-1 p-3 text-center border-r border-gray-200">
                 <div className="text-xs text-gray-600">Win</div>
                 <div className="text-lg font-bold text-gray-800">
-                  {lastResult?.fullResponse?.potentialPayout || potentialPayout.toFixed(2)}
+                  {(() => {
+                    // Try to get win amount from betList in API response
+                    if (lastResult?.fullResponse?.betList && lastResult.fullResponse.betList.length > 0) {
+                      const firstBet = lastResult.fullResponse.betList[0];
+                      // Check for potentialWin, winAmount, or payout fields
+                      return firstBet.potentialWin || firstBet.winAmount || firstBet.payout || potentialPayout.toFixed(2);
+                    }
+                    // Fallback to potentialPayout from API response
+                    if (lastResult?.fullResponse?.potentialPayout) {
+                      return lastResult.fullResponse.potentialPayout;
+                    }
+                    // Last fallback to calculated value
+                    return potentialPayout.toFixed(2);
+                  })()}
                 </div>
               </div>
               <div className="flex-1 p-3 text-center bg-gray-50">
