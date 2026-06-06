@@ -15,6 +15,27 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   const [expandedMarkets, setExpandedMarkets] = useState<Record<string, boolean>>({});
   const [activeMarketTab, setActiveMarketTab] = useState<string>('ALL'); // ALL, FT, HT, 2H
 
+  // Sync selection state when expanding markets
+  React.useEffect(() => {
+    if (isExpanded && match.allMarkets && match.allMarkets.length > 0) {
+      // Auto-expand the 1X2 market if user has a selection from quick odds
+      const homeSelected = selectedPrices.includes(`${match.id}-home`);
+      const drawSelected = selectedPrices.includes(`${match.id}-draw`);
+      const awaySelected = selectedPrices.includes(`${match.id}-away`);
+      
+      if (homeSelected || drawSelected || awaySelected) {
+        // Find the 1X2 market and expand it
+        const x2Market = match.allMarkets.find(m => m.name === '1 X 2' || m.marketCode === 'CP');
+        if (x2Market) {
+          setExpandedMarkets(prev => ({
+            ...prev,
+            [x2Market.marketBookNo]: true
+          }));
+        }
+      }
+    }
+  }, [isExpanded, match.allMarkets, match.id, selectedPrices]);
+
   const toggleExpand = async () => {
     const newState = !isExpanded;
     setIsExpanded(newState);
@@ -39,6 +60,25 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
 
   const isSelected = (priceType: string) => {
     return selectedPrices.includes(`${match.id}-${priceType}`);
+  };
+
+  // Check if a market selection matches a quick 1X2 selection
+  const isMarketSelectionSelected = (market: any, selectionName: string) => {
+    // Check if this is a 1X2 market
+    if (market.name === '1 X 2' || market.marketCode === 'CP') {
+      // Map selection names to quick 1X2 price types
+      if (selectionName === '1' || selectionName === 'Home') {
+        return selectedPrices.includes(`${match.id}-home`);
+      }
+      if (selectionName === 'X' || selectionName === 'Draw') {
+        return selectedPrices.includes(`${match.id}-draw`);
+      }
+      if (selectionName === '2' || selectionName === 'Away') {
+        return selectedPrices.includes(`${match.id}-away`);
+      }
+    }
+    // For non-1X2 markets, use the regular check
+    return selectedPrices.includes(`${match.id}-${market.marketBookNo}-${selectionName}`);
   };
 
   const formatTime = (kickoff: string) => {
@@ -244,26 +284,42 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               {expandedMarkets[market.marketBookNo] && market.selections && market.selections.length > 0 && (
                 <div className="px-3 py-2 space-y-2">
                   <div className="flex gap-2 flex-wrap">
-                    {market.selections.map((selection, selIndex) => (
-                      <button
-                        key={selIndex}
-                        onClick={() => onPriceClick(
-                          match.id, 
-                          `${market.marketBookNo}-${selection.name}`,
-                          selection.odds,
-                          market.marketBookNo,
-                          match.marketCode
-                        )}
-                        className={`flex-1 min-w-[80px] py-2 px-2 rounded text-sm font-medium transition-all ${
-                          isSelected(`${market.marketBookNo}-${selection.name}`)
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 hover:bg-gray-200'
-                        }`}
-                      >
-                        <div className="text-xs text-gray-600">{selection.name}</div>
-                        <div className="font-bold">{selection.odds}</div>
-                      </button>
-                    ))}
+                    {market.selections.map((selection, selIndex) => {
+                      // Check if this selection is already selected (either from quick 1X2 or from this market)
+                      const isSelectedMarket = isMarketSelectionSelected(market, selection.name);
+                      
+                      return (
+                        <button
+                          key={selIndex}
+                          onClick={() => {
+                            // For 1X2 market, use quick 1X2 price types to maintain sync
+                            if (market.name === '1 X 2' || market.marketCode === 'CP') {
+                              const priceType = selection.name === '1' || selection.name === 'Home' ? 'home' :
+                                               selection.name === 'X' || selection.name === 'Draw' ? 'draw' :
+                                               selection.name === '2' || selection.name === 'Away' ? 'away' :
+                                               `${market.marketBookNo}-${selection.name}`;
+                              onPriceClick(match.id, priceType, selection.odds, market.marketBookNo, match.marketCode);
+                            } else {
+                              onPriceClick(
+                                match.id, 
+                                `${market.marketBookNo}-${selection.name}`,
+                                selection.odds,
+                                market.marketBookNo,
+                                match.marketCode
+                              );
+                            }
+                          }}
+                          className={`flex-1 min-w-[80px] py-2 px-2 rounded text-sm font-medium transition-all ${
+                            isSelectedMarket
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 hover:bg-gray-200'
+                          }`}
+                        >
+                          <div className="text-xs text-gray-600">{selection.name}</div>
+                          <div className="font-bold">{selection.odds}</div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
