@@ -103,52 +103,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
             </button>
           </div>
         </div>
-
-        {/* Quick 1X2 Odds - Always visible */}
-        <div className="ml-7 mt-2 flex gap-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onPriceClick(match.id, 'home', match.homeOdds, match.marketBookNo, match.marketCode);
-            }}
-            className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all ${
-              isSelected('home')
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-            }`}
-          >
-            <div className="text-xs text-gray-600 mb-1">1</div>
-            <div>{match.homeOdds}</div>
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onPriceClick(match.id, 'draw', match.drawOdds, match.marketBookNo, match.marketCode);
-            }}
-            className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all ${
-              isSelected('draw')
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-            }`}
-          >
-            <div className="text-xs text-gray-600 mb-1">X</div>
-            <div>{match.drawOdds}</div>
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onPriceClick(match.id, 'away', match.awayOdds, match.marketBookNo, match.marketCode);
-            }}
-            className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all ${
-              isSelected('away')
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-            }`}
-          >
-            <div className="text-xs text-gray-600 mb-1">2</div>
-            <div>{match.awayOdds}</div>
-          </button>
-        </div>
       </div>
 
       {/* Expanded Markets Section */}
