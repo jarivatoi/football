@@ -761,6 +761,7 @@ export interface ParlaySelection {
   marketCode?: string;
   marketId?: string;  // Actual market ID from GetMatch API
   competitionId?: string;
+  hasError?: boolean;  // Track if this selection has an error
 }
 
 interface ParlayBuilderProps {
@@ -830,6 +831,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     console.log('📊 Current selections:', selections);
     console.log('💰 Bet amount:', betAmount);
     console.log('📈 Total odds:', totalOdds);
+    
+    // Clear previous errors before placing new bet
+    selections.forEach(s => s.hasError = false);
     
     // Debug specific match data
     selections.forEach((selection, index) => {
@@ -931,6 +935,17 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           message: `Booking failed: ${errorMessage}`,
           fullResponse: bookingResult
         });
+        
+        // Mark all selections with errors if bet failed
+        if (bookingResult.betList && bookingResult.betList.length > 0) {
+          selections.forEach((selection, index) => {
+            const bet = bookingResult.betList[index];
+            if (bet && bet.betErrorCode && bet.betErrorCode !== 0) {
+              selection.hasError = true;
+            }
+          });
+        }
+        
         setIsPlacing(false);
       }
       
@@ -965,29 +980,38 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Calculator className="w-5 h-5 text-blue-600" />
-          <h2 className="text-xl font-bold text-gray-800">Parlay Builder</h2>
-          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
-            {selections.length} selection{selections.length !== 1 ? 's' : ''}
-          </span>
+    <div className="bg-white rounded-lg shadow-md h-full flex flex-col">
+      {/* Header - Sticky */}
+      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Calculator className="w-5 h-5 text-blue-600" />
+            <h2 className="text-xl font-bold text-gray-800">Parlay Builder</h2>
+            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
+              {selections.length} selection{selections.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <button
+            onClick={onClearAll}
+            className="text-red-600 hover:text-red-800 text-sm font-medium flex items-center gap-1"
+          >
+            <Trash2 className="w-4 h-4" />
+            Clear All
+          </button>
         </div>
-        <button
-          onClick={onClearAll}
-          className="text-red-600 hover:text-red-800 text-sm font-medium flex items-center gap-1"
-        >
-          <Trash2 className="w-4 h-4" />
-          Clear All
-        </button>
       </div>
 
-      <div className="space-y-3 mb-6">
-        {selections.map((selection) => (
-          <div
-            key={selection.matchId}
-            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+      {/* Selections - Scrollable */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="space-y-3">
+          {selections.map((selection) => (
+            <div
+              key={selection.matchId}
+              className={`flex items-center justify-between p-3 rounded-lg transition-all ${
+                selection.hasError 
+                  ? 'bg-red-50 border-2 border-red-500' 
+                  : 'bg-gray-50 border-2 border-transparent'
+              }`}
           >
             <div className="flex-1">
               <div className="font-medium text-gray-800">
@@ -1224,6 +1248,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             </>
           )}
         </button>
+        </div>
       </div>
     </div>
   );

@@ -372,7 +372,14 @@ function App() {
   };
 
   const handleRemoveSelection = (matchId: string) => {
-    setParlaySelections(prev => prev.filter(s => s.matchId !== matchId));
+    setParlaySelections(prev => {
+      const updated = prev.filter(s => s.matchId !== matchId);
+      // Auto-close parlay builder when last selection is removed
+      if (updated.length === 0) {
+        setShowParlayBuilder(false);
+      }
+      return updated;
+    });
   };
 
   const handleRemoveSelectionByMatch = (matchId: string) => {
