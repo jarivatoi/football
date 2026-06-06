@@ -485,7 +485,7 @@ function App() {
       
       {/* Parlay Builder - Slide in from right */}
       <div className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${showParlayBuilder ? 'translate-x-0' : 'translate-x-full'}`}>
-        {parlaySelections.length > 0 && (
+        {parlaySelections.length > 0 ? (
           <>
             {/* Close button */}
             <button
@@ -501,6 +501,19 @@ function App() {
               onClearAll={handleClearAll}
             />
           </>
+        ) : (
+          // Show empty state when no selections but panel is still open
+          <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+            <Ticket className="w-16 h-16 text-gray-300 mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">No Selections</h3>
+            <p className="text-gray-500 mb-6">Click on odds to add selections to your bet slip</p>
+            <button
+              onClick={() => setShowParlayBuilder(false)}
+              className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors"
+            >
+              Close
+            </button>
+          </div>
         )}
       </div>
       
