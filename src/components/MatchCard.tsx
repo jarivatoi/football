@@ -12,9 +12,8 @@ interface MatchCardProps {
 const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoadingMarkets, setIsLoadingMarkets] = useState(false);
-  const [expandedMarkets, setExpandedMarkets] = useState<Record<string, boolean>>({
-    '1x2': true,
-  });
+  const [expandedMarkets, setExpandedMarkets] = useState<Record<string, boolean>>({});
+  const [activeMarketTab, setActiveMarketTab] = useState<string>('ALL'); // ALL, FT, HT, 2H
 
   const toggleExpand = async () => {
     const newState = !isExpanded;
@@ -105,7 +104,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               e.stopPropagation();
               onPriceClick(match.id, 'home', match.homeOdds, match.marketBookNo, match.marketCode);
             }}
-            className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all ${
+            className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all relative ${
               isSelected('home')
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
@@ -113,13 +112,18 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           >
             <div className="text-xs text-gray-600 mb-1">1</div>
             <div>{match.homeOdds}</div>
+            {match.marketBookNo && (
+              <span className="absolute -top-2 -right-1 bg-yellow-400 text-gray-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {match.marketBookNo}
+              </span>
+            )}
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onPriceClick(match.id, 'draw', match.drawOdds, match.marketBookNo, match.marketCode);
             }}
-            className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all ${
+            className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all relative ${
               isSelected('draw')
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
@@ -127,13 +131,18 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           >
             <div className="text-xs text-gray-600 mb-1">X</div>
             <div>{match.drawOdds}</div>
+            {match.marketBookNo && (
+              <span className="absolute -top-2 -right-1 bg-yellow-400 text-gray-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {match.marketBookNo}
+              </span>
+            )}
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onPriceClick(match.id, 'away', match.awayOdds, match.marketBookNo, match.marketCode);
             }}
-            className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all ${
+            className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all relative ${
               isSelected('away')
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
@@ -141,6 +150,11 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           >
             <div className="text-xs text-gray-600 mb-1">2</div>
             <div>{match.awayOdds}</div>
+            {match.marketBookNo && (
+              <span className="absolute -top-2 -right-1 bg-yellow-400 text-gray-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {match.marketBookNo}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -159,7 +173,58 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               <div className="text-xs mt-1">Market count: {match.marketCount || 'Not set'}</div>
             </div>
           ) : (
-            match.allMarkets.map((market, index) => (
+            <>
+              {/* Market Period Tabs */}
+              <div className="flex gap-2 p-3 bg-gray-50 border-b border-gray-200">
+                <button
+                  onClick={() => setActiveMarketTab('ALL')}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-all ${
+                    activeMarketTab === 'ALL'
+                      ? 'bg-yellow-400 text-gray-900'
+                      : 'bg-blue-900 text-white hover:bg-blue-800'
+                  }`}
+                >
+                  ALL ({match.allMarkets.length})
+                </button>
+                <button
+                  onClick={() => setActiveMarketTab('FT')}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-all ${
+                    activeMarketTab === 'FT'
+                      ? 'bg-yellow-400 text-gray-900'
+                      : 'bg-blue-900 text-white hover:bg-blue-800'
+                  }`}
+                >
+                  FULL TIME ({match.allMarkets.filter(m => m.periodCode === 'FT').length})
+                </button>
+                <button
+                  onClick={() => setActiveMarketTab('HT')}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-all ${
+                    activeMarketTab === 'HT'
+                      ? 'bg-yellow-400 text-gray-900'
+                      : 'bg-blue-900 text-white hover:bg-blue-800'
+                  }`}
+                >
+                  HALF TIME ({match.allMarkets.filter(m => m.periodCode === 'HT').length})
+                </button>
+                <button
+                  onClick={() => setActiveMarketTab('2H')}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-all ${
+                    activeMarketTab === '2H'
+                      ? 'bg-yellow-400 text-gray-900'
+                      : 'bg-blue-900 text-white hover:bg-blue-800'
+                  }`}
+                >
+                  2ND HALF ({match.allMarkets.filter(m => m.periodCode === '2H').length})
+                </button>
+              </div>
+
+              {/* Markets List - Filtered by active tab */}
+              {match.allMarkets
+                .filter(market => {
+                  if (activeMarketTab === 'ALL') return true;
+                  return market.periodCode === activeMarketTab;
+                })
+                .map((market, index) => (
             <div key={index} className="border-b border-gray-100">
               <button
                 onClick={() => toggleMarket(market.marketBookNo)}
@@ -206,7 +271,9 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                 </div>
               )}
             </div>
-          )))}
+          ))}
+            </>
+          )}
         </div>
       )}
     </div>

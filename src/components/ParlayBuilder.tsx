@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Calculator, DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
+import { Trash2, Calculator, DollarSign, CheckCircle, AlertCircle, X } from 'lucide-react';
 
 // Totelepep betting API integration
 const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) => {
@@ -768,12 +768,14 @@ interface ParlayBuilderProps {
   selections: ParlaySelection[];
   onRemoveSelection: (matchId: string) => void;
   onClearAll: () => void;
+  onClose?: () => void;  // Optional close button handler
 }
 
 const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   selections,
   onRemoveSelection,
   onClearAll,
+  onClose,
 }) => {
   const [betAmount, setBetAmount] = useState<number>(50);
   const [isPlacing, setIsPlacing] = useState(false);
@@ -991,13 +993,23 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               {selections.length} selection{selections.length !== 1 ? 's' : ''}
             </span>
           </div>
-          <button
-            onClick={onClearAll}
-            className="text-red-600 hover:text-red-800 text-sm font-medium flex items-center gap-1"
-          >
-            <Trash2 className="w-4 h-4" />
-            Clear All
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClearAll}
+              className="text-red-600 hover:text-red-800 text-sm font-medium flex items-center gap-1"
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear All
+            </button>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

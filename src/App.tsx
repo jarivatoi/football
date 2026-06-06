@@ -493,21 +493,12 @@ function App() {
       {/* Parlay Builder - Slide in from right */}
       <div className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${showParlayBuilder ? 'translate-x-0' : 'translate-x-full'}`}>
         {parlaySelections.length > 0 ? (
-          <>
-            {/* Close button */}
-            <button
-              onClick={() => setShowParlayBuilder(false)}
-              className="absolute top-4 right-4 p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors z-10"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            
-            <ParlayBuilder 
-              selections={parlaySelections}
-              onRemoveSelection={handleRemoveSelection}
-              onClearAll={handleClearAll}
-            />
-          </>
+          <ParlayBuilder 
+            selections={parlaySelections}
+            onRemoveSelection={handleRemoveSelection}
+            onClearAll={handleClearAll}
+            onClose={() => setShowParlayBuilder(false)}
+          />
         ) : (
           // Show empty state when no selections but panel is still open
           <div className="flex flex-col items-center justify-center h-full p-8 text-center">
