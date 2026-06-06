@@ -144,50 +144,50 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           </div>
         </div>
 
-        {/* Quick 1X2 Odds - Only visible when NOT expanded */}
+        {/* Quick 1X2 Odds - Only visible when NOT expanded - 3 lines layout */}
         {!isExpanded && (
-          <div className="ml-7 mt-2 flex gap-2">
+          <div className="ml-7 mt-2 space-y-1">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onPriceClick(match.id, 'home', match.homeOdds, match.marketBookNo, match.marketCode);
               }}
-              className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all ${
+              className={`w-full flex items-center justify-between py-1.5 px-3 rounded text-sm transition-all ${
                 isSelected('home')
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                  : 'bg-white text-gray-900 hover:bg-gray-50 border border-gray-200'
               }`}
             >
-              <div className="text-xs text-gray-600 mb-1">1</div>
-              <div>{match.homeOdds}</div>
+              <span className="font-medium">{match.homeTeam}</span>
+              <span className="font-bold">{match.homeOdds}</span>
             </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onPriceClick(match.id, 'draw', match.drawOdds, match.marketBookNo, match.marketCode);
               }}
-              className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all ${
+              className={`w-full flex items-center justify-between py-1.5 px-3 rounded text-sm transition-all ${
                 isSelected('draw')
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                  : 'bg-white text-gray-900 hover:bg-gray-50 border border-gray-200'
               }`}
             >
-              <div className="text-xs text-gray-600 mb-1">X</div>
-              <div>{match.drawOdds}</div>
+              <span className="font-medium">Draw</span>
+              <span className="font-bold">{match.drawOdds}</span>
             </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onPriceClick(match.id, 'away', match.awayOdds, match.marketBookNo, match.marketCode);
               }}
-              className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all ${
+              className={`w-full flex items-center justify-between py-1.5 px-3 rounded text-sm transition-all ${
                 isSelected('away')
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                  : 'bg-white text-gray-900 hover:bg-gray-50 border border-gray-200'
               }`}
             >
-              <div className="text-xs text-gray-600 mb-1">2</div>
-              <div>{match.awayOdds}</div>
+              <span className="font-medium">{match.awayTeam}</span>
+              <span className="font-bold">{match.awayOdds}</span>
             </button>
           </div>
         )}
