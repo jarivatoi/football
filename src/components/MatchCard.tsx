@@ -70,7 +70,14 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
             <div className="space-y-1 ml-7">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-900">{match.homeTeam}</span>
-                <span className="text-xs text-gray-500">{formatDate(match.date)} {formatTime(match.kickoff)}</span>
+                <div className="flex items-center gap-2">
+                  {match.marketBookNo && (
+                    <span className="bg-yellow-400 text-gray-900 text-xs font-bold px-2 py-0.5 rounded-full">
+                      {match.marketBookNo}
+                    </span>
+                  )}
+                  <span className="text-xs text-gray-500">{formatDate(match.date)} {formatTime(match.kickoff)}</span>
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-900">{match.awayTeam}</span>
@@ -104,7 +111,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               e.stopPropagation();
               onPriceClick(match.id, 'home', match.homeOdds, match.marketBookNo, match.marketCode);
             }}
-            className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all relative ${
+            className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all ${
               isSelected('home')
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
@@ -112,18 +119,13 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           >
             <div className="text-xs text-gray-600 mb-1">1</div>
             <div>{match.homeOdds}</div>
-            {match.marketBookNo && (
-              <span className="absolute -top-2 -right-1 bg-yellow-400 text-gray-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                {match.marketBookNo}
-              </span>
-            )}
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onPriceClick(match.id, 'draw', match.drawOdds, match.marketBookNo, match.marketCode);
             }}
-            className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all relative ${
+            className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all ${
               isSelected('draw')
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
@@ -131,18 +133,13 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           >
             <div className="text-xs text-gray-600 mb-1">X</div>
             <div>{match.drawOdds}</div>
-            {match.marketBookNo && (
-              <span className="absolute -top-2 -right-1 bg-yellow-400 text-gray-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                {match.marketBookNo}
-              </span>
-            )}
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onPriceClick(match.id, 'away', match.awayOdds, match.marketBookNo, match.marketCode);
             }}
-            className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all relative ${
+            className={`flex-1 py-2 px-2 rounded text-sm font-medium transition-all ${
               isSelected('away')
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
@@ -150,11 +147,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           >
             <div className="text-xs text-gray-600 mb-1">2</div>
             <div>{match.awayOdds}</div>
-            {match.marketBookNo && (
-              <span className="absolute -top-2 -right-1 bg-yellow-400 text-gray-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                {match.marketBookNo}
-              </span>
-            )}
           </button>
         </div>
       </div>
@@ -194,7 +186,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                       : 'bg-blue-900 text-white hover:bg-blue-800'
                   }`}
                 >
-                  FULL TIME ({match.allMarkets.filter(m => m.periodCode === 'FT').length})
+                  FULL TIME ({match.allMarkets.filter(m => m.periodCode === 'FT' || !m.periodCode).length})
                 </button>
                 <button
                   onClick={() => setActiveMarketTab('HT')}
@@ -204,7 +196,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                       : 'bg-blue-900 text-white hover:bg-blue-800'
                   }`}
                 >
-                  HALF TIME ({match.allMarkets.filter(m => m.periodCode === 'HT').length})
+                  HALF TIME ({match.allMarkets.filter(m => m.periodCode === 'HT' || m.periodCode === 'H1').length})
                 </button>
                 <button
                   onClick={() => setActiveMarketTab('2H')}
@@ -214,7 +206,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                       : 'bg-blue-900 text-white hover:bg-blue-800'
                   }`}
                 >
-                  2ND HALF ({match.allMarkets.filter(m => m.periodCode === '2H').length})
+                  2ND HALF ({match.allMarkets.filter(m => m.periodCode === '2H' || m.periodCode === 'H2').length})
                 </button>
               </div>
 
@@ -222,7 +214,10 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               {match.allMarkets
                 .filter(market => {
                   if (activeMarketTab === 'ALL') return true;
-                  return market.periodCode === activeMarketTab;
+                  if (activeMarketTab === 'FT') return market.periodCode === 'FT' || !market.periodCode;
+                  if (activeMarketTab === 'HT') return market.periodCode === 'HT' || market.periodCode === 'H1';
+                  if (activeMarketTab === '2H') return market.periodCode === '2H' || market.periodCode === 'H2';
+                  return true;
                 })
                 .map((market, index) => (
             <div key={index} className="border-b border-gray-100">
