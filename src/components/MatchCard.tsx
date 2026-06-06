@@ -82,13 +82,16 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     // Check if this is a 1X2 market
     if (market.name === '1 X 2' || market.name === '1X2' || market.marketCode === 'CP') {
       // Map selection names to quick 1X2 price types
-      if (selectionName === '1' || selectionName === 'Home' || selectionName === '1 (Home)') {
+      // Selection names can be: '1', 'Home', team name, '1 (Home)', etc.
+      if (selectionName === '1' || selectionName === 'Home' || selectionName === '1 (Home)' || 
+          selectionName === match.homeTeam) {
         return selectedPrices.includes(`${match.id}-home`);
       }
       if (selectionName === 'X' || selectionName === 'Draw' || selectionName === 'X (Draw)') {
         return selectedPrices.includes(`${match.id}-draw`);
       }
-      if (selectionName === '2' || selectionName === 'Away' || selectionName === '2 (Away)') {
+      if (selectionName === '2' || selectionName === 'Away' || selectionName === '2 (Away)' ||
+          selectionName === match.awayTeam) {
         return selectedPrices.includes(`${match.id}-away`);
       }
     }
@@ -305,9 +308,9 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                           onClick={() => {
                             // For 1X2 market, use quick 1X2 price types to maintain sync
                             if (market.name === '1 X 2' || market.name === '1X2' || market.marketCode === 'CP') {
-                              const priceType = selection.name === '1' || selection.name === 'Home' || selection.name === '1 (Home)' ? 'home' :
+                              const priceType = selection.name === '1' || selection.name === 'Home' || selection.name === '1 (Home)' || selection.name === match.homeTeam ? 'home' :
                                                selection.name === 'X' || selection.name === 'Draw' || selection.name === 'X (Draw)' ? 'draw' :
-                                               selection.name === '2' || selection.name === 'Away' || selection.name === '2 (Away)' ? 'away' :
+                                               selection.name === '2' || selection.name === 'Away' || selection.name === '2 (Away)' || selection.name === match.awayTeam ? 'away' :
                                                `${market.marketBookNo}-${selection.name}`;
                               onPriceClick(match.id, priceType, selection.odds, market.marketBookNo, match.marketCode);
                             } else {
