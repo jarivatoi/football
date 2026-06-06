@@ -40,6 +40,11 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     const newState = !isExpanded;
     setIsExpanded(newState);
     
+    // When collapsing, reset all expanded markets
+    if (!newState) {
+      setExpandedMarkets({});
+    }
+    
     // Lazy load markets when expanding
     if (newState && (!match.allMarkets || match.allMarkets.length === 0) && !isLoadingMarkets) {
       console.log(`🔄 Lazy loading markets for match ${match.id}...`);
@@ -97,52 +102,48 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         onClick={toggleExpand}
         className="px-3 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
       >
-        <div className="flex items-start justify-between">
-          {/* Team Info */}
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center">
-                <span className="text-white text-xs font-bold">⚽</span>
-              </div>
-              <div className="text-sm text-gray-600">{match.league}</div>
+        {/* League and Markets Button */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center">
+              <span className="text-white text-xs font-bold">⚽</span>
             </div>
-            
-            <div className="space-y-1 ml-7">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-900">{match.homeTeam}</span>
-                <div className="flex items-center gap-2">
-                  {match.marketBookNo && (
-                    <span className="bg-yellow-400 text-gray-900 text-xs font-bold px-2 py-0.5 rounded-full">
-                      {match.marketBookNo}
-                    </span>
-                  )}
-                  <span className="text-xs text-gray-500">{formatDate(match.date)} {formatTime(match.kickoff)}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-900">{match.awayTeam}</span>
-              </div>
-            </div>
+            <div className="text-sm text-gray-600 font-medium">{match.league}</div>
           </div>
-
-          {/* Markets Button */}
-          <div className="flex items-center gap-2 ml-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleExpand();
-              }}
-              className="flex items-center gap-1 bg-yellow-400 text-gray-900 px-2 py-1 rounded text-xs font-medium hover:bg-yellow-500 transition-colors"
-            >
-              <span>{match.marketCount || 1} Markets</span>
-              {isExpanded ? (
-                <X className="w-3 h-3 text-red-600" />
-              ) : (
-                <ChevronRight className="w-3 h-3" />
-              )}
-            </button>
-          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleExpand();
+            }}
+            className="flex items-center gap-1 bg-yellow-400 text-gray-900 px-2 py-1 rounded text-xs font-medium hover:bg-yellow-500 transition-colors"
+          >
+            <span>{match.marketCount || 1} Markets</span>
+            {isExpanded ? (
+              <X className="w-3 h-3 text-red-600" />
+            ) : (
+              <ChevronRight className="w-3 h-3" />
+            )}
+          </button>
         </div>
+              
+        {/* Match Title */}
+        <div className="text-sm font-semibold text-gray-900 mb-1">
+          {match.homeTeam} v/s {match.awayTeam}
+        </div>
+              
+        {/* Date/Time and Market Code */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <Clock className="w-3 h-3" />
+            <span>{formatDate(match.date)} {formatTime(match.kickoff)}</span>
+          </div>
+          {match.marketBookNo && (
+            <span className="bg-yellow-400 text-gray-900 text-xs font-bold px-2 py-0.5 rounded-full">
+              1X2 {match.marketBookNo}
+            </span>
+          )}
+        </div>
+      </div>
 
         {/* Quick 1X2 Odds - Only visible when NOT expanded - 3 lines layout */}
         {!isExpanded && (
@@ -191,7 +192,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
             </button>
           </div>
         )}
-      </div>
 
       {/* Expanded Markets Section */}
       {isExpanded && (
