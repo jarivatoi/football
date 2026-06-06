@@ -21,7 +21,7 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
         const odds = typeof sel.odds === 'string' ? parseFloat(sel.odds) : sel.odds;
         return acc * odds;
       }, 1);
-      
+          
       // Set MultiStake for parlay bets
       formData.append('data[MultiStake]', stake.toString());
       formData.append('data[MultiReturn]', (stake * totalOdds).toFixed(2));
@@ -29,11 +29,11 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
     } else {
       formData.append('data[MultiStake]', '');
     }
-    
+        
     // Add each selection as SingleBets array
     selections.forEach((selection, index) => {
       console.log(`📋 Processing selection ${index}:`, selection);
-      
+          
       // Specific debug for PSV Eindhoven vs ZFK Minsk or any match
       if (selection.homeTeam && selection.awayTeam) {
         console.log(`🎯 MATCH DEBUG: ${selection.homeTeam} vs ${selection.awayTeam}`);
@@ -42,15 +42,15 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
         console.log(`   marketCode:`, selection.marketCode);
         console.log(`   competitionId:`, selection.competitionId);
       }
-      
+          
       // Map selection type to option details FIRST (needed for betRef)
       const optionDetails = getOptionDetails(selection);
       console.log(`📋 Option details for selection ${index}:`, optionDetails);
-      
-      // Generate betRef (format: marketBookNo-optionNo)
-      const marketBookNoToUse = selection.marketBookNo || selection.matchId;
-      const betRef = `${marketBookNoToUse}-${optionDetails.optionNo}`;
-      console.log(`🔍 betRef result - marketBookNoToUse: ${marketBookNoToUse}, optionNo: ${optionDetails.optionNo}, betRef: ${betRef}`);
+          
+      // Generate betRef (format: marketId-optionNo) - Use marketId NOT marketBookNo!
+      const marketIdToUse = selection.marketId || selection.marketBookNo || selection.matchId;
+      const betRef = `${marketIdToUse}-${optionDetails.optionNo}`;
+      console.log(`🔍 betRef result - marketIdToUse: ${marketIdToUse}, optionNo: ${optionDetails.optionNo}, betRef: ${betRef}`);
       
       // Extract real market data from the match
       const marketData = extractMarketData(selection);
@@ -166,7 +166,7 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
       
       formData.append(`data[SingleBets][${index}][betRef]`, betRef);
       formData.append(`data[SingleBets][${index}][isRacing]`, 'false');
-      formData.append(`data[SingleBets][${index}][legNo]`, '1');
+      formData.append(`data[SingleBets][${index}][legNo]`, (index + 1).toString()); // Increment legNo: 1, 2, 3...
       formData.append(`data[SingleBets][${index}][matchName]`, `${selection.homeTeam} v ${selection.awayTeam}`);
       formData.append(`data[SingleBets][${index}][matchStartTime]`, formatMatchTime(selection.kickoff));
       formData.append(`data[SingleBets][${index}][matchRunTime]`, '0');
@@ -316,8 +316,10 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
       // Update market display name based on market type
       const marketDisplayName = optionDetails.marketType === '1X2' ? '1 X 2' : optionDetails.marketType === 'OU' ? 'Over/Under 2.5' : 'Both Teams To Score';
       formData.append(`data[SingleBets][${index}][marketDisplayName]`, marketDisplayName);
-      formData.append(`data[SingleBets][${index}][stake]`, stake.toString());
-      formData.append(`data[SingleBets][${index}][returnAmount]`, (Number(stake) * Number(selection.odds)).toFixed(2));
+      // For multi-bets, stake should be empty (stake is in MultiStake)
+      // For single bets, stake should be the amount
+      formData.append(`data[SingleBets][${index}][stake]`, selections.length > 1 ? '' : stake.toString());
+      formData.append(`data[SingleBets][${index}][returnAmount]`, selections.length > 1 ? '0.00' : (Number(stake) * Number(selection.odds)).toFixed(2));
       formData.append(`data[SingleBets][${index}][potentialPayout]`, '');
       formData.append(`data[SingleBets][${index}][ticketNo]`, '');
       formData.append(`data[SingleBets][${index}][taxAmount]`, '');
@@ -513,8 +515,8 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
       success: isSuccessful,
       ticketNo: ticketNo,
       potentialPayout: result.betList && result.betList.length > 0 
-        ? result.betList[0].potentialPayout  // Use potentialPayout from betList
-        : result.potentialPayout,  // Fallback to top-level
+        ? result.betList[0].potentialPayout  // Use potentialPayout from betList for single bets
+        : result.potentialPayout,  // Use top-level potentialPayout for multi-bets
       errorMessage: result.errorMessage,
       multiErrorMessage: result.multiErrorMessage,
       balanceAmount: result.balanceAmount,
