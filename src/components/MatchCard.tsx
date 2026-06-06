@@ -109,6 +109,11 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   };
 
+  const formatOdds = (odds: number | string) => {
+    const num = typeof odds === 'string' ? parseFloat(odds) : odds;
+    return num.toFixed(2);
+  };
+
   return (
     <div className="bg-white border-b border-gray-200">
       {/* Match Header - Compact View */}
@@ -174,7 +179,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               }`}
             >
               <span className="flex-1 text-left">{match.homeTeam}</span>
-              <span className="font-bold">{match.homeOdds}</span>
+              <span className="font-bold">{formatOdds(match.homeOdds)}</span>
             </button>
             <button
               onClick={(e) => {
@@ -188,7 +193,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               }`}
             >
               <span className="flex-1 text-left">Draw</span>
-              <span className="font-bold">{match.drawOdds}</span>
+              <span className="font-bold">{formatOdds(match.drawOdds)}</span>
             </button>
             <button
               onClick={(e) => {
@@ -202,7 +207,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               }`}
             >
               <span className="flex-1 text-left">{match.awayTeam}</span>
-              <span className="font-bold">{match.awayOdds}</span>
+              <span className="font-bold">{formatOdds(match.awayOdds)}</span>
             </button>
           </div>
         )}
@@ -330,7 +335,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                           }`}
                         >
                           <div className="text-xs text-gray-600">{selection.name}</div>
-                          <div className="font-bold">{selection.odds}</div>
+                          <div className="font-bold">{formatOdds(selection.odds)}</div>
                         </button>
                       );
                     })}
