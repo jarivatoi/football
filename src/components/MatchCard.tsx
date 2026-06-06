@@ -114,7 +114,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       {/* Match Header - Compact View */}
       <div 
         onClick={toggleExpand}
-        className="px-3 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
+        className="px-3 py-3 cursor-pointer hover:bg-gray-50 transition-colors bg-gray-100"
       >
         {/* League and Markets Button */}
         <div className="flex items-center justify-between mb-2">
@@ -122,7 +122,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
             <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center">
               <span className="text-white text-xs font-bold">⚽</span>
             </div>
-            <div className="text-sm text-gray-600 font-medium">{match.league}</div>
+            <div className="text-sm text-gray-700 font-medium">{match.league}</div>
           </div>
           <button
             onClick={(e) => {
@@ -147,7 +147,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               
         {/* Date/Time and Market Code */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-xs text-gray-600">
             <Clock className="w-3 h-3" />
             <span>{formatDate(match.date)} {formatTime(match.kickoff)}</span>
           </div>
@@ -161,19 +161,19 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
 
         {/* Quick 1X2 Odds - Only visible when NOT expanded - 3 lines layout */}
         {!isExpanded && (
-          <div className="ml-7 mt-2 space-y-1">
+          <div className="mt-2 space-y-1">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onPriceClick(match.id, 'home', match.homeOdds, match.marketBookNo, match.marketCode);
               }}
-              className={`w-full flex items-center justify-between py-1.5 px-3 rounded text-sm transition-all ${
+              className={`w-full flex items-center justify-between py-2 px-4 rounded text-sm font-medium transition-all ${
                 isSelected('home')
                   ? 'bg-blue-600 text-white'
                   : 'bg-white text-gray-900 hover:bg-gray-50 border border-gray-200'
               }`}
             >
-              <span className="font-medium">{match.homeTeam}</span>
+              <span className="flex-1 text-left">{match.homeTeam}</span>
               <span className="font-bold">{match.homeOdds}</span>
             </button>
             <button
@@ -181,13 +181,13 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                 e.stopPropagation();
                 onPriceClick(match.id, 'draw', match.drawOdds, match.marketBookNo, match.marketCode);
               }}
-              className={`w-full flex items-center justify-between py-1.5 px-3 rounded text-sm transition-all ${
+              className={`w-full flex items-center justify-between py-2 px-4 rounded text-sm font-medium transition-all ${
                 isSelected('draw')
                   ? 'bg-blue-600 text-white'
                   : 'bg-white text-gray-900 hover:bg-gray-50 border border-gray-200'
               }`}
             >
-              <span className="font-medium">Draw</span>
+              <span className="flex-1 text-left">Draw</span>
               <span className="font-bold">{match.drawOdds}</span>
             </button>
             <button
@@ -195,13 +195,13 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                 e.stopPropagation();
                 onPriceClick(match.id, 'away', match.awayOdds, match.marketBookNo, match.marketCode);
               }}
-              className={`w-full flex items-center justify-between py-1.5 px-3 rounded text-sm transition-all ${
+              className={`w-full flex items-center justify-between py-2 px-4 rounded text-sm font-medium transition-all ${
                 isSelected('away')
                   ? 'bg-blue-600 text-white'
                   : 'bg-white text-gray-900 hover:bg-gray-50 border border-gray-200'
               }`}
             >
-              <span className="font-medium">{match.awayTeam}</span>
+              <span className="flex-1 text-left">{match.awayTeam}</span>
               <span className="font-bold">{match.awayOdds}</span>
             </button>
           </div>
@@ -276,7 +276,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                   return true;
                 })
                 .map((market, index) => (
-            <div key={index} className="border-b border-gray-100">
+            <div key={index} className="border-b border-gray-200 last:border-b-0">
               <button
                 onClick={() => toggleMarket(market.marketBookNo)}
                 className="w-full px-3 py-2 bg-gray-100 flex items-center justify-between hover:bg-gray-200 transition-colors"
