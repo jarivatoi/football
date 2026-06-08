@@ -103,6 +103,49 @@ function App() {
     
     return competitions;
   };
+  
+  // Handle category change - reload calendar with filters
+  const handleCategoryChange = async (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    setSelectedCompetition('');
+    await reloadCalendarWithFilters(categoryId, '');
+    loadData(selectedDate);
+  };
+  
+  // Handle competition change - reload calendar with filters
+  const handleCompetitionChange = async (competitionId: string) => {
+    setSelectedCompetition(competitionId);
+    await reloadCalendarWithFilters(selectedCategory, competitionId);
+    loadData(selectedDate);
+  };
+  
+  // Reload calendar with category/competition filters to update match counts
+  const reloadCalendarWithFilters = async (categoryId: string, competitionId: string) => {
+    console.log('📅 Reloading calendar with filters...', { categoryId, competitionId });
+    
+    // Fetch matches for each date to get accurate counts
+    const updatedCalendarList = await Promise.all(
+      calendarList.map(async (dateEntry) => {
+        try {
+          const matches = await totelepepExtractor.extractMatches(
+            dateEntry.date,
+            categoryId,
+            competitionId
+          );
+          return {
+            ...dateEntry,
+            matchCount: matches.length
+          };
+        } catch (error) {
+          console.error(`Error fetching matches for ${dateEntry.date}:`, error);
+          return dateEntry;
+        }
+      })
+    );
+    
+    setCalendarList(updatedCalendarList);
+    console.log('📅 Updated calendar with filter counts:', updatedCalendarList);
+  };
 
   // Initialize online status
   useSafeEffect(() => {
@@ -555,8 +598,8 @@ function App() {
           categories={categories}
           selectedCategory={selectedCategory}
           selectedCompetition={selectedCompetition}
-          onCategoryChange={setSelectedCategory}
-          onCompetitionChange={setSelectedCompetition}
+          onCategoryChange={handleCategoryChange}
+          onCompetitionChange={handleCompetitionChange}
           onFetchCompetitions={handleFetchCompetitions}
         />
       </div>
