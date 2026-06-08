@@ -426,13 +426,13 @@ function App() {
 
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 overflow-x-hidden">
       <Header 
         selectionCount={parlaySelections.length}
         onSlipClick={toggleParlayBuilder}
       />
       
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto overflow-x-hidden">
         {/* Search and Controls */}
         <div className="bg-white shadow-sm mb-2">
           <div className="px-3 py-2">
