@@ -207,8 +207,16 @@ function App() {
       // Clear cache to ensure fresh data
       totelepepExtractor.clearCache();
       
-      // Fetch without a specific date to get the full calendar list
-      const matches = await totelepepExtractor.extractMatches(undefined, categoryId || '', competitionId || '');
+      // We need to fetch with a date to get the calendar list
+      // Use a recent date to ensure we get the full calendar
+      const recentDate = new Date();
+      recentDate.setDate(recentDate.getDate() - 1); // Yesterday to ensure we get data
+      const dateStr = `${recentDate.getFullYear()}-${String(recentDate.getMonth() + 1).padStart(2, '0')}-${String(recentDate.getDate()).padStart(2, '0')}`;
+      
+      console.log('📅 Fetching calendar with date:', dateStr);
+      
+      // Fetch with a date to get the calendar list
+      const matches = await totelepepExtractor.extractMatches(dateStr, categoryId || '', competitionId || '');
       
       // Small delay to ensure calendarList is set
       await new Promise(resolve => setTimeout(resolve, 100));
