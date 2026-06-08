@@ -175,7 +175,12 @@ function App() {
     console.log('📅 Selected date changed to:', selectedDate);
     
     // Don't load data for "Beyond" dates via useEffect - handleDateChange handles it
-    if (selectedDate.includes('Beyond') || selectedDate.includes('>>') || selectedDate === 'beyond') {
+    // Check if this date corresponds to the Beyond entry (last date in calendar)
+    const isBeyondDate = availableDatesWithCounts.find(d => 
+      d.date === selectedDate && (d.displayName.includes('Beyond') || d.displayName.includes('>>'))
+    );
+    
+    if (isBeyondDate) {
       console.log('📅 Skipping useEffect load for Beyond date');
       return;
     }
@@ -421,10 +426,14 @@ function App() {
     console.log('📅 Date changed to:', newDate);
     setSelectedDate(newDate);
     
-    // Handle "beyond" date - fetch without date parameter to get all inclusive matches
-    if (newDate.includes('Beyond') || newDate.includes('>>') || newDate === 'beyond') {
-      console.log('📅 Fetching Beyond matches (all inclusive)');
-      // Call loadData with undefined to fetch all matches
+    // Handle "beyond" date - check if this date corresponds to Beyond entry
+    const isBeyondDate = availableDatesWithCounts.find(d => 
+      d.date === newDate && (d.displayName.includes('Beyond') || d.displayName.includes('>>'))
+    );
+    
+    if (isBeyondDate) {
+      console.log('📅 Fetching Beyond matches (all inclusive, no date parameter)');
+      // Call loadData with undefined to fetch all matches without date filter
       loadData(undefined);
     }
     // For other dates, loadData will be called automatically by useEffect

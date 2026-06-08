@@ -20,7 +20,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   return (
     <div className="bg-white shadow-sm border-b border-gray-200">
       {/* Horizontal Scrolling Row */}
-      <div className="flex gap-2 overflow-x-auto px-3 py-2 max-w-3xl mx-auto scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto px-3 py-1 max-w-3xl mx-auto scrollbar-hide">
         {datesToShow.map((dateInfo) => {
           const isSelected = dateInfo.date === selectedDate;
           
