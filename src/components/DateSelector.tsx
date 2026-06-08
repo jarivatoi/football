@@ -24,15 +24,13 @@ const DateSelector: React.FC<DateSelectorProps> = ({
         {datesToShow.map((dateInfo) => {
           const isSelected = dateInfo.date === selectedDate;
           
-          // Extract date number and month for display (except for Beyond)
+          // Extract date number and month for display
           let dateStr = '';
-          if (!dateInfo.displayName.includes('Beyond') && !dateInfo.displayName.includes('>>')) {
-            const dateObj = new Date(dateInfo.date);
-            if (!isNaN(dateObj.getTime())) {
-              const day = dateObj.getDate();
-              const month = dateObj.toLocaleDateString('en-GB', { month: 'short' });
-              dateStr = `${day} ${month}`;
-            }
+          const dateObj = new Date(dateInfo.date);
+          if (!isNaN(dateObj.getTime())) {
+            const day = dateObj.getDate();
+            const month = dateObj.toLocaleDateString('en-GB', { month: 'short' });
+            dateStr = `${day} ${month}`;
           }
           
           return (

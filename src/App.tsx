@@ -173,7 +173,18 @@ function App() {
   // Load data when selected date changes
   useSafeEffect(() => {
     console.log('📅 Selected date changed to:', selectedDate);
-    // Load data when selected date changes (including Beyond)
+    
+    // Don't load data for "Beyond" dates via useEffect - handleDateChange handles it
+    const isBeyondDate = availableDatesWithCounts.find(d => 
+      d.date === selectedDate && (d.displayName.includes('Beyond') || d.displayName.includes('>>'))
+    );
+    
+    if (isBeyondDate) {
+      console.log('📅 Skipping useEffect load for Beyond date (handled by handleDateChange)');
+      return;
+    }
+    
+    // Load data when selected date changes
     loadData(selectedDate);
     // Also load calendar list data
     loadCalendarList();
