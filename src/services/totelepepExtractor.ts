@@ -102,7 +102,29 @@ class TotelepepExtractor {
       const jsonData = await this.fetchTotelepepAPI(targetDate, categoryId, competitionId);
       
       // Parse JSON data (same as Power Query Json.Document)
-      const matches = this.parseJSONForMatches(jsonData);
+      let matches = this.parseJSONForMatches(jsonData);
+      
+      // Handle pagination - fetch all pages if there are more
+      const totalPages = jsonData.totalPages || 1;
+      if (totalPages > 1) {
+        console.log(`📄 API has ${totalPages} pages, fetching all pages...`);
+        
+        // Fetch remaining pages
+        const allMatchesPromises = [];
+        for (let page = 2; page <= totalPages; page++) {
+          allMatchesPromises.push(this.fetchTotelepepAPI(targetDate, categoryId, competitionId, page));
+        }
+        
+        const additionalResponses = await Promise.all(allMatchesPromises);
+        
+        // Parse matches from additional pages
+        for (const response of additionalResponses) {
+          const pageMatches = this.parseJSONForMatches(response);
+          matches = matches.concat(pageMatches);
+        }
+        
+        console.log(`✅ Fetched all pages: ${matches.length} total matches`);
+      }
       
       // DON'T fetch detailed markets yet - they will be loaded on-demand when user clicks
       console.log(`✅ Extracted ${matches.length} matches (markets will load on-demand)`);
@@ -391,7 +413,7 @@ class TotelepepExtractor {
     }
   }
 
-  private async fetchTotelepepAPI(targetDate?: string, categoryId?: string, competitionId?: string): Promise<any> {
+  private async fetchTotelepepAPI(targetDate?: string, categoryId?: string, competitionId?: string, pageNo?: number): Promise<any> {
     // Build API URL with current date (same as Power Query)
     const dateToFetch = targetDate || this.getTodayDate(); // YYYY-MM-DD format
     console.log(`🔍 TotelepepExtractor - Target date provided:`, targetDate);
@@ -404,6 +426,7 @@ class TotelepepExtractor {
     const compId = competitionId || 0;
     const inclusive = competitionId ? 1 : 1; // Always 1 for now
     const categoryParam = categoryId || '';
+    const page = pageNo || 1;
     
     let apiUrl;
     if (targetDate && competitionId) {
@@ -414,7 +437,7 @@ class TotelepepExtractor {
       const month = months[dateObj.getMonth()];
       const year = dateObj.getFullYear();
       const formattedDate = `${day} ${month} ${year}`;
-      apiUrl = `${this.baseUrl}?sportId=soccer&date=${encodeURIComponent(formattedDate)}&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=1&inclusive=0&matchid=0&periodCode=all`;
+      apiUrl = `${this.baseUrl}?sportId=soccer&date=${encodeURIComponent(formattedDate)}&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=${page}&inclusive=0&matchid=0&periodCode=all`;
     } else if (targetDate) {
       // Category only: use "08 Jun 2026" format with inclusive=0
       const dateObj = new Date(targetDate);
@@ -423,10 +446,10 @@ class TotelepepExtractor {
       const month = months[dateObj.getMonth()];
       const year = dateObj.getFullYear();
       const formattedDate = `${day} ${month} ${year}`;
-      apiUrl = `${this.baseUrl}?sportId=soccer&date=${encodeURIComponent(formattedDate)}&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=1&inclusive=0&matchid=0&periodCode=all`;
+      apiUrl = `${this.baseUrl}?sportId=soccer&date=${encodeURIComponent(formattedDate)}&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=${page}&inclusive=0&matchid=0&periodCode=all`;
     } else {
       // No date: get all matches
-      apiUrl = `${this.baseUrl}?sportId=soccer&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=200&inclusive=1&matchid=0&periodCode=all`;
+      apiUrl = `${this.baseUrl}?sportId=soccer&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=${page}&inclusive=1&matchid=0&periodCode=all`;
     }
     
     console.log(`🌐 API URL for ${dateToFetch || 'all dates'}:`, apiUrl);
