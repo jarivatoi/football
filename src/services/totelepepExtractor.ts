@@ -681,10 +681,18 @@ class TotelepepExtractor {
           if (fields.length >= 2) {
             const competitionId = fields[0]?.trim();
             const competitionName = fields[1]?.trim();
+            const categoryId = fields[2]?.trim().toLowerCase(); // Field 2 is the category ID
             
             if (competitionId && competitionName) {
               (this as any).apiCompetitionMap[competitionId] = competitionName;
-              console.log(`🏆 Mapped competition: ${competitionId} → ${competitionName}`);
+              
+              // Also populate competitionToCategoryMap
+              if (categoryId) {
+                this.competitionToCategoryMap.set(competitionId, categoryId);
+                console.log(`🏆 Mapped competition: ${competitionId} → ${competitionName} (category: ${categoryId})`);
+              } else {
+                console.log(`🏆 Mapped competition: ${competitionId} → ${competitionName} (no category)`);
+              }
             }
           }
         }
