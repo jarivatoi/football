@@ -416,8 +416,14 @@ class TotelepepExtractor {
       const formattedDate = `${day} ${month} ${year}`;
       apiUrl = `${this.baseUrl}?sportId=soccer&date=${encodeURIComponent(formattedDate)}&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=1&inclusive=0&matchid=0&periodCode=all`;
     } else if (targetDate) {
-      // Category only or no filter: use ISO format
-      apiUrl = `${this.baseUrl}?sportId=soccer&date=${dateToFetch}&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=1&inclusive=1&matchid=0&periodCode=all`;
+      // Category only: use "08 Jun 2026" format with inclusive=0
+      const dateObj = new Date(targetDate);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const month = months[dateObj.getMonth()];
+      const year = dateObj.getFullYear();
+      const formattedDate = `${day} ${month} ${year}`;
+      apiUrl = `${this.baseUrl}?sportId=soccer&date=${encodeURIComponent(formattedDate)}&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=1&inclusive=0&matchid=0&periodCode=all`;
     } else {
       // No date: get all matches
       apiUrl = `${this.baseUrl}?sportId=soccer&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=200&inclusive=1&matchid=0&periodCode=all`;
