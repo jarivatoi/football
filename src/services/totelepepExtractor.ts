@@ -2638,6 +2638,52 @@ class TotelepepExtractor {
     return this.competitionList;
   }
   
+  // Fetch all categories for soccer
+  public async fetchCategories(): Promise<Array<{id: string, name: string}>> {
+    try {
+      console.log('📂 Fetching categories from API...');
+      
+      // Use the correct GetCategories API endpoint
+      const apiUrl = 'https://www.totelepep.mu/webapi/getcategories?SportId=1';
+      
+      console.log('🌐 Fetching categories URL:', apiUrl);
+      
+      // Use CORS proxy
+      const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
+      
+      const response = await fetch(fetchUrl, {
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const jsonData = await response.json();
+      console.log('📄 Categories API response:', jsonData);
+      
+      // Extract categories from response
+      let categories: Array<{id: string, name: string}> = [];
+      
+      // Response should be an array
+      if (Array.isArray(jsonData)) {
+        categories = jsonData.map((cat: any) => ({
+          id: cat.name.toLowerCase(), // Use lowercase name as ID
+          name: cat.name
+        }));
+      }
+      
+      console.log('📂 Extracted categories:', categories);
+      return categories;
+      
+    } catch (error) {
+      console.error('❌ Error fetching categories:', error);
+      return [];
+    }
+  }
+  
   // Fetch competitions for a specific category
   public async fetchCompetitionsForCategory(categoryName: string): Promise<Array<{id: string, name: string, matchCount?: number}>> {
     try {
