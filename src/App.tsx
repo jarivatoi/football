@@ -414,16 +414,18 @@ function App() {
     console.log('📅 Date changed to:', newDate);
     setSelectedDate(newDate);
     
-    // Handle "beyond" date - fetch using the Beyond entry's date with inclusive=1
+    // Handle "beyond" date - check if this date corresponds to Beyond entry
     const isBeyondDate = availableDatesWithCounts.find(d => 
       d.date === newDate && (d.displayName.includes('Beyond') || d.displayName.includes('>>'))
     );
     
     if (isBeyondDate) {
       console.log('📅 Fetching Beyond matches from date:', newDate);
-      // Pass the actual date (e.g., "2026-06-15T00:00:00+04:00") - API will use inclusive=1
-      // to return all matches from that date onwards
-      loadData(newDate);
+      // Extract just the date part (YYYY-MM-DD) from the ISO string
+      const beyondDate = newDate.split('T')[0];
+      console.log('📅 Beyond date (extracted):', beyondDate);
+      // Pass the date - API will use inclusive=1 to return all matches from that date onwards
+      loadData(beyondDate);
     }
     // For other dates, loadData will be called automatically by useEffect
   };
