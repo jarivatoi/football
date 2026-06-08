@@ -49,6 +49,9 @@ class TotelepepExtractor {
   private cacheTimeout = 1 * 60 * 1000; // 1 minute instead of 5 minutes
   private rateLimitDelay = 2000; // 2 seconds between requests
   private lastRequestTime = 0;
+  private calendarList: Array<{entryDate: string, matchCount: number, displayDate: string}> = [];
+  private categoryList: Array<{id: string, name: string}> = [];
+  private competitionList: Array<{id: string, name: string, categoryId?: string, matchCount?: number}> = [];
   // Dynamic competition mapping that can be updated based on actual data
   private dynamicCompetitionMap: Record<string, string> = {};
   // Fallback competition mapping based on team names
@@ -535,6 +538,30 @@ class TotelepepExtractor {
         console.log(`   ⚠️ No calendarList found in API response`);
         if (jsonData) {
           console.log(`   📄 API Response Keys:`, Object.keys(jsonData));
+        }
+      }
+      
+      // Extract categoryList if available
+      if (jsonData && jsonData.categoryList && Array.isArray(jsonData.categoryList)) {
+        console.log(`📂 Found categoryList with ${jsonData.categoryList.length} categories`);
+        this.categoryList = jsonData.categoryList.map((cat: any) => ({
+          id: cat.id || cat.categoryId || '',
+          name: cat.name || cat.categoryName || cat.displayName || ''
+        }));
+        console.log(`📂 Extracted categories:`, this.categoryList);
+      }
+      
+      // Extract competitionList if available
+      if (jsonData && jsonData.competitionList && Array.isArray(jsonData.competitionList)) {
+        console.log(`🏆 Found competitionList with ${jsonData.competitionList.length} competitions`);
+        this.competitionList = jsonData.competitionList.map((comp: any) => ({
+          id: comp.id || comp.competitionId || '',
+          name: comp.name || comp.competitionName || comp.displayName || '',
+          categoryId: comp.categoryId || comp.catId || '',
+          matchCount: comp.matchCount || comp.count || 0
+        }));
+        console.log(`🏆 Extracted competitions:`, this.competitionList);
+      }
           
           // Check if calendarList might be under a different key
           const possibleKeys = Object.keys(jsonData).filter(key => 
