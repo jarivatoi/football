@@ -137,19 +137,15 @@ class TotelepepService {
         dateString = dateObj.toISOString().split('T')[0];
         console.log(`📅 Converting calendar entry date: ${entry.entryDate} -> ${dateString}`);
         
-        // ALWAYS use the API's displayDate - this preserves "Today", "Tomorrow", "Beyond >>", etc.
-        let displayName = entry.displayDate;
+        // Check if this is today's date - use "Today" if API didn't provide displayDate
+        const today = new Date();
+        const isToday = dateObj.toDateString() === today.toDateString();
         
-        // Only generate a fallback if API didn't provide displayDate
+        // Use API's displayDate, or fallback to "Today"/generated name
+        let displayName = entry.displayDate;
         if (!displayName || displayName.trim() === '') {
-          const today = new Date();
-          const tomorrow = new Date(today);
-          tomorrow.setDate(today.getDate() + 1);
-          
-          if (dateObj.toDateString() === today.toDateString()) {
+          if (isToday) {
             displayName = 'Today';
-          } else if (dateObj.toDateString() === tomorrow.toDateString()) {
-            displayName = 'Tomorrow';
           } else {
             displayName = dateObj.toLocaleDateString('en-GB', { 
               weekday: 'short', 
@@ -165,6 +161,18 @@ class TotelepepService {
           displayName
         };
       }).filter(entry => entry !== null) as Array<{date: string, matchCount: number, displayName: string}>;
+      
+      // Add "Beyond >>" entry as the last item (all matches from last date onwards)
+      if (result.length > 0) {
+        const lastEntry = result[result.length - 1];
+        console.log('📅 Adding Beyond >> entry after:', lastEntry);
+        result.push({
+          date: lastEntry.date, // Use the last date so API fetches from that date onwards
+          matchCount: lastEntry.matchCount, // Same count as last date (will show all inclusive)
+          displayName: 'Beyond >>'
+        });
+        console.log('📅 Final result with Beyond >>:', result);
+      }
       
       console.log('📅 Available dates with counts (from calendarList):', result);
       return result;
