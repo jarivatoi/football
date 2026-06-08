@@ -87,8 +87,10 @@ class TotelepepService {
         // Handle "Beyond >>" or non-date entries specially
         if (entry.displayDate && (entry.displayDate.includes('Beyond') || entry.displayDate.includes('>>'))) {
           console.log('📅 Found Beyond date entry, using special handling');
+          // Use the actual entryDate from API (might be a future date or special value)
+          // Don't try to parse it, just use it as-is for display
           return {
-            date: 'beyond',
+            date: entry.entryDate || 'beyond',
             matchCount: entry.matchCount || 0,
             displayName: entry.displayDate
           };

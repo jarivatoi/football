@@ -414,22 +414,28 @@ function App() {
     console.log('📅 Date changed to:', newDate);
     setSelectedDate(newDate);
     
-    // Handle "beyond" date - use the last valid date from calendar
-    if (newDate === 'beyond') {
+    // Handle "beyond" date - check if it contains "Beyond" or ">>"
+    if (newDate.includes('Beyond') || newDate.includes('>>') || newDate === 'beyond') {
       console.log('📅 Fetching Beyond matches');
-      // Find the last actual date in the calendar and use that
-      const lastActualDate = availableDatesWithCounts
-        .filter(d => d.date !== 'beyond')
-        .pop();
+      // Find the Beyond entry to get its actual entryDate
+      const beyondEntry = availableDatesWithCounts.find(d => 
+        d.date.includes('Beyond') || d.date.includes('>>') || d.date === 'beyond'
+      );
       
-      if (lastActualDate) {
-        console.log('📅 Using last date for Beyond:', lastActualDate.date);
-        loadData(lastActualDate.date);
+      if (beyondEntry && beyondEntry.date !== 'beyond') {
+        // Use the actual date from API (e.g., "2025-06-15" or similar)
+        console.log('📅 Using Beyond date:', beyondEntry.date);
+        loadData(beyondEntry.date);
       } else {
-        // Fallback to today
-        const today = new Date();
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        loadData(todayStr);
+        // Fallback: find the last actual date
+        const lastActualDate = availableDatesWithCounts
+          .filter(d => !d.date.includes('Beyond') && !d.date.includes('>>') && d.date !== 'beyond')
+          .pop();
+        
+        if (lastActualDate) {
+          console.log('📅 Using last date for Beyond:', lastActualDate.date);
+          loadData(lastActualDate.date);
+        }
       }
     } else {
       // loadData will be called automatically by useEffect

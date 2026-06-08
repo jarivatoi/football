@@ -11,44 +11,55 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   onDateChange, 
   availableDates = [] 
 }) => {
-  // Use API data directly - show exact names from totelepep, max 8 dates for 2x4 grid
+  // Use API data directly - show exact names from totelepep
   const datesToShow = availableDates.length > 0 ? availableDates.slice(0, 8) : [];
 
   return (
     <div className="bg-white shadow-sm border-b border-gray-200">
-      {/* 2x4 Grid Layout */}
-      <div className="grid grid-cols-4 gap-1.5 px-3 py-2 max-w-3xl mx-auto">
+      {/* Horizontal Scrolling Row */}
+      <div className="flex gap-2 overflow-x-auto px-3 py-2 max-w-3xl mx-auto scrollbar-hide">
         {datesToShow.map((dateInfo) => {
           const isSelected = dateInfo.date === selectedDate;
-          const dateObj = new Date(dateInfo.date);
-          const dateStr = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          
+          // Parse date for compact display
+          let dayName = '';
+          let dateNum = '';
+          let monthName = '';
+          
+          if (dateInfo.date !== 'beyond') {
+            const dateObj = new Date(dateInfo.date);
+            dayName = dateObj.toLocaleDateString('en-GB', { weekday: 'short' }); // Mon, Tue, etc.
+            dateNum = dateObj.getDate().toString();
+            monthName = dateObj.toLocaleDateString('en-GB', { month: 'short' }); // Jun, Jul, etc.
+          }
           
           return (
             <button
               key={dateInfo.date}
               onClick={() => onDateChange(dateInfo.date)}
-              className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${
+              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all min-w-[70px] ${
                 isSelected
                   ? 'bg-blue-600 text-white shadow-md'
                   : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
               }`}
             >
               <div className="text-center">
-                <div className={`font-semibold truncate ${
-                  isSelected ? 'text-white' : 'text-gray-900'
-                }`}>
-                  {dateInfo.displayName}
-                </div>
-                <div className={`text-[10px] mt-0.5 ${
-                  isSelected ? 'text-blue-100' : 'text-gray-500'
-                }`}>
-                  {dateStr}
-                </div>
-                <div className={`text-[10px] mt-0.5 ${
-                  isSelected ? 'text-blue-100' : 'text-gray-500'
-                }`}>
-                  ({dateInfo.matchCount})
-                </div>
+                {dateInfo.date === 'beyond' ? (
+                  <div className="font-semibold truncate">{dateInfo.displayName}</div>
+                ) : (
+                  <>
+                    <div className={`font-semibold ${
+                      isSelected ? 'text-white' : 'text-gray-900'
+                    }`}>
+                      {dayName}
+                    </div>
+                    <div className={`text-[10px] ${
+                      isSelected ? 'text-blue-100' : 'text-gray-500'
+                    }`}>
+                      {dateNum} {monthName} ({dateInfo.matchCount})
+                    </div>
+                  </>
+                )}
               </div>
             </button>
           );
