@@ -106,25 +106,49 @@ function App() {
   
   // Handle category change - reload calendar with filters
   const handleCategoryChange = async (categoryId: string) => {
+    console.log('📂 Category changed to:', categoryId);
     setSelectedCategory(categoryId);
     setSelectedCompetition('');
-    await reloadCalendarWithFilters(categoryId, '');
-    loadData(selectedDate);
+    
+    // Reload calendar with the category filter and get the first date
+    const firstDate = await reloadCalendarWithFilters(categoryId, '');
+    
+    // Load data with the first date from the filtered calendar
+    if (firstDate) {
+      console.log('📅 Loading matches for first calendar date:', firstDate);
+      loadData(firstDate);
+    }
   };
   
   // Handle competition change - reload calendar with filters
   const handleCompetitionChange = async (competitionId: string) => {
+    console.log('🏆 Competition changed to:', competitionId);
     setSelectedCompetition(competitionId);
-    await reloadCalendarWithFilters(selectedCategory, competitionId);
-    loadData(selectedDate);
+    
+    // Reload calendar with the competition filter and get the first date
+    const firstDate = await reloadCalendarWithFilters(selectedCategory, competitionId);
+    
+    // Load data with the first date from the filtered calendar
+    if (firstDate) {
+      console.log('📅 Loading matches for first calendar date:', firstDate);
+      loadData(firstDate);
+    }
   };
   
   // Reload calendar with category/competition filters to update match counts
-  const reloadCalendarWithFilters = async (categoryId: string, competitionId: string) => {
+  const reloadCalendarWithFilters = async (categoryId: string, competitionId: string): Promise<string | null> => {
     console.log('📅 Reloading calendar with filters...', { categoryId, competitionId });
     
     // Load calendar with the filters
     await loadCalendarList(categoryId, competitionId);
+    
+    // Return the first date from the updated calendar
+    // We need to access it from the extractor since state updates are async
+    const calendarData = (totelepepExtractor as any).calendarList || [];
+    if (calendarData && calendarData.length > 0) {
+      return calendarData[0].entryDate;
+    }
+    return null;
   };
 
   // Initialize online status
