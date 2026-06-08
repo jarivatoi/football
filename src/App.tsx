@@ -250,6 +250,11 @@ function App() {
   // Load initial data on mount
   useSafeEffect(() => {
     console.log('📅 Initial load...');
+    console.log('📅 Today is:', getTodayDate());
+    
+    // Clear all caches on initial load
+    totelepepExtractor.clearCache();
+    
     loadCalendarList();
     loadData(selectedDate);
   }, []); // Only run once on mount
