@@ -15,7 +15,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   const datesToShow = availableDates.length > 0 ? availableDates.slice(0, 8) : [];
 
   return (
-    <div className="sticky top-14 z-30 bg-white shadow-sm border-b border-gray-200">
+    <div className="bg-white shadow-sm border-b border-gray-200">
       {/* 2x4 Grid Layout */}
       <div className="grid grid-cols-4 gap-1.5 px-3 py-2 max-w-3xl mx-auto">
         {datesToShow.map((dateInfo) => {

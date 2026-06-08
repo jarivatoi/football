@@ -413,7 +413,27 @@ function App() {
   const handleDateChange = (newDate: string) => {
     console.log('📅 Date changed to:', newDate);
     setSelectedDate(newDate);
-    // loadData will be called automatically by useEffect
+    
+    // Handle "beyond" date - use the last valid date from calendar
+    if (newDate === 'beyond') {
+      console.log('📅 Fetching Beyond matches');
+      // Find the last actual date in the calendar and use that
+      const lastActualDate = availableDatesWithCounts
+        .filter(d => d.date !== 'beyond')
+        .pop();
+      
+      if (lastActualDate) {
+        console.log('📅 Using last date for Beyond:', lastActualDate.date);
+        loadData(lastActualDate.date);
+      } else {
+        // Fallback to today
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        loadData(todayStr);
+      }
+    } else {
+      // loadData will be called automatically by useEffect
+    }
   };
   
   const toggleParlayBuilder = () => {
@@ -426,22 +446,24 @@ function App() {
 
 
   return (
-    <div className="min-h-screen bg-gray-100" style={{ overflowX: 'hidden', touchAction: 'pan-y' }}>
+    <div className="min-h-screen bg-gray-100">
       <Header 
         selectionCount={parlaySelections.length}
         onSlipClick={toggleParlayBuilder}
       />
       
-      <div className="max-w-3xl mx-auto" style={{ overflowX: 'hidden' }}>
-        {/* Date Selector - Sticky */}
-        <DateSelector 
-          selectedDate={selectedDate} 
-          onDateChange={handleDateChange}
-          availableDates={availableDatesWithCounts}
-        />
-        
-        {/* Search Bar - Sticky */}
-        <div className="sticky top-[118px] z-20 bg-white shadow-sm border-b border-gray-200 px-3 py-2">
+      <div className="max-w-3xl mx-auto">
+        {/* Sticky Container for Dates and Search */}
+        <div className="sticky top-[56px] z-30" style={{ marginTop: '-8px', paddingTop: '8px' }}>
+          {/* Date Selector - Sticky */}
+          <DateSelector 
+            selectedDate={selectedDate} 
+            onDateChange={handleDateChange}
+            availableDates={availableDatesWithCounts}
+          />
+          
+          {/* Search Bar - Sticky */}
+          <div className="bg-white shadow-sm border-b border-gray-200 px-3 py-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -452,6 +474,7 @@ function App() {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
+        </div>
         </div>
         
         {/* Matches Display */}
