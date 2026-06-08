@@ -76,9 +76,9 @@ const CompetitionFilter: React.FC<CompetitionFilterProps> = ({
                     onCategoryChange(category.id);
                     onCompetitionChange(''); // Reset competition when category changes
                     
-                    // Fetch competitions for this category
+                    // Fetch competitions for this category using the NAME
                     if (onFetchCompetitions) {
-                      const competitions = await onFetchCompetitions(category.id);
+                      const competitions = await onFetchCompetitions(category.name);
                       console.log('🏆 Fetched competitions:', competitions);
                     }
                     

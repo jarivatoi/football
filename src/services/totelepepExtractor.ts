@@ -2639,12 +2639,12 @@ class TotelepepExtractor {
   }
   
   // Fetch competitions for a specific category
-  public async fetchCompetitionsForCategory(categoryId: string): Promise<Array<{id: string, name: string, matchCount?: number}>> {
+  public async fetchCompetitionsForCategory(categoryName: string): Promise<Array<{id: string, name: string, matchCount?: number}>> {
     try {
-      console.log(`🏆 Fetching competitions for category: ${categoryId}`);
+      console.log(`🏆 Fetching competitions for category: ${categoryName}`);
       
-      // Build API URL with category filter
-      const apiUrl = `${this.baseUrl}?sportId=soccer&category=${categoryId}&competitionId=0&pageNo=200&inclusive=0&matchid=0&periodCode=all`;
+      // Use the correct GetCompetitions API endpoint
+      const apiUrl = `https://www.totelepep.mu/webapi/GetCompetitions?CategoryName=${encodeURIComponent(categoryName)}&SportId=1`;
       
       console.log(`🌐 Fetching competitions URL:`, apiUrl);
       
@@ -2662,32 +2662,31 @@ class TotelepepExtractor {
       }
       
       const jsonData = await response.json();
-      console.log(`📄 Competitions API response keys:`, Object.keys(jsonData || {}));
+      console.log(`📄 Competitions API response:`, jsonData);
       
-      // Extract competitionList from response
+      // Extract competitions from response
       let competitions: Array<{id: string, name: string, matchCount?: number}> = [];
       
-      if (jsonData && jsonData.competitionList && Array.isArray(jsonData.competitionList)) {
-        console.log(`🏆 Found competitionList with ${jsonData.competitionList.length} competitions`);
-        competitions = jsonData.competitionList.map((comp: any) => ({
-          id: comp.id || comp.competitionId || '',
-          name: comp.name || comp.competitionName || comp.displayName || '',
-          matchCount: comp.matchCount || comp.count || 0
+      // Response might be array or have competitions array
+      if (Array.isArray(jsonData)) {
+        competitions = jsonData.map((comp: any) => ({
+          id: comp.id || comp.CompetitionId || comp.competitionId || '',
+          name: comp.name || comp.CompetitionName || comp.competitionName || comp.displayName || '',
+          matchCount: comp.matchCount || comp.count || comp.MatchCount || 0
         }));
-      } else if (jsonData && jsonData.competitions && Array.isArray(jsonData.competitions)) {
-        console.log(`🏆 Found 'competitions' with ${jsonData.competitions.length} entries`);
+      } else if (jsonData && jsonData.competitions) {
         competitions = jsonData.competitions.map((comp: any) => ({
-          id: comp.id || comp.competitionId || '',
-          name: comp.name || comp.competitionName || comp.displayName || '',
-          matchCount: comp.matchCount || comp.count || 0
+          id: comp.id || comp.CompetitionId || comp.competitionId || '',
+          name: comp.name || comp.CompetitionName || comp.competitionName || comp.displayName || '',
+          matchCount: comp.matchCount || comp.count || comp.MatchCount || 0
         }));
       }
       
-      console.log(`🏆 Extracted competitions for category ${categoryId}:`, competitions);
+      console.log(`🏆 Extracted ${competitions.length} competitions:`, competitions);
       return competitions;
       
     } catch (error) {
-      console.error(`❌ Error fetching competitions for category ${categoryId}:`, error);
+      console.error(`❌ Error fetching competitions for category ${categoryName}:`, error);
       return [];
     }
   }
