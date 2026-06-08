@@ -540,6 +540,8 @@ function App() {
 
   const handleDateChange = (newDate: string) => {
     console.log('📅 Date changed to:', newDate);
+    console.log('📂 Current category:', selectedCategory);
+    console.log('🏆 Current competition:', selectedCompetition);
     setSelectedDate(newDate);
     
     // Handle "beyond" date - check if this date corresponds to Beyond entry
@@ -554,8 +556,11 @@ function App() {
       console.log('📅 Beyond date (extracted):', beyondDate);
       // Pass the date - API will use inclusive=1 to return all matches from that date onwards
       loadData(beyondDate);
+    } else {
+      // For regular dates, load with current filters
+      console.log('📅 Loading regular date with filters:', newDate);
+      loadData(newDate);
     }
-    // For other dates, loadData will be called automatically by useEffect
   };
   
   const toggleParlayBuilder = () => {
