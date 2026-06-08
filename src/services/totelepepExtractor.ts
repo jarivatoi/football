@@ -443,7 +443,15 @@ class TotelepepExtractor {
       // Store calendar list data for date selector
       if (jsonData && jsonData.calendarList && Array.isArray(jsonData.calendarList)) {
         console.log(`📅 Found calendarList with ${jsonData.calendarList.length} entries`);
-        console.log(`📅 CalendarList data:`, jsonData.calendarList);
+        console.log(`📅 RAW CalendarList data from API:`, jsonData.calendarList);
+        
+        // Log each entry's keys and values to see what fields exist
+        jsonData.calendarList.forEach((entry: any, index: number) => {
+          console.log(`📅 Raw calendar entry ${index}:`, {
+            keys: Object.keys(entry),
+            entry: entry
+          });
+        });
         
         // Validate and normalize calendarList entries
         const normalizedCalendarList = jsonData.calendarList.map((entry: any) => {
