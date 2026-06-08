@@ -181,10 +181,21 @@ function App() {
 
   // Filter matches by selected date and maintain grouping
   const filteredGroupedMatches = React.useMemo ? React.useMemo(() => {
-    // First filter by selected date
-    const dateFiltered: Record<string, TotelepepMatch[]> = {};
-    if (groupedMatches[selectedDate]) {
-      dateFiltered[selectedDate] = groupedMatches[selectedDate];
+    // Check if this is a "Beyond" date
+    const isBeyondDate = availableDatesWithCounts.find(d => 
+      d.date === selectedDate && (d.displayName.includes('Beyond') || d.displayName.includes('>>'))
+    );
+    
+    // For Beyond date, show ALL matches from all dates
+    let dateFiltered: Record<string, TotelepepMatch[]>;
+    if (isBeyondDate) {
+      dateFiltered = groupedMatches; // Show all dates
+    } else {
+      // For regular dates, show only that specific date
+      dateFiltered = {};
+      if (groupedMatches[selectedDate]) {
+        dateFiltered[selectedDate] = groupedMatches[selectedDate];
+      }
     }
     
     // Then filter by search term if provided
