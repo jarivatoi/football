@@ -123,32 +123,8 @@ function App() {
   const reloadCalendarWithFilters = async (categoryId: string, competitionId: string) => {
     console.log('📅 Reloading calendar with filters...', { categoryId, competitionId });
     
-    // Clear cache to ensure fresh data
-    totelepepExtractor.clearCache();
-    
-    // Fetch matches for each date to get accurate counts
-    const updatedCalendarList = await Promise.all(
-      calendarList.map(async (dateEntry) => {
-        try {
-          const matches = await totelepepExtractor.extractMatches(
-            dateEntry.date,
-            categoryId,
-            competitionId
-          );
-          console.log(`📅 ${dateEntry.displayName}: ${matches.length} matches`);
-          return {
-            ...dateEntry,
-            matchCount: matches.length
-          };
-        } catch (error) {
-          console.error(`Error fetching matches for ${dateEntry.date}:`, error);
-          return dateEntry;
-        }
-      })
-    );
-    
-    setCalendarList(updatedCalendarList);
-    console.log('📅 Updated calendar with filter counts:', updatedCalendarList);
+    // Load calendar with the filters
+    await loadCalendarList(categoryId, competitionId);
   };
 
   // Initialize online status
@@ -223,25 +199,44 @@ function App() {
     }
   };
 
-  // Load calendar list data
-  const loadCalendarList = async () => {
+  // Load calendar list data with optional filters
+  const loadCalendarList = async (categoryId?: string, competitionId?: string) => {
     try {
-      console.log('📅 Fetching calendar list data from Totelepep API...');
-      const calendarData = await totelepepService.getAvailableDatesWithCounts();
-      setCalendarList(calendarData);
-      console.log('📅 Calendar list data loaded:', calendarData);
+      console.log('📅 Fetching calendar list data from Totelepep API...', { categoryId, competitionId });
       
-      // Fetch categories from the API
-      console.log('📂 Fetching categories from API...');
-      const categoryList = await totelepepExtractor.fetchCategories();
+      // Clear cache to ensure fresh data
+      totelepepExtractor.clearCache();
       
-      if (categoryList && categoryList.length > 0) {
-        console.log('📂 Categories loaded:', categoryList);
-        setCategories(categoryList.map(cat => ({
-          id: cat.id,
-          name: cat.name,
-          competitions: [] // Will be populated when category is selected
+      // Fetch today's data to get the calendar list with filters
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const matches = await totelepepExtractor.extractMatches(todayStr, categoryId || '', competitionId || '');
+      
+      // Get calendar list from extractor
+      const calendarData = (totelepepExtractor as any).calendarList || [];
+      
+      if (calendarData && calendarData.length > 0) {
+        console.log('📅 Calendar list data loaded:', calendarData);
+        setCalendarList(calendarData.map((entry: any) => ({
+          date: entry.entryDate,
+          matchCount: entry.matchCount || 0,
+          displayName: entry.displayDate || entry.entryDate
         })));
+      }
+      
+      // Fetch categories from the API (only on initial load without filters)
+      if (!categoryId) {
+        console.log('📂 Fetching categories from API...');
+        const categoryList = await totelepepExtractor.fetchCategories();
+        
+        if (categoryList && categoryList.length > 0) {
+          console.log('📂 Categories loaded:', categoryList);
+          setCategories(categoryList.map(cat => ({
+            id: cat.id,
+            name: cat.name,
+            competitions: [] // Will be populated when category is selected
+          })));
+        }
       }
     } catch (error) {
       console.error('Error loading calendar list:', error);
