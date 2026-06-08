@@ -210,8 +210,13 @@ function App() {
       // Fetch without a specific date to get the full calendar list
       const matches = await totelepepExtractor.extractMatches(undefined, categoryId || '', competitionId || '');
       
+      // Small delay to ensure calendarList is set
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Get calendar list from extractor
       const calendarData = (totelepepExtractor as any).calendarList || [];
+      
+      console.log('📅 Extractor calendarList after extraction:', calendarData);
       
       if (calendarData && calendarData.length > 0) {
         console.log('📅 Calendar list data loaded:', calendarData);
