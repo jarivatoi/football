@@ -3,6 +3,7 @@ import { RefreshCw, Search, Calendar, AlertCircle, Calculator, Database, Lightbu
 import { Target } from 'lucide-react';
 import DateGroupedMatches from './components/DateGroupedMatches';
 import DateSelector from './components/DateSelector';
+import CompetitionFilter from './components/CompetitionFilter';
 import Header from './components/Header';
 import StatsCards from './components/StatsCards';
 import ParlayBuilder, { ParlaySelection } from './components/ParlayBuilder';
@@ -83,6 +84,11 @@ function App() {
   const [availableDates, setAvailableDates] = useSafeState<Array<{date: string, matchCount: number, displayName: string}>>([]);
   const [calendarList, setCalendarList] = useSafeState<Array<{date: string, matchCount: number, displayName: string}>>([]);
   const [showParlayBuilder, setShowParlayBuilder] = useSafeState(false); // Control parlay builder slide animation
+  
+  // Category and Competition filter states
+  const [categories, setCategories] = useSafeState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
+  const [selectedCategory, setSelectedCategory] = useSafeState<string>('');
+  const [selectedCompetition, setSelectedCompetition] = useSafeState<string>('');
 
   // Initialize online status
   useSafeEffect(() => {
@@ -490,6 +496,15 @@ function App() {
             />
           </div>
         </div>
+        
+        {/* Competition Filter */}
+        <CompetitionFilter
+          categories={categories}
+          selectedCategory={selectedCategory}
+          selectedCompetition={selectedCompetition}
+          onCategoryChange={setSelectedCategory}
+          onCompetitionChange={setSelectedCompetition}
+        />
       </div>
       
       <div className="max-w-3xl mx-auto">
