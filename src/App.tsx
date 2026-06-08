@@ -439,21 +439,22 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header 
-        selectionCount={parlaySelections.length}
-        onSlipClick={toggleParlayBuilder}
-      />
-      
-      <div className="max-w-3xl mx-auto">
-        {/* Date Selector - Sticky (handled inside component) */}
+      {/* Combined Sticky Header: Header + Date Selector + Search */}
+      <div className="sticky top-0 z-40">
+        <Header 
+          selectionCount={parlaySelections.length}
+          onSlipClick={toggleParlayBuilder}
+        />
+        
+        {/* Date Selector */}
         <DateSelector 
           selectedDate={selectedDate} 
           onDateChange={handleDateChange}
           availableDates={availableDatesWithCounts}
         />
         
-        {/* Search Bar - Sticky */}
-        <div className="sticky top-[108px] z-20 bg-white shadow-sm border-b border-gray-200">
+        {/* Search Bar */}
+        <div className="bg-white shadow-sm border-b border-gray-200">
           <div className="relative px-3 py-2">
             <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -465,6 +466,9 @@ function App() {
             />
           </div>
         </div>
+      </div>
+      
+      <div className="max-w-3xl mx-auto">
         
         {/* Matches Display */}
         {error && (
