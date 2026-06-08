@@ -173,19 +173,7 @@ function App() {
   // Load data when selected date changes
   useSafeEffect(() => {
     console.log('📅 Selected date changed to:', selectedDate);
-    
-    // Don't load data for "Beyond" dates via useEffect - handleDateChange handles it
-    // Check if this date corresponds to the Beyond entry (last date in calendar)
-    const isBeyondDate = availableDatesWithCounts.find(d => 
-      d.date === selectedDate && (d.displayName.includes('Beyond') || d.displayName.includes('>>'))
-    );
-    
-    if (isBeyondDate) {
-      console.log('📅 Skipping useEffect load for Beyond date');
-      return;
-    }
-    
-    // Load data when selected date changes
+    // Load data when selected date changes (including Beyond)
     loadData(selectedDate);
     // Also load calendar list data
     loadCalendarList();
@@ -426,15 +414,16 @@ function App() {
     console.log('📅 Date changed to:', newDate);
     setSelectedDate(newDate);
     
-    // Handle "beyond" date - check if this date corresponds to Beyond entry
+    // Handle "beyond" date - fetch using the Beyond entry's date with inclusive=1
     const isBeyondDate = availableDatesWithCounts.find(d => 
       d.date === newDate && (d.displayName.includes('Beyond') || d.displayName.includes('>>'))
     );
     
     if (isBeyondDate) {
-      console.log('📅 Fetching Beyond matches (all inclusive, no date parameter)');
-      // Call loadData with undefined to fetch all matches without date filter
-      loadData(undefined);
+      console.log('📅 Fetching Beyond matches from date:', newDate);
+      // Pass the actual date (e.g., "2026-06-15T00:00:00+04:00") - API will use inclusive=1
+      // to return all matches from that date onwards
+      loadData(newDate);
     }
     // For other dates, loadData will be called automatically by useEffect
   };
