@@ -89,6 +89,19 @@ function App() {
   const [categories, setCategories] = useSafeState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
   const [selectedCategory, setSelectedCategory] = useSafeState<string>('');
   const [selectedCompetition, setSelectedCompetition] = useSafeState<string>('');
+  
+  // Function to fetch competitions for a category
+  const handleFetchCompetitions = async (categoryId: string) => {
+    console.log(`🏆 Fetching competitions for category: ${categoryId}`);
+    const competitions = await totelepepExtractor.fetchCompetitionsForCategory(categoryId);
+    
+    // Update categories state with the fetched competitions
+    setCategories(prev => prev.map(cat => 
+      cat.id === categoryId ? { ...cat, competitions } : cat
+    ));
+    
+    return competitions;
+  };
 
   // Initialize online status
   useSafeEffect(() => {
@@ -543,6 +556,7 @@ function App() {
           selectedCompetition={selectedCompetition}
           onCategoryChange={setSelectedCategory}
           onCompetitionChange={setSelectedCompetition}
+          onFetchCompetitions={handleFetchCompetitions}
         />
       </div>
       

@@ -19,6 +19,7 @@ interface CompetitionFilterProps {
   selectedCompetition: string;
   onCategoryChange: (categoryId: string) => void;
   onCompetitionChange: (competitionId: string) => void;
+  onFetchCompetitions?: (categoryId: string) => Promise<Competition[]>;
 }
 
 const CompetitionFilter: React.FC<CompetitionFilterProps> = ({
@@ -26,7 +27,8 @@ const CompetitionFilter: React.FC<CompetitionFilterProps> = ({
   selectedCategory,
   selectedCompetition,
   onCategoryChange,
-  onCompetitionChange
+  onCompetitionChange,
+  onFetchCompetitions
 }) => {
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showCompetitionDropdown, setShowCompetitionDropdown] = useState(false);
@@ -70,9 +72,16 @@ const CompetitionFilter: React.FC<CompetitionFilterProps> = ({
               {categories.map((category) => (
                 <button
                   key={category.id}
-                  onClick={() => {
+                  onClick={async () => {
                     onCategoryChange(category.id);
-                    onCompetitionChange('');
+                    onCompetitionChange(''); // Reset competition when category changes
+                    
+                    // Fetch competitions for this category
+                    if (onFetchCompetitions) {
+                      const competitions = await onFetchCompetitions(category.id);
+                      console.log('🏆 Fetched competitions:', competitions);
+                    }
+                    
                     setShowCategoryDropdown(false);
                   }}
                   className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 ${

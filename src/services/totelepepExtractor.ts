@@ -543,6 +543,9 @@ class TotelepepExtractor {
         }
       }
       
+      // Debug: Log all top-level keys in the API response
+      console.log('🔑 All API response keys:', Object.keys(jsonData || {}));
+      
       // Extract categoryList if available
       if (jsonData && jsonData.categoryList && Array.isArray(jsonData.categoryList)) {
         console.log(`📂 Found categoryList with ${jsonData.categoryList.length} categories`);
@@ -551,6 +554,24 @@ class TotelepepExtractor {
           name: cat.name || cat.categoryName || cat.displayName || ''
         }));
         console.log(`📂 Extracted categories:`, this.categoryList);
+      } else if (jsonData && jsonData.categories && Array.isArray(jsonData.categories)) {
+        // Fallback: try 'categories' key
+        console.log(`📂 Found 'categories' with ${jsonData.categories.length} entries`);
+        this.categoryList = jsonData.categories.map((cat: any) => ({
+          id: cat.id || cat.categoryId || '',
+          name: cat.name || cat.categoryName || cat.displayName || ''
+        }));
+        console.log(`📂 Extracted categories from 'categories':`, this.categoryList);
+      } else if (jsonData && jsonData.category && Array.isArray(jsonData.category)) {
+        // Fallback: try 'category' key
+        console.log(`📂 Found 'category' with ${jsonData.category.length} entries`);
+        this.categoryList = jsonData.category.map((cat: any) => ({
+          id: cat.id || cat.categoryId || '',
+          name: cat.name || cat.categoryName || cat.displayName || ''
+        }));
+        console.log(`📂 Extracted categories from 'category':`, this.categoryList);
+      } else {
+        console.log('⚠️ No category list found in API response');
       }
       
       // Extract competitionList if available
@@ -2615,6 +2636,60 @@ class TotelepepExtractor {
   // Get competition list
   public getCompetitionList() {
     return this.competitionList;
+  }
+  
+  // Fetch competitions for a specific category
+  public async fetchCompetitionsForCategory(categoryId: string): Promise<Array<{id: string, name: string, matchCount?: number}>> {
+    try {
+      console.log(`🏆 Fetching competitions for category: ${categoryId}`);
+      
+      // Build API URL with category filter
+      const apiUrl = `${this.baseUrl}?sportId=soccer&category=${categoryId}&competitionId=0&pageNo=200&inclusive=0&matchid=0&periodCode=all`;
+      
+      console.log(`🌐 Fetching competitions URL:`, apiUrl);
+      
+      // Use CORS proxy
+      const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
+      
+      const response = await fetch(fetchUrl, {
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const jsonData = await response.json();
+      console.log(`📄 Competitions API response keys:`, Object.keys(jsonData || {}));
+      
+      // Extract competitionList from response
+      let competitions: Array<{id: string, name: string, matchCount?: number}> = [];
+      
+      if (jsonData && jsonData.competitionList && Array.isArray(jsonData.competitionList)) {
+        console.log(`🏆 Found competitionList with ${jsonData.competitionList.length} competitions`);
+        competitions = jsonData.competitionList.map((comp: any) => ({
+          id: comp.id || comp.competitionId || '',
+          name: comp.name || comp.competitionName || comp.displayName || '',
+          matchCount: comp.matchCount || comp.count || 0
+        }));
+      } else if (jsonData && jsonData.competitions && Array.isArray(jsonData.competitions)) {
+        console.log(`🏆 Found 'competitions' with ${jsonData.competitions.length} entries`);
+        competitions = jsonData.competitions.map((comp: any) => ({
+          id: comp.id || comp.competitionId || '',
+          name: comp.name || comp.competitionName || comp.displayName || '',
+          matchCount: comp.matchCount || comp.count || 0
+        }));
+      }
+      
+      console.log(`🏆 Extracted competitions for category ${categoryId}:`, competitions);
+      return competitions;
+      
+    } catch (error) {
+      console.error(`❌ Error fetching competitions for category ${categoryId}:`, error);
+      return [];
+    }
   }
 }
 
