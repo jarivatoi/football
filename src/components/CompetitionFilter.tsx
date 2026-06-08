@@ -141,12 +141,7 @@ const CompetitionFilter: React.FC<CompetitionFilterProps> = ({
                     selectedCompetition === competition.id ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span>{competition.name}</span>
-                    {competition.matchCount !== undefined && (
-                      <span className="text-xs text-gray-500 ml-2">({competition.matchCount})</span>
-                    )}
-                  </div>
+                  {competition.name}
                 </button>
               ))}
             </div>
