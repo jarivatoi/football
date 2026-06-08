@@ -116,21 +116,24 @@ class TotelepepService {
         dateString = dateObj.toISOString().split('T')[0];
         console.log(`📅 Converting calendar entry date: ${entry.entryDate} -> ${dateString}`);
         
-        let displayName = '';
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(today.getDate() + 1);
-        
-        if (dateObj.toDateString() === today.toDateString()) {
-          displayName = 'Today';
-        } else if (dateObj.toDateString() === tomorrow.toDateString()) {
-          displayName = 'Tomorrow';
-        } else {
-          displayName = dateObj.toLocaleDateString('en-GB', { 
-            weekday: 'short', 
-            day: 'numeric', 
-            month: 'short' 
-          });
+        // Use the API's displayDate if available, otherwise generate
+        let displayName = entry.displayDate;
+        if (!displayName) {
+          const today = new Date();
+          const tomorrow = new Date(today);
+          tomorrow.setDate(today.getDate() + 1);
+          
+          if (dateObj.toDateString() === today.toDateString()) {
+            displayName = 'Today';
+          } else if (dateObj.toDateString() === tomorrow.toDateString()) {
+            displayName = 'Tomorrow';
+          } else {
+            displayName = dateObj.toLocaleDateString('en-GB', { 
+              weekday: 'short', 
+              day: 'numeric', 
+              month: 'short' 
+            });
+          }
         }
         
         return {

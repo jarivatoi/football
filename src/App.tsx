@@ -433,8 +433,15 @@ function App() {
       />
       
       <div className="max-w-3xl mx-auto" style={{ overflowX: 'hidden' }}>
+        {/* Date Selector - Sticky */}
+        <DateSelector 
+          selectedDate={selectedDate} 
+          onDateChange={handleDateChange}
+          availableDates={availableDatesWithCounts}
+        />
+        
         {/* Search and Controls - Sticky */}
-        <div className="sticky top-28 z-20 bg-white shadow-sm mb-2">
+        <div className="sticky top-[88px] z-20 bg-white shadow-sm mb-2">
           <div className="px-3 py-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -458,16 +465,6 @@ function App() {
               </button>
             </div>
           </div>
-        </div>
-        
-        
-        {/* Date Selector */}
-        <div className="bg-white shadow-sm mb-2">
-          <DateSelector 
-            selectedDate={selectedDate} 
-            onDateChange={handleDateChange}
-            availableDates={availableDatesWithCounts}
-          />
         </div>
         
         {/* Matches Display */}
