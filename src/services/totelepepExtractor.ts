@@ -4,6 +4,7 @@ interface TotelepepMatch {
   awayTeam: string;
   league: string;
   competitionId: string;
+  categoryId?: string; // Category ID for filtering
   marketBookNo?: string;
   marketId?: string;  // Actual market ID from API (different from marketBookNo!)
   marketCode?: string;
@@ -52,6 +53,7 @@ class TotelepepExtractor {
   private calendarList: Array<{entryDate: string, matchCount: number, displayDate: string}> = [];
   private categoryList: Array<{id: string, name: string}> = [];
   private competitionList: Array<{id: string, name: string, categoryId?: string, matchCount?: number}> = [];
+  private competitionToCategoryMap: Map<string, string> = new Map(); // competitionId -> categoryId
   // Dynamic competition mapping that can be updated based on actual data
   private dynamicCompetitionMap: Record<string, string> = {};
   // Fallback competition mapping based on team names
@@ -554,13 +556,24 @@ class TotelepepExtractor {
       // Extract competitionList if available
       if (jsonData && jsonData.competitionList && Array.isArray(jsonData.competitionList)) {
         console.log(`🏆 Found competitionList with ${jsonData.competitionList.length} competitions`);
-        this.competitionList = jsonData.competitionList.map((comp: any) => ({
-          id: comp.id || comp.competitionId || '',
-          name: comp.name || comp.competitionName || comp.displayName || '',
-          categoryId: comp.categoryId || comp.catId || '',
-          matchCount: comp.matchCount || comp.count || 0
-        }));
+        this.competitionList = jsonData.competitionList.map((comp: any) => {
+          const compId = comp.id || comp.competitionId || '';
+          const catId = comp.categoryId || comp.catId || '';
+          
+          // Build mapping from competitionId to categoryId
+          if (compId && catId) {
+            this.competitionToCategoryMap.set(compId, catId);
+          }
+          
+          return {
+            id: compId,
+            name: comp.name || comp.competitionName || comp.displayName || '',
+            categoryId: catId,
+            matchCount: comp.matchCount || comp.count || 0
+          };
+        });
         console.log(`🏆 Extracted competitions:`, this.competitionList);
+        console.log(`🗺️ Competition to Category map:`, Array.from(this.competitionToCategoryMap.entries()));
       }
       
       // Check if there's competition data in the response
@@ -895,6 +908,7 @@ class TotelepepExtractor {
         awayTeam: teamNames.away,
         league,
         competitionId,
+        categoryId: this.competitionToCategoryMap.get(competitionId), // Map competition to category
         marketId,  // Actual market ID from API (field 12)
         marketBookNo,  // Market book number from API (field 13)
         marketCode,  // Market code from API (field 15)
@@ -1710,6 +1724,7 @@ class TotelepepExtractor {
         awayTeam,
         league,
         competitionId: competitionId || '0', // Ensure we always have a competitionId
+        categoryId: competitionId ? this.competitionToCategoryMap.get(competitionId) : undefined,
         kickoff: this.formatTime(apiMatch.time || apiMatch.kickoff || apiMatch.startTime),
         date: this.formatDate(apiMatch.date || apiMatch.matchDate || apiMatch.gameDate),
         status: this.parseStatus(apiMatch.status || apiMatch.state || apiMatch.matchStatus) as 'upcoming' | 'live' | 'finished',

@@ -230,12 +230,36 @@ function App() {
       }
     }
     
+    // Apply category/competition filters if selected
+    let categoryFiltered: Record<string, TotelepepMatch[]> = {};
+    
+    if (selectedCompetition) {
+      // Filter by specific competition
+      Object.entries(dateFiltered).forEach(([date, dateMatches]) => {
+        const filteredMatches = dateMatches.filter(match => match.competitionId === selectedCompetition);
+        if (filteredMatches.length > 0) {
+          categoryFiltered[date] = filteredMatches;
+        }
+      });
+    } else if (selectedCategory) {
+      // Filter by category (all competitions in this category)
+      Object.entries(dateFiltered).forEach(([date, dateMatches]) => {
+        const filteredMatches = dateMatches.filter(match => match.categoryId === selectedCategory);
+        if (filteredMatches.length > 0) {
+          categoryFiltered[date] = filteredMatches;
+        }
+      });
+    } else {
+      // No category/competition filter applied
+      categoryFiltered = dateFiltered;
+    }
+    
     // Then filter by search term if provided
-    if (!searchTerm) return dateFiltered;
+    if (!searchTerm) return categoryFiltered;
     
     const filtered: Record<string, TotelepepMatch[]> = {};
     
-    Object.entries(dateFiltered).forEach(([date, dateMatches]) => {
+    Object.entries(categoryFiltered).forEach(([date, dateMatches]) => {
       const filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match =>
         match.homeTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
         match.awayTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -248,7 +272,7 @@ function App() {
     });
     
     return filtered;
-  }, [groupedMatches, searchTerm, selectedDate, calendarList]) : groupedMatches;
+  }, [groupedMatches, searchTerm, selectedDate, calendarList, selectedCategory, selectedCompetition]) : groupedMatches;
 
   const totalMatches = matches.length;
   const totalFilteredMatches = Object.values(filteredGroupedMatches)
