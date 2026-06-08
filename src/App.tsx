@@ -173,6 +173,13 @@ function App() {
   // Load data when selected date changes
   useSafeEffect(() => {
     console.log('📅 Selected date changed to:', selectedDate);
+    
+    // Don't load data for "Beyond" dates via useEffect - handleDateChange handles it
+    if (selectedDate.includes('Beyond') || selectedDate.includes('>>') || selectedDate === 'beyond') {
+      console.log('📅 Skipping useEffect load for Beyond date');
+      return;
+    }
+    
     // Load data when selected date changes
     loadData(selectedDate);
     // Also load calendar list data
@@ -414,32 +421,13 @@ function App() {
     console.log('📅 Date changed to:', newDate);
     setSelectedDate(newDate);
     
-    // Handle "beyond" date - check if it contains "Beyond" or ">>"
+    // Handle "beyond" date - fetch without date parameter to get all inclusive matches
     if (newDate.includes('Beyond') || newDate.includes('>>') || newDate === 'beyond') {
-      console.log('📅 Fetching Beyond matches');
-      // Find the Beyond entry to get its actual entryDate
-      const beyondEntry = availableDatesWithCounts.find(d => 
-        d.date.includes('Beyond') || d.date.includes('>>') || d.date === 'beyond'
-      );
-      
-      if (beyondEntry && beyondEntry.date !== 'beyond') {
-        // Use the actual date from API (e.g., "2025-06-15" or similar)
-        console.log('📅 Using Beyond date:', beyondEntry.date);
-        loadData(beyondEntry.date);
-      } else {
-        // Fallback: find the last actual date
-        const lastActualDate = availableDatesWithCounts
-          .filter(d => !d.date.includes('Beyond') && !d.date.includes('>>') && d.date !== 'beyond')
-          .pop();
-        
-        if (lastActualDate) {
-          console.log('📅 Using last date for Beyond:', lastActualDate.date);
-          loadData(lastActualDate.date);
-        }
-      }
-    } else {
-      // loadData will be called automatically by useEffect
+      console.log('📅 Fetching Beyond matches (all inclusive)');
+      // Call loadData with undefined to fetch all matches
+      loadData(undefined);
     }
+    // For other dates, loadData will be called automatically by useEffect
   };
   
   const toggleParlayBuilder = () => {
