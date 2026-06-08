@@ -91,11 +91,12 @@ function App() {
   const [selectedCompetition, setSelectedCompetition] = useSafeState<string>('');
   
   // Function to fetch competitions for a category
-  const handleFetchCompetitions = async (categoryId: string) => {
-    console.log(`🏆 Fetching competitions for category: ${categoryId}`);
-    const competitions = await totelepepExtractor.fetchCompetitionsForCategory(categoryId);
+  const handleFetchCompetitions = async (categoryName: string) => {
+    console.log(`🏆 Fetching competitions for category: ${categoryName}`);
+    const competitions = await totelepepExtractor.fetchCompetitionsForCategory(categoryName);
     
     // Update categories state with the fetched competitions
+    const categoryId = categoryName.toLowerCase();
     setCategories(prev => prev.map(cat => 
       cat.id === categoryId ? { ...cat, competitions } : cat
     ));
