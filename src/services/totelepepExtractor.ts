@@ -562,102 +562,6 @@ class TotelepepExtractor {
         }));
         console.log(`🏆 Extracted competitions:`, this.competitionList);
       }
-          
-          // Check if calendarList might be under a different key
-          const possibleKeys = Object.keys(jsonData).filter(key => 
-            key.toLowerCase().includes('calendar') || key.toLowerCase().includes('date')
-          );
-          
-          if (possibleKeys.length > 0) {
-            console.log(`   🔍 Possible calendar/date related keys:`, possibleKeys);
-            
-            // Try to find calendar data under different keys
-            for (const key of possibleKeys) {
-              if (jsonData[key] && Array.isArray(jsonData[key])) {
-                console.log(`   📅 Found array data under key '${key}':`, jsonData[key]);
-                
-                // Try to normalize this data as calendarList
-                const normalizedCalendarList = jsonData[key].map((entry: any) => {
-                  if (entry && typeof entry === 'object') {
-                    let entryDate = entry.entryDate || entry.date || entry.matchDate || entry.gameDate || new Date().toISOString().split('T')[0];
-                    let matchCount = entry.matchCount || entry.count || entry.matches || entry.totalMatches || 0;
-                    let displayDate = entry.displayDate || entry.displayName || entry.name || '';
-                    
-                    // Convert date to YYYY-MM-DD format if it's not already
-                    if (entryDate && typeof entryDate === 'string') {
-                      // Try to parse the date
-                      const dateObj = new Date(entryDate);
-                      if (!isNaN(dateObj.getTime())) {
-                        // Format as YYYY-MM-DD
-                        const year = dateObj.getFullYear();
-                        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                        const day = String(dateObj.getDate()).padStart(2, '0');
-                        entryDate = `${year}-${month}-${day}`;
-                      } else {
-                        // Try parsing with different formats
-                        const formats = [
-                          entryDate, // Original
-                          entryDate.replace(/\//g, '-'), // Replace / with -
-                          entryDate.replace(/\./g, '-')  // Replace . with -
-                        ];
-                        
-                        for (const format of formats) {
-                          const parsedDate = new Date(format);
-                          if (!isNaN(parsedDate.getTime())) {
-                            const year = parsedDate.getFullYear();
-                            const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
-                            const day = String(parsedDate.getDate()).padStart(2, '0');
-                            entryDate = `${year}-${month}-${day}`;
-                            break;
-                          }
-                        }
-                      }
-                    }
-                    
-                    return { entryDate, matchCount, displayDate };
-                  }
-                  return { entryDate: new Date().toISOString().split('T')[0], matchCount: 0, displayDate: '' };
-                });
-                
-                (this as any).calendarList = normalizedCalendarList;
-                console.log(`   📅 Using data from key '${key}' as calendarList:`, normalizedCalendarList);
-                break;
-              }
-            }
-          }
-          
-          // If still no calendar list, try to create one from the matches data
-          if (!(this as any).calendarList || (this as any).calendarList.length === 0) {
-            console.log(`   🔍 Attempting to create calendar list from matches data...`);
-            
-            // Group matches by date to estimate match counts
-            const dateGroups: Record<string, number> = {};
-            
-            // This would require parsing all matches first, which we do later
-            // For now, we'll just create a basic calendar list with today + next 7 days
-            const calendarList = [];
-            const today = new Date();
-            
-            for (let i = 0; i < 8; i++) {
-              const date = new Date(today);
-              date.setDate(today.getDate() + i);
-              const year = date.getFullYear();
-              const month = String(date.getMonth() + 1).padStart(2, '0');
-              const day = String(date.getDate()).padStart(2, '0');
-              const dateString = `${year}-${month}-${day}`;
-              
-              calendarList.push({
-                entryDate: dateString,
-                matchCount: 0, // Will be updated when we have actual match data
-                displayDate: ''
-              });
-            }
-            
-            (this as any).calendarList = calendarList;
-            console.log(`   📅 Created basic calendar list:`, calendarList);
-          }
-        }
-      }
       
       // Check if there's competition data in the response
       if (jsonData && jsonData.competitions && Array.isArray(jsonData.competitions)) {
@@ -2686,6 +2590,16 @@ class TotelepepExtractor {
     });
     
     return grouped;
+  }
+  
+  // Get category list
+  public getCategoryList() {
+    return this.categoryList;
+  }
+  
+  // Get competition list
+  public getCompetitionList() {
+    return this.competitionList;
   }
 }
 

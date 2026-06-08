@@ -167,6 +167,21 @@ function App() {
       const calendarData = await totelepepService.getAvailableDatesWithCounts();
       setCalendarList(calendarData);
       console.log('📅 Calendar list data loaded:', calendarData);
+      
+      // Load categories and competitions from extractor
+      const categoryList = totelepepExtractor.getCategoryList();
+      const competitionList = totelepepExtractor.getCompetitionList();
+      
+      if (categoryList && categoryList.length > 0) {
+        console.log('📂 Categories loaded:', categoryList);
+        setCategories(categoryList.map(cat => ({
+          id: cat.id,
+          name: cat.name,
+          competitions: competitionList
+            .filter(comp => comp.categoryId === cat.id)
+            .map(comp => ({ id: comp.id, name: comp.name, matchCount: comp.matchCount }))
+        })));
+      }
     } catch (error) {
       console.error('Error loading calendar list:', error);
       setError('Failed to load calendar data from Totelepep API.');
