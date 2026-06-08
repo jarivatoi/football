@@ -110,9 +110,6 @@ const CompetitionFilter: React.FC<CompetitionFilterProps> = ({
               <span className="text-gray-700">
                 {selectedCompetitionData ? selectedCompetitionData.name : 'Competition'}
               </span>
-              {selectedCompetitionData?.matchCount !== undefined && (
-                <span className="text-xs text-gray-500">({selectedCompetitionData.matchCount})</span>
-              )}
             </div>
             <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showCompetitionDropdown ? 'rotate-180' : ''}`} />
           </button>
