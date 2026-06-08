@@ -426,13 +426,13 @@ function App() {
 
 
   return (
-    <div className="min-h-screen bg-gray-100 overflow-x-hidden">
+    <div className="min-h-screen bg-gray-100" style={{ overflowX: 'hidden', touchAction: 'pan-y' }}>
       <Header 
         selectionCount={parlaySelections.length}
         onSlipClick={toggleParlayBuilder}
       />
       
-      <div className="max-w-3xl mx-auto overflow-x-hidden">
+      <div className="max-w-3xl mx-auto" style={{ overflowX: 'hidden' }}>
         {/* Search and Controls */}
         <div className="bg-white shadow-sm mb-2">
           <div className="px-3 py-2">
