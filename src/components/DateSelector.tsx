@@ -15,11 +15,13 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   const datesToShow = availableDates.length > 0 ? availableDates.slice(0, 8) : [];
 
   return (
-    <div className="sticky top-14 z-30 bg-white shadow-sm border-b border-gray-200 px-3 py-2">
+    <div className="sticky top-14 z-30 bg-white shadow-sm border-b border-gray-200">
       {/* 2x4 Grid Layout */}
-      <div className="grid grid-cols-4 gap-2 max-w-3xl mx-auto">
+      <div className="grid grid-cols-4 gap-1.5 px-3 py-2 max-w-3xl mx-auto">
         {datesToShow.map((dateInfo) => {
           const isSelected = dateInfo.date === selectedDate;
+          const dateObj = new Date(dateInfo.date);
+          const dateStr = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
           
           return (
             <button
@@ -36,6 +38,11 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                   isSelected ? 'text-white' : 'text-gray-900'
                 }`}>
                   {dateInfo.displayName}
+                </div>
+                <div className={`text-[10px] mt-0.5 ${
+                  isSelected ? 'text-blue-100' : 'text-gray-500'
+                }`}>
+                  {dateStr}
                 </div>
                 <div className={`text-[10px] mt-0.5 ${
                   isSelected ? 'text-blue-100' : 'text-gray-500'
