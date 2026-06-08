@@ -92,6 +92,7 @@ class TotelepepService {
       
       const result = this.calendarList.map(entry => {
         console.log('📅 Processing calendar entry:', entry);
+        console.log('📅 Entry.displayDate:', entry.displayDate);
         
         // Handle "Beyond >>" or non-date entries specially
         if (entry.displayDate && (entry.displayDate.includes('Beyond') || entry.displayDate.includes('>>'))) {

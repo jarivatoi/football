@@ -24,18 +24,6 @@ const DateSelector: React.FC<DateSelectorProps> = ({
         {datesToShow.map((dateInfo) => {
           const isSelected = dateInfo.date === selectedDate;
           
-          // Parse date for compact display
-          let dayName = '';
-          let dateNum = '';
-          let monthName = '';
-          
-          if (dateInfo.date !== 'beyond') {
-            const dateObj = new Date(dateInfo.date);
-            dayName = dateObj.toLocaleDateString('en-GB', { weekday: 'short' }); // Mon, Tue, etc.
-            dateNum = dateObj.getDate().toString();
-            monthName = dateObj.toLocaleDateString('en-GB', { month: 'short' }); // Jun, Jul, etc.
-          }
-          
           return (
             <button
               key={dateInfo.date}
@@ -47,22 +35,16 @@ const DateSelector: React.FC<DateSelectorProps> = ({
               }`}
             >
               <div className="text-center">
-                {dateInfo.date === 'beyond' ? (
-                  <div className="font-semibold truncate">{dateInfo.displayName}</div>
-                ) : (
-                  <>
-                    <div className={`font-semibold ${
-                      isSelected ? 'text-white' : 'text-gray-900'
-                    }`}>
-                      {dayName}
-                    </div>
-                    <div className={`text-[10px] ${
-                      isSelected ? 'text-blue-100' : 'text-gray-500'
-                    }`}>
-                      {dateNum} {monthName} ({dateInfo.matchCount})
-                    </div>
-                  </>
-                )}
+                <div className={`font-semibold ${
+                  isSelected ? 'text-white' : 'text-gray-900'
+                }`}>
+                  {dateInfo.displayName}
+                </div>
+                <div className={`text-[10px] ${
+                  isSelected ? 'text-blue-100' : 'text-gray-500'
+                }`}>
+                  ({dateInfo.matchCount})
+                </div>
               </div>
             </button>
           );
