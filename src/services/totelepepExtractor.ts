@@ -105,8 +105,9 @@ class TotelepepExtractor {
       // Ensure all matches have the correct date
       const dateToUse = targetDate || this.getTodayDate();
       matches.forEach(match => {
-        // Only override the date if it wasn't set or if we're fetching for a specific date
-        if (!match.date || targetDate) {
+        // Only override the date if it wasn't set from the API
+        // When fetching "Beyond" or all dates, keep the API's actual date
+        if (!match.date) {
           match.date = dateToUse;
         }
         // Set initial market count from the API response if available
