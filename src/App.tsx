@@ -134,10 +134,12 @@ function App() {
     const dateToFetch = targetDate || selectedDate;
     try {
       console.log('🔍 Fetching data for date:', dateToFetch);
+      console.log('📂 Selected category:', selectedCategory);
+      console.log('🏆 Selected competition:', selectedCompetition);
       
-      // Fetch matches DIRECTLY from Totelepep API (not Supabase) to get allMarkets
-      console.log('📡 Fetching from Totelepep API...');
-      const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch);
+      // Fetch matches DIRECTLY from Totelepep API with category/competition filters
+      console.log('📡 Fetching from Totelepep API with filters...');
+      const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, selectedCategory, selectedCompetition);
       
       console.log(`📊 Loaded ${fetchedMatches.length} matches with allMarkets:`, 
         fetchedMatches.slice(0, 3).map((m: TotelepepMatch) => ({

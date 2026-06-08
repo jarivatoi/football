@@ -82,11 +82,11 @@ class TotelepepExtractor {
     return this.teamBasedCompetitionMap[teamKey] || null;
   }
   
-  async extractMatches(targetDate?: string): Promise<TotelepepMatch[]> {
+  async extractMatches(targetDate?: string, categoryId?: string, competitionId?: string): Promise<TotelepepMatch[]> {
     try {
       // Check cache first
       // Use a more specific cache key to avoid conflicts between different dates
-      const cacheKey = targetDate ? `date_${targetDate}` : `all_dates_${new Date().toISOString().split('T')[0]}`;
+      const cacheKey = targetDate ? `date_${targetDate}_${categoryId || 'all'}_${competitionId || 'all'}` : `all_dates_${new Date().toISOString().split('T')[0]}`;
       const cached = this.getCachedData(cacheKey);
       if (cached) {
         console.log('📦 Returning cached data for date:', targetDate);
@@ -98,8 +98,8 @@ class TotelepepExtractor {
 
       console.log('🔍 Fetching fresh data from Totelepep API...');
       
-      // Fetch JSON from totelepep.mu API
-      const jsonData = await this.fetchTotelepepAPI(targetDate);
+      // Fetch JSON from totelepep.mu API with category and competition filters
+      const jsonData = await this.fetchTotelepepAPI(targetDate, categoryId, competitionId);
       
       // Parse JSON data (same as Power Query Json.Document)
       const matches = this.parseJSONForMatches(jsonData);
@@ -391,21 +391,36 @@ class TotelepepExtractor {
     }
   }
 
-  private async fetchTotelepepAPI(targetDate?: string): Promise<any> {
+  private async fetchTotelepepAPI(targetDate?: string, categoryId?: string, competitionId?: string): Promise<any> {
     // Build API URL with current date (same as Power Query)
     const dateToFetch = targetDate || this.getTodayDate(); // YYYY-MM-DD format
     console.log(`🔍 TotelepepExtractor - Target date provided:`, targetDate);
     console.log(`🔍 TotelepepExtractor - Date to fetch:`, dateToFetch);
     console.log(`🔍 TotelepepExtractor - Date to fetch type: ${typeof dateToFetch}`);
+    console.log(`📂 Category:`, categoryId);
+    console.log(`🏆 Competition:`, competitionId);
     
-    // Try different API URLs to see which one works
+    // Build API URL with filters
+    const compId = competitionId || 0;
+    const inclusive = competitionId ? 1 : 1; // Always 1 for now
+    const categoryParam = categoryId || '';
+    
     let apiUrl;
-    if (targetDate) {
-      // If a specific date is requested, use it
-      apiUrl = `${this.baseUrl}?sportId=soccer&date=${dateToFetch}&category=&competitionId=0&pageNo=200&inclusive=1&matchid=0&periodCode=all`;
+    if (targetDate && competitionId) {
+      // Category + Competition: use "08 Jun 2026" format
+      const dateObj = new Date(targetDate);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const month = months[dateObj.getMonth()];
+      const year = dateObj.getFullYear();
+      const formattedDate = `${day} ${month} ${year}`;
+      apiUrl = `${this.baseUrl}?sportId=soccer&date=${encodeURIComponent(formattedDate)}&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=1&inclusive=0&matchid=0&periodCode=all`;
+    } else if (targetDate) {
+      // Category only or no filter: use ISO format
+      apiUrl = `${this.baseUrl}?sportId=soccer&date=${dateToFetch}&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=1&inclusive=1&matchid=0&periodCode=all`;
     } else {
-      // If no specific date is requested, try to get all matches
-      apiUrl = `${this.baseUrl}?sportId=soccer&category=&competitionId=0&pageNo=200&inclusive=1&matchid=0&periodCode=all`;
+      // No date: get all matches
+      apiUrl = `${this.baseUrl}?sportId=soccer&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=200&inclusive=1&matchid=0&periodCode=all`;
     }
     
     console.log(`🌐 API URL for ${dateToFetch || 'all dates'}:`, apiUrl);
