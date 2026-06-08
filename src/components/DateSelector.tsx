@@ -18,7 +18,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   console.log('📅 DateSelector - datesToShow:', datesToShow);
 
   return (
-    <div className="bg-white shadow-sm border-b border-gray-200">
+    <div className="sticky top-[64px] z-30 bg-white shadow-sm border-b border-gray-200">
       {/* Horizontal Scrolling Row */}
       <div className="flex gap-2 overflow-x-auto px-3 py-0 max-w-3xl mx-auto scrollbar-hide">
         {datesToShow.map((dateInfo) => {

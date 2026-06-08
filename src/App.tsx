@@ -445,14 +445,12 @@ function App() {
       />
       
       <div className="max-w-3xl mx-auto">
-        {/* Date Selector - Sticky */}
-        <div className="sticky top-[64px] z-30">
-          <DateSelector 
-            selectedDate={selectedDate} 
-            onDateChange={handleDateChange}
-            availableDates={availableDatesWithCounts}
-          />
-        </div>
+        {/* Date Selector - Sticky (handled inside component) */}
+        <DateSelector 
+          selectedDate={selectedDate} 
+          onDateChange={handleDateChange}
+          availableDates={availableDatesWithCounts}
+        />
         
         {/* Search Bar - Sticky */}
         <div className="sticky top-[104px] z-20 bg-white shadow-sm border-b border-gray-200 px-3 py-2">
