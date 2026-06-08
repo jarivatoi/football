@@ -207,21 +207,27 @@ function App() {
       // Clear cache to ensure fresh data
       totelepepExtractor.clearCache();
       
-      // Fetch today's data to get the calendar list with filters
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const matches = await totelepepExtractor.extractMatches(todayStr, categoryId || '', competitionId || '');
+      // Fetch without a specific date to get the full calendar list
+      const matches = await totelepepExtractor.extractMatches(undefined, categoryId || '', competitionId || '');
       
       // Get calendar list from extractor
       const calendarData = (totelepepExtractor as any).calendarList || [];
       
       if (calendarData && calendarData.length > 0) {
         console.log('📅 Calendar list data loaded:', calendarData);
-        setCalendarList(calendarData.map((entry: any) => ({
+        
+        const formattedCalendar = calendarData.map((entry: any) => ({
           date: entry.entryDate,
           matchCount: entry.matchCount || 0,
           displayName: entry.displayDate || entry.entryDate
-        })));
+        }));
+        
+        setCalendarList(formattedCalendar);
+        
+        // Set the selected date to the FIRST entry from the API (which is "Today" in API's timezone)
+        const firstDate = formattedCalendar[0].date;
+        console.log('📅 Setting selected date to API today:', firstDate);
+        setSelectedDate(firstDate);
       }
       
       // Fetch categories from the API (only on initial load without filters)
@@ -250,14 +256,23 @@ function App() {
   // Load initial data on mount
   useSafeEffect(() => {
     console.log('📅 Initial load...');
-    console.log('📅 Today is:', getTodayDate());
+    console.log('📅 Local timezone today is:', getTodayDate());
     
     // Clear all caches on initial load
     totelepepExtractor.clearCache();
     
+    // Load calendar first - it will set the correct selected date from the API
     loadCalendarList();
-    loadData(selectedDate);
+    // Don't call loadData here - it will be called after calendar sets the date
   }, []); // Only run once on mount
+  
+  // Load matches when selectedDate changes (after calendar is loaded)
+  useSafeEffect(() => {
+    if (selectedDate && calendarList.length > 0) {
+      console.log('📅 Loading matches for date:', selectedDate);
+      loadData(selectedDate);
+    }
+  }, [selectedDate, calendarList]);
 
   // Filter matches by selected date and maintain grouping
   const filteredGroupedMatches = React.useMemo ? React.useMemo(() => {
