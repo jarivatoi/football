@@ -433,8 +433,8 @@ function App() {
       />
       
       <div className="max-w-3xl mx-auto" style={{ overflowX: 'hidden' }}>
-        {/* Search and Controls */}
-        <div className="bg-white shadow-sm mb-2">
+        {/* Search and Controls - Sticky */}
+        <div className="sticky top-28 z-20 bg-white shadow-sm mb-2">
           <div className="px-3 py-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -447,16 +447,15 @@ function App() {
               />
             </div>
             
-            <div className="mt-2 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="mt-2">
               <button
                 onClick={() => loadData(selectedDate)}
                 disabled={loading}
-                className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
-
             </div>
           </div>
         </div>
