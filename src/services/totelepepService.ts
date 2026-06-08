@@ -75,6 +75,15 @@ class TotelepepService {
     console.log('📅 Calendar list data after fetch:', this.calendarList);
     console.log('📅 Calendar list length:', this.calendarList.length);
     
+    // Log all calendar entries to see if Beyond exists
+    this.calendarList.forEach((entry, index) => {
+      console.log(`📅 Calendar entry ${index}:`, {
+        entryDate: entry.entryDate,
+        matchCount: entry.matchCount,
+        displayDate: entry.displayDate
+      });
+    });
+    
     // Check if calendarList has the expected structure
     if (this.calendarList.length > 0) {
       // Validate the structure of the first entry
