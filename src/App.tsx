@@ -123,6 +123,9 @@ function App() {
   const reloadCalendarWithFilters = async (categoryId: string, competitionId: string) => {
     console.log('📅 Reloading calendar with filters...', { categoryId, competitionId });
     
+    // Clear cache to ensure fresh data
+    totelepepExtractor.clearCache();
+    
     // Fetch matches for each date to get accurate counts
     const updatedCalendarList = await Promise.all(
       calendarList.map(async (dateEntry) => {
@@ -132,6 +135,7 @@ function App() {
             categoryId,
             competitionId
           );
+          console.log(`📅 ${dateEntry.displayName}: ${matches.length} matches`);
           return {
             ...dateEntry,
             matchCount: matches.length
