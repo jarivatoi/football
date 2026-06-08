@@ -136,29 +136,15 @@ class TotelepepService {
         
         dateString = dateObj.toISOString().split('T')[0];
         console.log(`📅 Converting calendar entry date: ${entry.entryDate} -> ${dateString}`);
-        console.log(`📅 API displayDate for this entry: "${entry.displayDate}"`);
+        console.log(`📅 API displayDate: "${entry.displayDate}"`);
         
-        // Check if this is today's date
-        const today = new Date();
-        const isToday = dateObj.toDateString() === today.toDateString();
-        console.log(`📅 Is this today? ${isToday}`);
+        // ALWAYS use the API's displayDate - it already has "Today", "Beyond >>", etc.
+        const displayName = entry.displayDate || dateObj.toLocaleDateString('en-GB', { 
+          weekday: 'short', 
+          day: 'numeric', 
+          month: 'short' 
+        });
         
-        // ALWAYS override with "Today" if it's today's date, regardless of API displayDate
-        let displayName;
-        if (isToday) {
-          displayName = 'Today';
-          console.log('📅 Forcing display to "Today"');
-        } else if (!entry.displayDate || entry.displayDate.trim() === '') {
-          // Only generate if API didn't provide anything
-          displayName = dateObj.toLocaleDateString('en-GB', { 
-            weekday: 'short', 
-            day: 'numeric', 
-            month: 'short' 
-          });
-        } else {
-          // Use API's displayDate
-          displayName = entry.displayDate;
-        }
         console.log(`📅 Final displayName: "${displayName}"`);
         
         return {
@@ -167,18 +153,6 @@ class TotelepepService {
           displayName
         };
       }).filter(entry => entry !== null) as Array<{date: string, matchCount: number, displayName: string}>;
-      
-      // Add "Beyond >>" entry as the last item (all matches from last date onwards)
-      if (result.length > 0) {
-        const lastEntry = result[result.length - 1];
-        console.log('📅 Adding Beyond >> entry after:', lastEntry);
-        result.push({
-          date: lastEntry.date, // Use the last date so API fetches from that date onwards
-          matchCount: lastEntry.matchCount, // Same count as last date (will show all inclusive)
-          displayName: 'Beyond >>'
-        });
-        console.log('📅 Final result with Beyond >>:', result);
-      }
       
       console.log('📅 Available dates with counts (from calendarList):', result);
       return result;

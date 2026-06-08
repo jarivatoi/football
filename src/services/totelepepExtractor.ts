@@ -462,6 +462,9 @@ class TotelepepExtractor {
             let matchCount = entry.matchCount || entry.count || entry.matches || entry.totalMatches || 0;
             let displayDate = entry.displayDate || entry.displayName || entry.name || '';
             
+            console.log(`📅 Normalizing entry - entryDate: "${entryDate}", displayDate: "${displayDate}", matchCount: ${matchCount}`);
+            console.log(`📅 Raw entry object:`, entry);
+            
             // If we don't have entryDate, try to find it in other properties
             if (!entryDate) {
               // Look for any property that looks like a date
