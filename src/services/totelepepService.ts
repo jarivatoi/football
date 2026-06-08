@@ -137,9 +137,11 @@ class TotelepepService {
         dateString = dateObj.toISOString().split('T')[0];
         console.log(`📅 Converting calendar entry date: ${entry.entryDate} -> ${dateString}`);
         
-        // Use the API's displayDate if available, otherwise generate
+        // ALWAYS use the API's displayDate - this preserves "Today", "Tomorrow", "Beyond >>", etc.
         let displayName = entry.displayDate;
-        if (!displayName) {
+        
+        // Only generate a fallback if API didn't provide displayDate
+        if (!displayName || displayName.trim() === '') {
           const today = new Date();
           const tomorrow = new Date(today);
           tomorrow.setDate(today.getDate() + 1);
