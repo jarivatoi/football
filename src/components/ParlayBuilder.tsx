@@ -927,7 +927,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   }, [lastResult]);
 
   const totalOdds = selections.reduce((acc, selection) => {
-    const odds = typeof selection.odds === 'string' ? 1 : selection.odds;
+    const odds = typeof selection.odds === 'string' ? parseFloat(selection.odds) : selection.odds;
     return acc * odds;
   }, 1);
   
