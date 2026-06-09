@@ -82,11 +82,11 @@ const DateSelector: React.FC<DateSelectorProps> = ({
               }`}>
                 All Matches
               </div>
-              <div className={`text-[10px] ${
-                showAllMatches ? 'text-blue-100' : 'text-gray-500'
-              }`}>
-                ({totalMatches})
-              </div>
+              {showAllMatches && (
+                <div className="text-[10px] text-blue-100">
+                  ({totalMatches})
+                </div>
+              )}
             </div>
           </button>
         )}
