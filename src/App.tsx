@@ -216,10 +216,11 @@ function App() {
     console.log('🚀 App initialized - Direct API mode (no Supabase)');
   }, [selectedDate]);
   
-  const loadData = async (targetDate?: string, categoryId?: string, competitionId?: string) => {
+  const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string) => {
     setLoading(true);
     setError(null);
-    const dateToFetch = targetDate || selectedDate;
+    // Use null to mean "no date" (get all matches), undefined to mean "use selectedDate"
+    const dateToFetch = targetDate === undefined ? selectedDate : (targetDate || undefined);
     const catId = categoryId !== undefined ? categoryId : selectedCategory;
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
     try {
@@ -743,8 +744,8 @@ function App() {
       // Turn ON All Matches - load ALL matches from all dates using inclusive=1
       console.log('📋 Loading ALL matches for All Matches view');
       
-      // Call loadData WITHOUT date parameter - API will use inclusive=1 to get all matches
-      loadData(undefined, selectedCategory, selectedCompetition);
+      // Pass null to explicitly mean "no date" - API will use inclusive=1 to get all matches
+      loadData(null, selectedCategory, selectedCompetition);
     } else {
       // Turn OFF All Matches, restore to today's date
       const today = getTodayDate();
