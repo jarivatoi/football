@@ -1162,18 +1162,52 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           >
             <div className="flex-1">
               <div className="font-medium text-gray-800">
-               <div className="text-sm text-gray-600">
-                 {selection.priceType === 'home' ? selection.homeTeam : 
-                 selection.priceType === 'draw' ? 'Draw' : 
-                 selection.priceType === 'away' ? selection.awayTeam :
-                 selection.priceType === 'over' ? 'Over 2.5' :
-                 selection.priceType === 'under' ? 'Under 2.5' :
-                 selection.priceType === 'btts_yes' ? 'Both Teams to Score - Yes' :
-                 selection.priceType === 'btts_no' ? 'Both Teams to Score - No' :
-                 selection.priceType}
+               <div className="text-sm font-semibold">
+                 {(() => {
+                   // Determine selection name
+                   let selectionName = '';
+                   if (selection.priceType === 'home') selectionName = selection.homeTeam;
+                   else if (selection.priceType === 'draw') selectionName = 'Draw';
+                   else if (selection.priceType === 'away') selectionName = selection.awayTeam;
+                   else if (selection.priceType === 'over') selectionName = 'Over';
+                   else if (selection.priceType === 'under') selectionName = 'Under';
+                   else if (selection.priceType === 'btts_yes') selectionName = 'Yes';
+                   else if (selection.priceType === 'btts_no') selectionName = 'No';
+                   else {
+                     // For All Markets selections, extract from priceType
+                     const parts = selection.priceType.split('-');
+                     selectionName = parts.length > 1 ? parts.slice(1).join('-') : selection.priceType;
+                   }
+                   
+                   // Display: SelectionName @ Odds
+                   return `${selectionName} @ ${typeof selection.odds === 'string' ? selection.odds : selection.odds.toFixed(2)}`;
+                 })()}
+               </div>
+               <div className="text-xs text-gray-600 font-medium">
+                 {selection.homeTeam} v {selection.awayTeam}
                </div>
                <div className="text-xs text-gray-500">
-                 {selection.league} • {selection.kickoff}
+                 {(() => {
+                   // Build market display with date and market name
+                   const line = selection.marketLine || '';
+                   const period = selection.periodCode || 'FT';
+                   const code = selection.marketCode?.toUpperCase() || '';
+                   
+                   // Format market name
+                   let marketName = '1 X 2';
+                   if (code === 'HSH') marketName = 'Highest Scoring Half';
+                   else if (code === 'OU' || code === 'UO') marketName = line ? `Under Over ${line}` : 'Over/Under';
+                   else if (code === 'BTTS') marketName = 'Both Teams To Score';
+                   else if (code === 'AH' || code === 'HC') marketName = line ? `Asian Handicap ${line}` : 'Asian Handicap';
+                   else if (code === 'CP') marketName = '1 X 2';
+                   else marketName = selection.marketCode || '1 X 2';
+                   
+                   // Add period suffix
+                   if (period === 'H1') marketName += ' - Half Time';
+                   else if (period === '2H') marketName += ' - 2nd Half';
+                   
+                   return `${selection.kickoff}     ${marketName}`;
+                 })()}
                </div>
               </div>
             </div>
