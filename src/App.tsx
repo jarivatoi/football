@@ -525,10 +525,10 @@ function App() {
         const dateA = new Date(a);
         const dateB = new Date(b);
         if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
-          return dateA.getTime() - dateB.getTime();  // Ascending: earliest first
+          return dateB.getTime() - dateA.getTime();  // FIX: Reverse for ascending display
         }
         // Fallback to string comparison
-        return a.localeCompare(b);
+        return b.localeCompare(a);  // FIX: Reverse for ascending display
       });
       
       // Rebuild result with sorted dates
@@ -833,6 +833,12 @@ function App() {
     if (newState) {
       // Turn ON All Matches - fetch matches from ALL dates and combine them
       console.log('📋 Loading ALL matches for All Matches view (fetching all dates)');
+      
+      // Clear current matches and show loading
+      setMatches([]);
+      setGroupedMatches({});
+      
+      // Load all matches
       loadAllMatches();
     } else {
       // Turn OFF All Matches, restore to today's date

@@ -76,7 +76,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                 : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
             }`}
           >
-            <div className="text-center">
+            <div className="text-center" style={{ minHeight: '28px' }}>
               <div className={`font-semibold ${
                 showAllMatches ? 'text-white' : 'text-gray-900'
               }`}>
