@@ -504,17 +504,11 @@ function App() {
     const filtered: Record<string, TotelepepMatch[]> = {};
     
     Object.entries(categoryFiltered).forEach(([date, dateMatches]) => {
-      const filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
-        const matches = match.homeTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          match.awayTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          match.league.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        if (matches) {
-          console.log('✅ Match found:', match.homeTeam, 'v/s', match.awayTeam, '| League:', match.league);
-        }
-        
-        return matches;
-      });
+      const filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match =>
+        match.homeTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        match.awayTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        match.league.toLowerCase().includes(searchTerm.toLowerCase())
+      );
       
       if (filteredDateMatches.length > 0) {
         filtered[date] = filteredDateMatches;
@@ -543,9 +537,6 @@ function App() {
         sorted[date] = result[date];
       }
       result = sorted;
-      
-      console.log('📋 Search sorted dates:', Object.keys(result));
-      console.log('📋 Search filtered matches before All Matches resort:', Object.values(result).flat().length, 'matches');
       
       // If All Matches mode is enabled, also sort within each date by kickoff time
       if (showAllMatches) {
@@ -592,12 +583,8 @@ function App() {
         });
         
         result = finalSorted;
-        console.log('📋 Search results: Sorted by date then time');
-        console.log('📋 Final sorted dates:', Object.keys(result));
-        console.log('📋 Final filtered matches after All Matches resort:', Object.values(result).flat().length, 'matches');
       } else {
         console.log('📋 Search results: Sorted by date');
-        console.log('📋 Final sorted dates:', Object.keys(result));
       }
     }
     
