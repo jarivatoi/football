@@ -504,11 +504,17 @@ function App() {
     const filtered: Record<string, TotelepepMatch[]> = {};
     
     Object.entries(categoryFiltered).forEach(([date, dateMatches]) => {
-      const filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match =>
-        match.homeTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        match.awayTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        match.league.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      const filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
+        const matches = match.homeTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          match.awayTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          match.league.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        if (matches) {
+          console.log('✅ Match found:', match.homeTeam, 'v/s', match.awayTeam, '| League:', match.league);
+        }
+        
+        return matches;
+      });
       
       if (filteredDateMatches.length > 0) {
         filtered[date] = filteredDateMatches;
