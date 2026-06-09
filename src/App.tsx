@@ -476,7 +476,12 @@ function App() {
     return result;
   }, [groupedMatches, searchTerm, selectedDate, calendarList, selectedCategory, selectedCompetition, showAllMatches]) : groupedMatches;
 
-  const totalMatches = matches.length;
+  const totalAllMatchesCount = React.useMemo(() => {
+      // Calculate total from all loaded matches - stable across date changes
+      return matches.length > 0 ? matches.length : Object.values(groupedMatches).flat().length;
+    }, [matches, groupedMatches]);
+    
+    const totalMatches = matches.length;
   const totalFilteredMatches = Object.values(filteredGroupedMatches)
     .reduce((sum, dateMatches) => sum + (dateMatches as TotelepepMatch[]).length, 0);
   
@@ -761,7 +766,7 @@ function App() {
           availableDates={availableDatesWithCounts}
           showAllMatches={showAllMatches}
           onToggleAllMatches={toggleAllMatches}
-          totalMatches={Object.values(groupedMatches).flat().length}
+          totalMatches={totalAllMatchesCount}
         />
         
         {/* Search Bar */}
