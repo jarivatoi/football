@@ -4,7 +4,7 @@ import { Target } from 'lucide-react';
 import DateGroupedMatches from './components/DateGroupedMatches';
 import DateSelector from './components/DateSelector';
 import CompetitionFilter from './components/CompetitionFilter';
-import Header from './components/Header';
+import Header, { API_SOURCES, ApiSource } from './components/Header';
 import StatsCards from './components/StatsCards';
 import ParlayBuilder, { ParlaySelection } from './components/ParlayBuilder';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
@@ -89,6 +89,25 @@ function App() {
   const [categories, setCategories] = useSafeState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
   const [selectedCategory, setSelectedCategory] = useSafeState<string>('');
   const [selectedCompetition, setSelectedCompetition] = useSafeState<string>('');
+  const [selectedSource, setSelectedSource] = useSafeState<ApiSource>(API_SOURCES[0]); // Default to Totelepep
+  
+  // Handle API source change
+  const handleSourceChange = (source: ApiSource) => {
+    console.log('🌐 API Source changed to:', source.displayName);
+    setSelectedSource(source);
+    
+    // Update the extractor base URL
+    (totelepepExtractor as any).baseUrl = source.baseUrl;
+    
+    // Clear cache to fetch fresh data from new source
+    totelepepExtractor.clearCache();
+    
+    // Reload data with new source
+    if (selectedDate) {
+      console.log('🔄 Reloading data from new source...');
+      loadData(selectedDate, selectedCategory, selectedCompetition);
+    }
+  };
   
   // Function to fetch competitions for a category
   const handleFetchCompetitions = async (categoryName: string) => {
@@ -666,6 +685,8 @@ function App() {
         <Header 
           selectionCount={parlaySelections.length}
           onSlipClick={toggleParlayBuilder}
+          selectedSource={selectedSource}
+          onSourceChange={handleSourceChange}
         />
         
         {/* Date Selector */}
