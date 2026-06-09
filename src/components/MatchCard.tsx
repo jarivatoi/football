@@ -324,7 +324,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                                 `${market.marketBookNo}-${selection.name}`,
                                 selection.odds,
                                 market.marketBookNo,
-                                match.marketCode
+                                market.marketCode
                               );
                             }
                           }}
