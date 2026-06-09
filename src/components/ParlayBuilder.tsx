@@ -924,6 +924,8 @@ export interface ParlaySelection {
   marketLine?: string;  // Market line for handicap/over-under (e.g., "+1.5", "2.5")
   periodCode?: string;  // Period code (FT, H1, 2H, etc.)
   marketDisplayName?: string;  // Full market display name from API
+  optionCode?: string;  // Option code from API (e.g., HD, HA, DA, H, D, A)
+  optionNo?: string;  // Option number from API
   competitionId?: string;
   hasError?: boolean;  // Track if this selection has an error
 }

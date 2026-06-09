@@ -40,6 +40,8 @@ interface TotelepepMatch {
       name: string;
       odds: number | string;
       optionCode?: string;
+      optionNo?: string;
+      selectionId?: string;
     }>;
   }>;
 }
@@ -386,22 +388,26 @@ class TotelepepExtractor {
         console.log(`   📊 market.marketCode:`, market.marketCode);
         console.log(`   📊 Using - BookNo: ${marketBookNo}, Code: ${marketCode}, Period: ${periodCode}`);
         
-        // Parse selections
+        // Parse selections - extract ALL data from API
         const selections: any[] = [];
         if (market.selectionList && Array.isArray(market.selectionList)) {
-          market.selectionList.forEach((selection: any) => {
+          market.selectionList.forEach((selection: any, selIndex: number) => {
             selections.push({
               name: selection.name || selection.optionCode || 'Unknown',
               odds: selection.companyOdds || selection.odds || 'N/A',
-              optionCode: selection.optionCode || ''
+              optionCode: selection.optionCode || '',
+              optionNo: selection.optionNo || String(selIndex + 1),  // Store optionNo from API
+              selectionId: selection.id || selection.selectionId || ''  // Store selection ID if available
             });
           });
         } else if (market.selections && Array.isArray(market.selections)) {
-          market.selections.forEach((selection: any) => {
+          market.selections.forEach((selection: any, selIndex: number) => {
             selections.push({
               name: selection.name || selection.optionCode || 'Unknown',
               odds: selection.companyOdds || selection.odds || 'N/A',
-              optionCode: selection.optionCode || ''
+              optionCode: selection.optionCode || '',
+              optionNo: selection.optionNo || String(selIndex + 1),  // Store optionNo from API
+              selectionId: selection.id || selection.selectionId || ''  // Store selection ID if available
             });
           });
         }
