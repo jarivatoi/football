@@ -104,7 +104,11 @@ function App() {
     totelepepExtractor.clearCache();
     
     // Reload data with new source
-    if (selectedDate) {
+    if (showAllMatches) {
+      // If All Matches is active, reload all matches from new source
+      console.log('📋 All Matches is active - reloading all matches from new source');
+      loadAllMatches(selectedCategory, selectedCompetition);
+    } else if (selectedDate) {
       console.log('🔄 Reloading data from new source...');
       loadData(selectedDate, selectedCategory, selectedCompetition);
     }
@@ -960,6 +964,7 @@ function App() {
           loading={loading}
           onPriceClick={handlePriceClick}
           selectedPrices={parlaySelections.map((s, index) => `${s.matchId}-${s.priceType}`)}
+          apiSourceName={selectedSource.displayName}
         />
       </div>
       

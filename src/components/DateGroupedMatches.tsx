@@ -8,13 +8,15 @@ interface DateGroupedMatchesProps {
   loading: boolean;
   onPriceClick: (matchId: string, priceType: string, odds: number | string) => void;
   selectedPrices: string[];
+  apiSourceName?: string; // API source display name for loading message
 }
 
 const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({ 
   groupedMatches, 
-  loading, 
+  loading,
   onPriceClick,
-  selectedPrices
+  selectedPrices,
+  apiSourceName = 'Totelepep' // Default to Totelepep if not provided
 }) => {
   const formatDateHeader = (dateString: string): string => {
     const date = new Date(dateString);
@@ -42,7 +44,7 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="p-12 text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading match data from Totelepep...</p>
+          <p className="mt-4 text-gray-600">Loading match data from {apiSourceName}...</p>
         </div>
       </div>
     );
