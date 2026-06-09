@@ -317,7 +317,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                                                selection.name === 'X' || selection.name === 'Draw' || selection.name === 'X (Draw)' ? 'draw' :
                                                selection.name === '2' || selection.name === 'Away' || selection.name === '2 (Away)' || selection.name === match.awayTeam ? 'away' :
                                                `${market.marketBookNo}-${selection.name}`;
-                              onPriceClick(match.id, priceType, selection.odds, market.marketBookNo, match.marketCode);
+                              onPriceClick(match.id, priceType, selection.odds, market.marketBookNo, market.marketCode);
                             } else {
                               onPriceClick(
                                 match.id, 
