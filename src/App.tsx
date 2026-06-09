@@ -103,6 +103,10 @@ function App() {
     // Clear cache to fetch fresh data from new source
     totelepepExtractor.clearCache();
     
+    // Clear current matches immediately to show loading state
+    setMatches([]);
+    setGroupedMatches({});
+    
     // Reload data with new source
     if (showAllMatches) {
       // If All Matches is active, reload all matches from new source
