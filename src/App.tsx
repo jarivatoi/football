@@ -279,9 +279,8 @@ function App() {
         console.log('📅 Setting selected date to API today:', firstDate);
         setSelectedDate(firstDate);
         
-        // Load matches for the selected date automatically
-        console.log('📅 Auto-loading matches for:', firstDate);
-        loadData(firstDate);
+        // NOTE: Don't auto-load matches here - let the caller (handleCategoryChange, etc.) do it
+        // This prevents race conditions and double-loading
       }
       
       // Fetch categories from the API (only on initial load without filters)
@@ -316,8 +315,14 @@ function App() {
     totelepepExtractor.clearCache();
     
     // Load calendar first - it will set the correct selected date from the API
-    loadCalendarList();
-    // Don't call loadData here - it will be called after calendar sets the date
+    loadCalendarList().then(() => {
+      // After calendar is loaded, load matches for the first date
+      const firstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
+      if (firstDate) {
+        console.log('📅 Loading initial matches for:', firstDate);
+        loadData(firstDate);
+      }
+    });
   }, []); // Only run once on mount
   
   // NOTE: Removed the useEffect that loaded data when selectedDate changed
