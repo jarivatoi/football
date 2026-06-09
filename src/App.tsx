@@ -112,11 +112,14 @@ function App() {
     
     // Reload calendar with the category filter and get the first date
     const firstDate = await reloadCalendarWithFilters(categoryId, '');
+    console.log('📅 reloadCalendarWithFilters returned:', firstDate);
     
     // Load data with the first date from the filtered calendar
     if (firstDate) {
       console.log('📅 Loading matches for first calendar date:', firstDate);
       loadData(firstDate);
+    } else {
+      console.log('⚠️ No date returned from reloadCalendarWithFilters');
     }
   };
   
@@ -151,6 +154,7 @@ function App() {
     
     // Return the first date that has matches > 0
     const calendarData = (totelepepExtractor as any).calendarList || [];
+    console.log('📅 Calendar data after reload:', calendarData.length, 'entries');
     if (calendarData && calendarData.length > 0) {
       // Find first date with matches
       const firstDateWithMatches = calendarData.find((entry: any) => entry.matchCount > 0);
@@ -159,8 +163,10 @@ function App() {
         return firstDateWithMatches.entryDate;
       }
       // Fallback to first date even if it has 0 matches
+      console.log('⚠️ No dates with matches found, using first date:', calendarData[0].entryDate);
       return calendarData[0].entryDate;
     }
+    console.log('⚠️ No calendar data available');
     return null;
   };
 
