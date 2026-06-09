@@ -538,6 +538,8 @@ function App() {
       }
       result = sorted;
       
+      console.log('📋 Search sorted dates:', Object.keys(result));
+      
       // If All Matches mode is enabled, also sort within each date by kickoff time
       if (showAllMatches) {
         // Flatten all matches, sort by FULL date+time from kickoff, then regroup by date
@@ -583,8 +585,10 @@ function App() {
         
         result = finalSorted;
         console.log('📋 Search results: Sorted by date then time');
+        console.log('📋 Final sorted dates:', Object.keys(result));
       } else {
         console.log('📋 Search results: Sorted by date');
+        console.log('📋 Final sorted dates:', Object.keys(result));
       }
     }
     
