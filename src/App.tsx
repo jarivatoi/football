@@ -539,6 +539,7 @@ function App() {
       result = sorted;
       
       console.log('📋 Search sorted dates:', Object.keys(result));
+      console.log('📋 Search filtered matches before All Matches resort:', Object.values(result).flat().length, 'matches');
       
       // If All Matches mode is enabled, also sort within each date by kickoff time
       if (showAllMatches) {
@@ -587,6 +588,7 @@ function App() {
         result = finalSorted;
         console.log('📋 Search results: Sorted by date then time');
         console.log('📋 Final sorted dates:', Object.keys(result));
+        console.log('📋 Final filtered matches after All Matches resort:', Object.values(result).flat().length, 'matches');
       } else {
         console.log('📋 Search results: Sorted by date');
         console.log('📋 Final sorted dates:', Object.keys(result));
