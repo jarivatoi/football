@@ -71,15 +71,19 @@ const DateSelector: React.FC<DateSelectorProps> = ({
             onClick={onToggleAllMatches}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all min-w-[90px] ${
               showAllMatches
-                ? 'bg-green-600 text-white shadow-md'
-                : 'bg-gradient-to-r from-blue-900 to-blue-800 text-white hover:from-blue-800 hover:to-blue-700'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
             }`}
           >
             <div className="text-center">
-              <div className="font-semibold text-white">
+              <div className={`font-semibold ${
+                showAllMatches ? 'text-white' : 'text-gray-900'
+              }`}>
                 All Matches
               </div>
-              <div className="text-[10px] text-blue-100">
+              <div className={`text-[10px] ${
+                showAllMatches ? 'text-blue-100' : 'text-gray-500'
+              }`}>
                 ({totalMatches})
               </div>
             </div>

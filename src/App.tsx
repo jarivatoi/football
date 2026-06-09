@@ -753,7 +753,7 @@ function App() {
           availableDates={availableDatesWithCounts}
           showAllMatches={showAllMatches}
           onToggleAllMatches={toggleAllMatches}
-          totalMatches={matches.length}
+          totalMatches={Object.values(groupedMatches).flat().length}
         />
         
         {/* Search Bar */}
