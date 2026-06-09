@@ -562,7 +562,12 @@ function App() {
           league: match.league,
           kickoff: match.kickoff,
           competitionId: match.competitionId,
-          marketId: match.marketId || finalMarketBookNo,  // Use actual market ID if available
+          // CRITICAL: When marketBookNo is provided from click (All Markets), use it as marketId
+          // This ensures betting on correct market (e.g., 96909 for Highest Scoring Half)
+          // NOT the match's default marketId which might be for 1X2
+          marketId: (marketBookNo && marketBookNo !== 'undefined' && marketBookNo !== 'null') 
+            ? marketBookNo 
+            : (match.marketId || finalMarketBookNo),
           marketBookNo: finalMarketBookNo,
           marketCode: finalMarketCode,
         };
