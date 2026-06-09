@@ -5,7 +5,7 @@ import { totelepepExtractor } from '../services/totelepepExtractor';
 
 interface MatchCardProps {
   match: TotelepepMatch;
-  onPriceClick: (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string) => void;
+  onPriceClick: (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string) => void;
   selectedPrices: string[];
 }
 
@@ -324,7 +324,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                                 `${market.marketBookNo}-${selection.name}`,
                                 selection.odds,
                                 market.marketBookNo,
-                                market.marketCode
+                                market.marketCode,
+                                market.id
                               );
                             }
                           }}

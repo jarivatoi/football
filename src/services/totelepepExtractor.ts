@@ -286,6 +286,7 @@ class TotelepepExtractor {
 
   // Parse all markets from GetMatch response
   private parseAllMarkets(data: any, matchId: string): Array<{
+    id?: string;  // Actual market ID from API (different from marketBookNo!)
     name: string;
     marketBookNo: string;
     marketCode: string;
@@ -400,6 +401,7 @@ class TotelepepExtractor {
         console.log(`📊 Market ${marketName} has ${selections.length} selections`);
         
         markets.push({
+          id: market.marketId || market.id || marketBookNo,  // Store actual marketId (e.g., 565968)
           name: marketName,
           marketBookNo,
           marketCode,

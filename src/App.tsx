@@ -521,7 +521,7 @@ function App() {
     console.log('📊 Matches per date:', Object.entries(groupedMatches).map(([date, matches]) => `${date}: ${(matches as TotelepepMatch[]).length}`));
   }, [groupedMatches]);
 
-  const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string) => {
+  const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string) => {
     // Find the match details
     const match = matches.find(m => m.id === matchId);
     if (match) {
@@ -562,12 +562,11 @@ function App() {
           league: match.league,
           kickoff: match.kickoff,
           competitionId: match.competitionId,
-          // CRITICAL: When marketBookNo is provided from click (All Markets), use it as marketId
-          // This ensures betting on correct market (e.g., 96909 for Highest Scoring Half)
-          // NOT the match's default marketId which might be for 1X2
-          marketId: (marketBookNo && marketBookNo !== 'undefined' && marketBookNo !== 'null') 
-            ? marketBookNo 
-            : (match.marketId || finalMarketBookNo),
+          // CRITICAL: Use the ACTUAL marketId from GetMatch API (e.g., 565968)
+          // This is DIFFERENT from marketBookNo (e.g., 96887)!
+          marketId: marketId || (match.marketId && match.marketId !== '0' && match.marketId !== 'undefined' && match.marketId !== 'null') 
+            ? match.marketId 
+            : (marketBookNo || match.id),
           marketBookNo: finalMarketBookNo,
           marketCode: finalMarketCode,
         };
