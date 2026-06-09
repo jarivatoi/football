@@ -271,6 +271,10 @@ function App() {
         const firstDate = formattedCalendar[0].date;
         console.log('📅 Setting selected date to API today:', firstDate);
         setSelectedDate(firstDate);
+        
+        // Load matches for the selected date automatically
+        console.log('📅 Auto-loading matches for:', firstDate);
+        loadData(firstDate);
       }
       
       // Fetch categories from the API (only on initial load without filters)
