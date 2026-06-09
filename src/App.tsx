@@ -537,7 +537,7 @@ function App() {
         // Log match data for debugging
         console.log(' Adding selection from match:', match);
         console.log(` Price type: ${priceType}, Odds: ${odds}`);
-        console.log(`🔍 Market data from click - marketBookNo: ${marketBookNo}, marketCode: ${marketCode}`);
+        console.log(`🔍 Market data from click - marketBookNo: ${marketBookNo}, marketCode: ${marketCode}, marketId: ${marketId}`);
         
         // Use the marketBookNo and marketCode passed from the click event
         const finalMarketBookNo = (marketBookNo && marketBookNo !== 'undefined' && marketBookNo !== 'null') 
@@ -563,13 +563,15 @@ function App() {
           kickoff: match.kickoff,
           competitionId: match.competitionId,
           // CRITICAL: Use the ACTUAL marketId from GetMatch API (e.g., 565968)
-          // This is DIFFERENT from marketBookNo (e.g., 96887)!
-          marketId: marketId || (match.marketId && match.marketId !== '0' && match.marketId !== 'undefined' && match.marketId !== 'null') 
-            ? match.marketId 
-            : (marketBookNo || match.id),
+          // Priority: 1. marketId from click param, 2. match.marketId, 3. marketBookNo, 4. match.id
+          marketId: marketId || (match.marketId && match.marketId !== '0' && match.marketId !== 'undefined' && match.marketId !== 'null' ? match.marketId : (marketBookNo || match.id)),
           marketBookNo: finalMarketBookNo,
           marketCode: finalMarketCode,
         };
+        
+        console.log(`🔍 App.tsx - marketId parameter received: ${marketId}`);
+        console.log(`🔍 App.tsx - match.marketId: ${match.marketId}`);
+        console.log(`🔍 App.tsx - final marketId for selection: ${newSelection.marketId}`);
         
         console.log(`🔍 App.tsx - newSelection with market data:`, newSelection);
         
