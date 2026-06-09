@@ -521,7 +521,7 @@ function App() {
     console.log('📊 Matches per date:', Object.entries(groupedMatches).map(([date, matches]) => `${date}: ${(matches as TotelepepMatch[]).length}`));
   }, [groupedMatches]);
 
-  const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string) => {
+  const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string) => {
     // Find the match details
     const match = matches.find(m => m.id === matchId);
     if (match) {
@@ -567,6 +567,8 @@ function App() {
           marketId: marketId || (match.marketId && match.marketId !== '0' && match.marketId !== 'undefined' && match.marketId !== 'null' ? match.marketId : (marketBookNo || match.id)),
           marketBookNo: finalMarketBookNo,
           marketCode: finalMarketCode,
+          marketLine: marketLine || '',  // Store market line for handicap/over-under markets
+          periodCode: periodCode || 'FT',  // Store period code (FT, H1, 2H, etc.)
         };
         
         console.log(`🔍 App.tsx - marketId parameter received: ${marketId}`);

@@ -316,29 +316,37 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       formData.append(`data[SingleBets][${index}][marketBookNo]`, safeMarketBookNo);
       // Use optionDetails.marketType (e.g., '1X2', 'OU', 'BTTS') instead of selection.marketCode
       formData.append(`data[SingleBets][${index}][marketCode]`, selection.marketCode || 'CP');  // Use CP for Win-Draw-Win
-      formData.append(`data[SingleBets][${index}][marketLine]`, '');
+      formData.append(`data[SingleBets][${index}][marketLine]`, selection.marketLine || '');  // Use market line from selection
       formData.append(`data[SingleBets][${index}][marketIsLive]`, '0');
       formData.append(`data[SingleBets][${index}][marketIsRacing]`, '0');
-      formData.append(`data[SingleBets][${index}][marketPeriodCode]`, 'FT');
+      formData.append(`data[SingleBets][${index}][marketPeriodCode]`, selection.periodCode || 'FT');  // Use period code from selection
       
       // Determine market display name
       let marketDisplayName = '1 X 2'; // Default
       
       // For All Markets selections, extract market name from priceType
       if (selection.priceType.includes('-') && !['home', 'draw', 'away', 'over', 'under', 'btts_yes', 'btts_no'].includes(selection.priceType)) {
-        // Use marketCode to determine display name
+        // Use marketCode, marketLine, and periodCode to build display name
         const code = selection.marketCode?.toUpperCase() || '';
+        const line = selection.marketLine || '';
+        const period = selection.periodCode || 'FT';
+        
+        // Build period suffix
+        const periodSuffix = period === 'FT' ? '' : (period === 'H1' ? ' - Half Time' : period === '2H' ? ' - 2nd Half' : ` - ${period}`);
+        
         if (code === 'HSH') {
           marketDisplayName = 'Highest Scoring Half';
         } else if (code === 'CP') {
           marketDisplayName = '1 X 2';
-        } else if (code === 'OU' || code === 'OU2.5') {
-          marketDisplayName = 'Over/Under 2.5';
+        } else if (code === 'OU' || code === 'UO') {
+          marketDisplayName = line ? `Under Over ${line}${periodSuffix}` : `Over/Under${periodSuffix}`;
         } else if (code === 'BTTS') {
           marketDisplayName = 'Both Teams To Score';
+        } else if (code === 'AH' || code === 'HC') {
+          marketDisplayName = line ? `Asian Handicap ${line}${periodSuffix}` : `Asian Handicap${periodSuffix}`;
         } else {
-          // Fallback: use the marketCode as display name
-          marketDisplayName = selection.marketCode || '1 X 2';
+          // Fallback: use the marketCode with line and period
+          marketDisplayName = selection.marketCode ? `${selection.marketCode}${line ? ` ${line}` : ''}${periodSuffix}` : '1 X 2';
         }
       } else {
         // Standard quick selections
@@ -883,6 +891,8 @@ export interface ParlaySelection {
   marketBookNo?: string;
   marketCode?: string;
   marketId?: string;  // Actual market ID from GetMatch API
+  marketLine?: string;  // Market line for handicap/over-under (e.g., "+1.5", "2.5")
+  periodCode?: string;  // Period code (FT, H1, 2H, etc.)
   competitionId?: string;
   hasError?: boolean;  // Track if this selection has an error
 }

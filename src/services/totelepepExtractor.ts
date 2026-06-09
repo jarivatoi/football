@@ -33,6 +33,7 @@ interface TotelepepMatch {
     name: string;
     marketBookNo: string;
     marketCode: string;
+    marketLine?: string;  // Market line for handicap/over-under
     periodCode?: string;
     selections: Array<{
       name: string;
@@ -411,6 +412,7 @@ class TotelepepExtractor {
           name: marketName,
           marketBookNo,
           marketCode,
+          marketLine: market.marketLine || market.line || '',  // Extract market line
           periodCode,
           selections
         });

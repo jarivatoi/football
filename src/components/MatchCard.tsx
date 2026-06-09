@@ -5,7 +5,7 @@ import { totelepepExtractor } from '../services/totelepepExtractor';
 
 interface MatchCardProps {
   match: TotelepepMatch;
-  onPriceClick: (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string) => void;
+  onPriceClick: (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string) => void;
   selectedPrices: string[];
 }
 
@@ -317,7 +317,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                                                selection.name === 'X' || selection.name === 'Draw' || selection.name === 'X (Draw)' ? 'draw' :
                                                selection.name === '2' || selection.name === 'Away' || selection.name === '2 (Away)' || selection.name === match.awayTeam ? 'away' :
                                                `${market.marketBookNo}-${selection.name}`;
-                              onPriceClick(match.id, priceType, selection.odds, market.marketBookNo, market.marketCode);
+                              onPriceClick(match.id, priceType, selection.odds, market.marketBookNo, market.marketCode, market.id, market.marketLine, market.periodCode);
                             } else {
                               onPriceClick(
                                 match.id, 
@@ -325,7 +325,9 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                                 selection.odds,
                                 market.marketBookNo,
                                 market.marketCode,
-                                market.id
+                                market.id,
+                                market.marketLine,
+                                market.periodCode
                               );
                             }
                           }}
