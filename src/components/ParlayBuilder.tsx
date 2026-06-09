@@ -320,8 +320,33 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       formData.append(`data[SingleBets][${index}][marketIsLive]`, '0');
       formData.append(`data[SingleBets][${index}][marketIsRacing]`, '0');
       formData.append(`data[SingleBets][${index}][marketPeriodCode]`, 'FT');
-      // Update market display name based on market type
-      const marketDisplayName = optionDetails.marketType === '1X2' ? '1 X 2' : optionDetails.marketType === 'OU' ? 'Over/Under 2.5' : 'Both Teams To Score';
+      
+      // Determine market display name
+      let marketDisplayName = '1 X 2'; // Default
+      
+      // For All Markets selections, extract market name from priceType
+      if (selection.priceType.includes('-') && !['home', 'draw', 'away', 'over', 'under', 'btts_yes', 'btts_no'].includes(selection.priceType)) {
+        // Use marketCode to determine display name
+        const code = selection.marketCode?.toUpperCase() || '';
+        if (code === 'HSH') {
+          marketDisplayName = 'Highest Scoring Half';
+        } else if (code === 'CP') {
+          marketDisplayName = '1 X 2';
+        } else if (code === 'OU' || code === 'OU2.5') {
+          marketDisplayName = 'Over/Under 2.5';
+        } else if (code === 'BTTS') {
+          marketDisplayName = 'Both Teams To Score';
+        } else {
+          // Fallback: use the marketCode as display name
+          marketDisplayName = selection.marketCode || '1 X 2';
+        }
+      } else {
+        // Standard quick selections
+        marketDisplayName = optionDetails.marketType === '1X2' ? '1 X 2' : 
+                           optionDetails.marketType === 'OU' ? 'Over/Under 2.5' : 
+                           optionDetails.marketType === 'BTTS' ? 'Both Teams To Score' : '1 X 2';
+      }
+      
       formData.append(`data[SingleBets][${index}][marketDisplayName]`, marketDisplayName);
       // For multi-bets, stake should be empty (stake is in MultiStake)
       // For single bets, stake should be the amount
@@ -647,6 +672,78 @@ const formatMatchTime = (kickoff?: string): string => {
 
 // Map selection types to Totelepep option format
 const getOptionDetails = (selection: ParlaySelection) => {
+  // For All Markets selections, priceType will be in format: "marketBookNo-selectionName"
+  // e.g., "96887-2nd", "96909-1st", "424-Home", etc.
+  if (selection.priceType.includes('-') && !['home', 'draw', 'away', 'over', 'under', 'btts_yes', 'btts_no'].includes(selection.priceType)) {
+    const parts = selection.priceType.split('-');
+    const selectionName = parts.slice(1).join('-'); // Everything after the first dash
+    
+    console.log(`🎯 Parsing All Markets selection: priceType="${selection.priceType}", extracted name="${selectionName}"`);
+    
+    // Map selection names to option details
+    // "2nd" -> 2nd Half, "1st" -> 1st Half, "Home" -> Home, etc.
+    let optionNo = '1';
+    let optionCode = selectionName.toUpperCase().substring(0, 2);
+    let optionName = selectionName;
+    let marketType = selection.marketCode || 'OTHER';
+    
+    // Special mappings for common selections
+    if (selectionName === '1st' || selectionName === '1') {
+      optionNo = '1';
+      optionCode = 'H1';
+      optionName = '1st';
+    } else if (selectionName === '2nd' || selectionName === '2') {
+      optionNo = '2';
+      optionCode = 'H2';
+      optionName = '2nd';
+    } else if (selectionName.toLowerCase() === 'home' || selectionName === selection.homeTeam) {
+      optionNo = '1';
+      optionCode = 'H';
+      optionName = selection.homeTeam;
+      marketType = 'CP';
+    } else if (selectionName.toLowerCase() === 'draw') {
+      optionNo = '2';
+      optionCode = 'D';
+      optionName = 'Draw';
+      marketType = 'CP';
+    } else if (selectionName.toLowerCase() === 'away' || selectionName === selection.awayTeam) {
+      optionNo = '3';
+      optionCode = 'A';
+      optionName = selection.awayTeam;
+      marketType = 'CP';
+    } else if (selectionName.toLowerCase() === 'yes' || selectionName.toLowerCase() === 'y') {
+      optionNo = '1';
+      optionCode = 'Y';
+      optionName = 'Yes';
+      marketType = 'BTTS';
+    } else if (selectionName.toLowerCase() === 'no' || selectionName.toLowerCase() === 'n') {
+      optionNo = '2';
+      optionCode = 'N';
+      optionName = 'No';
+      marketType = 'BTTS';
+    } else if (selectionName.toLowerCase() === 'over' || selectionName.toLowerCase() === 'o') {
+      optionNo = '1';
+      optionCode = 'O';
+      optionName = 'Over';
+      marketType = 'OU';
+    } else if (selectionName.toLowerCase() === 'under' || selectionName.toLowerCase() === 'u') {
+      optionNo = '2';
+      optionCode = 'U';
+      optionName = 'Under';
+      marketType = 'OU';
+    }
+    
+    console.log(`🎯 Mapped to: optionNo=${optionNo}, optionCode=${optionCode}, optionName=${optionName}, marketType=${marketType}`);
+    
+    return {
+      optionNo,
+      optionCode,
+      optionName,
+      marketType
+    };
+  }
+  
+  // Standard quick 1X2/OU/BTTS selections
   switch (selection.priceType) {
     case 'home':
     case 'draw':
