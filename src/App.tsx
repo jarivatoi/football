@@ -319,6 +319,13 @@ function App() {
 
   // Filter matches by selected date and maintain grouping
   const filteredGroupedMatches = React.useMemo ? React.useMemo(() => {
+    console.log('🔍 filteredGroupedMatches computing...', {
+      selectedDate,
+      selectedCategory,
+      selectedCompetition,
+      groupedMatchesKeys: Object.keys(groupedMatches)
+    });
+    
     // Check if this is a Beyond date by checking if displayName contains "Beyond"
     const isBeyondDate = selectedDate && calendarList.find(entry => {
       return entry.date === selectedDate && (entry.displayName.includes('Beyond') || entry.displayName.includes('>>'));
