@@ -287,13 +287,19 @@ function App() {
     setLoading(true);
     setError(null);
     console.log('📋 Loading all matches from all dates...');
+    console.log('📋 availableDates:', availableDates);
+    console.log('📋 calendarList:', calendarList);
     
     try {
       const allMatches: TotelepepMatch[] = [];
       
-      // Fetch matches from each date in availableDates
-      for (const dateInfo of availableDates) {
-        console.log(`📅 Fetching matches for ${dateInfo.date}...`);
+      // Use calendarList which has all the dates
+      const datesToFetch = calendarList.length > 0 ? calendarList : availableDates;
+      console.log('📋 Using dates:', datesToFetch);
+      
+      // Fetch matches from each date
+      for (const dateInfo of datesToFetch) {
+        console.log(`📅 Fetching matches for ${dateInfo.date} (${dateInfo.displayName})...`);
         try {
           const matches = await totelepepExtractor.extractMatches(dateInfo.date, selectedCategory, selectedCompetition);
           console.log(`  ✅ Got ${matches.length} matches for ${dateInfo.date}`);
