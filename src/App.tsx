@@ -219,8 +219,23 @@ function App() {
   const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string) => {
     setLoading(true);
     setError(null);
-    // Use null to mean "no date" (get all matches), undefined to mean "use selectedDate"
-    const dateToFetch = targetDate === undefined ? selectedDate : (targetDate || undefined);
+    console.log('🔍 loadData called with targetDate:', targetDate, 'type:', typeof targetDate, 'isNull:', targetDate === null);
+    
+    // targetDate === null means "no date, get all matches"
+    // targetDate === undefined means "use selectedDate"
+    // targetDate === string means "use this specific date"
+    let dateToFetch: string | undefined;
+    if (targetDate === null) {
+      dateToFetch = undefined;  // No date = API will use inclusive=1
+      console.log('🔍 All Matches mode - no date parameter');
+    } else if (targetDate === undefined) {
+      dateToFetch = selectedDate;  // Use selected date
+      console.log('🔍 Using selectedDate:', selectedDate);
+    } else {
+      dateToFetch = targetDate;  // Use provided date
+      console.log('🔍 Using provided date:', targetDate);
+    }
+    
     const catId = categoryId !== undefined ? categoryId : selectedCategory;
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
     try {
@@ -741,10 +756,8 @@ function App() {
     console.log(`📋 All Matches toggle: ${newState ? 'ON' : 'OFF'}`);
     
     if (newState) {
-      // Turn ON All Matches - load ALL matches from all dates using inclusive=1
-      console.log('📋 Loading ALL matches for All Matches view');
-      
-      // Pass null to explicitly mean "no date" - API will use inclusive=1 to get all matches
+      // Turn ON All Matches - pass null to explicitly mean "no date, get all matches"
+      console.log('📋 Loading ALL matches for All Matches view (null = inclusive=1)');
       loadData(null, selectedCategory, selectedCompetition);
     } else {
       // Turn OFF All Matches, restore to today's date
