@@ -178,10 +178,12 @@ class TotelepepExtractor {
     try {
       console.log(`📡 Fetching markets for match ${match.id} (${match.homeTeam} vs ${match.awayTeam})...`);
       
-      const apiUrl = `webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
+      // Extract domain from baseUrl (e.g., https://www.totelepep.mu/webapi/GetSport -> https://www.totelepep.mu)
+      const baseUrl = this.baseUrl.replace('/webapi/GetSport', '');
+      const apiUrl = `${baseUrl}/webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
       
       // Use CORS proxy for GetMatch request
-      const fetchUrl = this.corsProxy + encodeURIComponent(`https://www.totelepep.mu/${apiUrl}`);
+      const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
       
       const response = await fetch(fetchUrl, {
         headers: {
@@ -230,7 +232,9 @@ class TotelepepExtractor {
       // Fetch all matches in this batch IN PARALLEL
       const fetchPromises = batch.map(async (match) => {
         try {
-          const apiUrl = `https://www.totelepep.mu/webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
+          // Extract domain from baseUrl (e.g., https://www.totelepep.mu/webapi/GetSport -> https://www.totelepep.mu)
+          const baseUrl = this.baseUrl.replace('/webapi/GetSport', '');
+          const apiUrl = `${baseUrl}/webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
           
           // Use CORS proxy
           const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
@@ -2688,8 +2692,9 @@ class TotelepepExtractor {
     try {
       console.log('📂 Fetching categories from API...');
       
-      // Use the correct GetCategories API endpoint
-      const apiUrl = 'https://www.totelepep.mu/webapi/getcategories?SportId=1';
+      // Extract domain from baseUrl (e.g., https://www.totelepep.mu/webapi/GetSport -> https://www.totelepep.mu)
+      const baseUrl = this.baseUrl.replace('/webapi/GetSport', '');
+      const apiUrl = `${baseUrl}/webapi/getcategories?SportId=1`;
       
       console.log('🌐 Fetching categories URL:', apiUrl);
       
@@ -2734,8 +2739,9 @@ class TotelepepExtractor {
     try {
       console.log(`🏆 Fetching competitions for category: ${categoryName}`);
       
-      // Use the correct GetCompetitions API endpoint
-      const apiUrl = `https://www.totelepep.mu/webapi/GetCompetitions?CategoryName=${encodeURIComponent(categoryName)}&SportId=1`;
+      // Extract domain from baseUrl (e.g., https://www.totelepep.mu/webapi/GetSport -> https://www.totelepep.mu)
+      const baseUrl = this.baseUrl.replace('/webapi/GetSport', '');
+      const apiUrl = `${baseUrl}/webapi/GetCompetitions?CategoryName=${encodeURIComponent(categoryName)}&SportId=1`;
       
       console.log(`🌐 Fetching competitions URL:`, apiUrl);
       
