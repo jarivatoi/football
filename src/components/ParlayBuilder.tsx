@@ -338,6 +338,8 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
           marketDisplayName = 'Highest Scoring Half';
         } else if (code === 'CP') {
           marketDisplayName = '1 X 2';
+        } else if (code === 'DC' || code === 'DOUBLECHANCE') {
+          marketDisplayName = 'Double Chance';
         } else if (code === 'OU' || code === 'UO') {
           marketDisplayName = line ? `Under Over ${line}${periodSuffix}` : `Over/Under${periodSuffix}`;
         } else if (code === 'BTTS') {
@@ -756,6 +758,34 @@ const getOptionDetails = (selection: ParlaySelection) => {
       optionCode = 'U';
       optionName = 'Under';
       marketType = 'OU';
+    } else if (selection.marketCode === 'DC' || selection.marketCode === 'DOUBLECHANCE') {
+      // Double Chance market
+      marketType = 'DC';
+      if (selectionName.toLowerCase().includes('home') && selectionName.toLowerCase().includes('draw')) {
+        optionNo = '1';
+        optionCode = 'HD';
+        optionName = `${selection.homeTeam} - Draw`;
+      } else if (selectionName.toLowerCase().includes('home') && selectionName.toLowerCase().includes('away')) {
+        optionNo = '2';
+        optionCode = 'HA';
+        optionName = `${selection.homeTeam} - ${selection.awayTeam}`;
+      } else if (selectionName.toLowerCase().includes('draw') && selectionName.toLowerCase().includes('away')) {
+        optionNo = '3';
+        optionCode = 'DA';
+        optionName = `Draw - ${selection.awayTeam}`;
+      } else if (selectionName === '1X' || selectionName === '1x') {
+        optionNo = '1';
+        optionCode = 'HD';
+        optionName = `${selection.homeTeam} - Draw`;
+      } else if (selectionName === '12') {
+        optionNo = '2';
+        optionCode = 'HA';
+        optionName = `${selection.homeTeam} - ${selection.awayTeam}`;
+      } else if (selectionName === 'X2' || selectionName === 'x2') {
+        optionNo = '3';
+        optionCode = 'DA';
+        optionName = `Draw - ${selection.awayTeam}`;
+      }
     }
     
     console.log(`🎯 Mapped to: optionNo=${optionNo}, optionCode=${optionCode}, optionName=${optionName}, marketType=${marketType}`);
