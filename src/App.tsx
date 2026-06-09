@@ -738,20 +738,19 @@ function App() {
     const newState = !showAllMatches;
     setShowAllMatches(newState);
     console.log(`📋 All Matches toggle: ${newState ? 'ON' : 'OFF'}`);
-    console.log(`📋 Current matches count: ${matches.length}`);
     
-    // Re-group matches if needed
-    if (matches.length > 0 && Object.keys(groupedMatches).length === 0) {
-      console.log('📋 Re-grouping existing matches');
-      const grouped = totelepepService.groupMatchesByDate(matches);
-      setGroupedMatches(grouped);
-    }
-    
-    // When turning OFF All Matches, restore to today's date
-    if (!newState) {
+    if (newState) {
+      // Turn ON All Matches - load ALL matches from all dates using inclusive=1
+      console.log('📋 Loading ALL matches for All Matches view');
+      
+      // Call loadData WITHOUT date parameter - API will use inclusive=1 to get all matches
+      loadData(undefined, selectedCategory, selectedCompetition);
+    } else {
+      // Turn OFF All Matches, restore to today's date
       const today = getTodayDate();
       setSelectedDate(today);
       console.log('📋 Turning off All Matches, restoring to:', today);
+      loadData(today, selectedCategory, selectedCompetition);
     }
   };
 
