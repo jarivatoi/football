@@ -437,7 +437,7 @@ class TotelepepExtractor {
 
   private async fetchTotelepepAPI(targetDate?: string, categoryId?: string, competitionId?: string, pageNo?: number): Promise<any> {
     // Build API URL with current date (same as Power Query)
-    const dateToFetch = targetDate || this.getTodayDate(); // YYYY-MM-DD format
+    const dateToFetch = targetDate !== undefined ? targetDate : this.getTodayDate(); // YYYY-MM-DD format or null for all dates
     console.log(`🔍 TotelepepExtractor - Target date provided:`, targetDate);
     console.log(`🔍 TotelepepExtractor - Date to fetch:`, dateToFetch);
     console.log(`🔍 TotelepepExtractor - Date to fetch type: ${typeof dateToFetch}`);
@@ -451,7 +451,12 @@ class TotelepepExtractor {
     const page = pageNo || 1;
     
     let apiUrl;
-    if (targetDate) {
+    // Check if targetDate is explicitly null (meaning all dates) or undefined/empty (meaning today)
+    if (targetDate === null) {
+      // Explicitly null: get ALL matches with inclusive=1
+      apiUrl = `${this.baseUrl}?sportId=soccer&category=${encodeURIComponent(categoryParam)}&competitionId=0&pageNo=${page}&inclusive=1&matchid=0&periodCode=all`;
+      console.log(`🌐 API URL for ALL dates (inclusive=1):`, apiUrl);
+    } else if (targetDate) {
       // Category only or Category + Competition: use "08 Jun 2026" format
       // NOTE: Don't pass competitionId to API - it returns empty matchData
       // We'll filter by competition on the frontend instead
@@ -462,12 +467,12 @@ class TotelepepExtractor {
       const year = dateObj.getFullYear();
       const formattedDate = `${day} ${month} ${year}`;
       apiUrl = `${this.baseUrl}?sportId=soccer&date=${encodeURIComponent(formattedDate)}&category=${encodeURIComponent(categoryParam)}&competitionId=0&pageNo=${page}&inclusive=0&matchid=0&periodCode=all`;
+      console.log(`🌐 API URL for ${dateToFetch}:`, apiUrl);
     } else {
-      // No date: get all matches
+      // No date or undefined: get all matches
       apiUrl = `${this.baseUrl}?sportId=soccer&category=${encodeURIComponent(categoryParam)}&competitionId=0&pageNo=${page}&inclusive=1&matchid=0&periodCode=all`;
+      console.log(`🌐 API URL for all dates (fallback):`, apiUrl);
     }
-    
-    console.log(`🌐 API URL for ${dateToFetch || 'all dates'}:`, apiUrl);
     
     // Use CORS proxy for browser requests
     const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
