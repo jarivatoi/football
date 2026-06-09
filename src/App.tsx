@@ -281,6 +281,52 @@ function App() {
       setLoading(false);
     }
   };
+  
+  // Load ALL matches from all dates and combine them
+  const loadAllMatches = async () => {
+    setLoading(true);
+    setError(null);
+    console.log('📋 Loading all matches from all dates...');
+    
+    try {
+      const allMatches: TotelepepMatch[] = [];
+      
+      // Fetch matches from each date in availableDates
+      for (const dateInfo of availableDates) {
+        console.log(`📅 Fetching matches for ${dateInfo.date}...`);
+        try {
+          const matches = await totelepepExtractor.extractMatches(dateInfo.date, selectedCategory, selectedCompetition);
+          console.log(`  ✅ Got ${matches.length} matches for ${dateInfo.date}`);
+          allMatches.push(...matches);
+        } catch (error) {
+          console.error(`  ❌ Failed to fetch ${dateInfo.date}:`, error);
+        }
+      }
+      
+      console.log(`📋 Total matches loaded: ${allMatches.length}`);
+      
+      // Sort all matches by date and time
+      const sortedMatches = allMatches.sort((a, b) => {
+        const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
+        if (dateComparison !== 0) return dateComparison;
+        return a.kickoff.localeCompare(b.kickoff);
+      });
+      
+      setMatches(sortedMatches);
+      
+      // Group matches by date
+      const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+      setGroupedMatches(grouped);
+      
+      setLastUpdated(new Date());
+      console.log(`✅ Loaded ${sortedMatches.length} total matches from all dates`);
+    } catch (error) {
+      console.error('Error loading all matches:', error);
+      setError('Failed to load all matches. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Load calendar list data with optional filters
   const loadCalendarList = async (categoryId?: string, competitionId?: string) => {
@@ -756,9 +802,9 @@ function App() {
     console.log(`📋 All Matches toggle: ${newState ? 'ON' : 'OFF'}`);
     
     if (newState) {
-      // Turn ON All Matches - pass null to explicitly mean "no date, get all matches"
-      console.log('📋 Loading ALL matches for All Matches view (null = inclusive=1)');
-      loadData(null, selectedCategory, selectedCompetition);
+      // Turn ON All Matches - fetch matches from ALL dates and combine them
+      console.log('📋 Loading ALL matches for All Matches view (fetching all dates)');
+      loadAllMatches();
     } else {
       // Turn OFF All Matches, restore to today's date
       const today = getTodayDate();
