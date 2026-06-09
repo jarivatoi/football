@@ -79,6 +79,7 @@ function App() {
   const [showBetAnalyzer, setShowBetAnalyzer] = useSafeState(false);
   const [showBookingGuide, setShowBookingGuide] = useSafeState(false);
   const [selectedDate, setSelectedDate] = useSafeState<string>(getTodayDate());
+  const [showAllMatches, setShowAllMatches] = useSafeState<boolean>(false);  // Toggle for showing all matches from all dates
   const [lastScrapeTime, setLastScrapeTime] = useSafeState<number>(0); // Track last scrape time
   const [isOnline, setIsOnline] = useSafeState<boolean>(true);
   const [availableDates, setAvailableDates] = useSafeState<Array<{date: string, matchCount: number, displayName: string}>>([]);
@@ -374,7 +375,12 @@ function App() {
     
     let dateFiltered: Record<string, TotelepepMatch[]> = {};
     
-    if (isBeyondDate) {
+    // Check if "All Matches" mode is enabled
+    if (showAllMatches) {
+      // Show ALL matches from all dates, sorted by time
+      dateFiltered = { ...groupedMatches };
+      console.log('📋 All Matches mode: Showing all dates');
+    } else if (isBeyondDate) {
       // For Beyond, show ALL matches from all dates
       dateFiltered = { ...groupedMatches };
     } else {
@@ -438,8 +444,37 @@ function App() {
       }
     });
     
-    return filtered;
-  }, [groupedMatches, searchTerm, selectedDate, calendarList, selectedCategory, selectedCompetition]) : groupedMatches;
+    let result = filtered;
+    
+    // If All Matches mode is enabled, sort all matches by kickoff time
+    if (showAllMatches && Object.keys(result).length > 0) {
+      // Flatten all matches, sort by kickoff time, then regroup by date
+      const allMatches = Object.values(result).flat() as TotelepepMatch[];
+      
+      // Sort by kickoff time
+      allMatches.sort((a, b) => {
+        const timeA = a.kickoff || '';
+        const timeB = b.kickoff || '';
+        return timeA.localeCompare(timeB);
+      });
+      
+      // Regroup by date (keeping the date grouping but sorted within and across dates)
+      const sorted: Record<string, TotelepepMatch[]> = {};
+      allMatches.forEach(match => {
+        // Extract date from kickoff
+        const matchDate = match.kickoff?.split(' ')[0] || 'Unknown';
+        if (!sorted[matchDate]) {
+          sorted[matchDate] = [];
+        }
+        sorted[matchDate].push(match);
+      });
+      
+      result = sorted;
+      console.log('📋 All Matches: Sorted by time');
+    }
+    
+    return result;
+  }, [groupedMatches, searchTerm, selectedDate, calendarList, selectedCategory, selectedCompetition, showAllMatches]) : groupedMatches;
 
   const totalMatches = matches.length;
   const totalFilteredMatches = Object.values(filteredGroupedMatches)
@@ -683,6 +718,17 @@ function App() {
   const toggleParlayBuilder = () => {
     setShowParlayBuilder(prev => !prev);
   };
+  
+  const toggleAllMatches = () => {
+    const newState = !showAllMatches;
+    setShowAllMatches(newState);
+    console.log(`📋 All Matches toggle: ${newState ? 'ON' : 'OFF'}`);
+    
+    // When turning ON All Matches, deselect the specific date
+    if (newState) {
+      setSelectedDate('');
+    }
+  };
 
 
 
@@ -701,10 +747,13 @@ function App() {
         />
         
         {/* Date Selector */}
-        <DateSelector 
+        <DateSelector
           selectedDate={selectedDate} 
           onDateChange={handleDateChange}
           availableDates={availableDatesWithCounts}
+          showAllMatches={showAllMatches}
+          onToggleAllMatches={toggleAllMatches}
+          totalMatches={matches.length}
         />
         
         {/* Search Bar */}
