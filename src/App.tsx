@@ -540,14 +540,35 @@ function App() {
       
       // If All Matches mode is enabled, also sort within each date by kickoff time
       if (showAllMatches) {
-        // Flatten all matches, sort by kickoff time, then regroup by date
+        // Flatten all matches, sort by FULL date+time from kickoff, then regroup by date
         const allMatches = Object.values(result).flat() as TotelepepMatch[];
         
-        // Sort by kickoff time (ascending - earliest first)
+        // Sort by FULL kickoff datetime - parse "DD Mon HH:MM" to actual Date
         allMatches.sort((a, b) => {
-          const timeA = a.kickoff || '';
-          const timeB = b.kickoff || '';
-          return timeA.localeCompare(timeB);  // Ascending: earliest first
+          const kickoffA = a.kickoff || '';
+          const kickoffB = b.kickoff || '';
+          
+          // Parse "13 Jun 18:00" format to Date object
+          const parseKickoff = (kickoff: string) => {
+            const parts = kickoff.split(' ');
+            if (parts.length === 3) {
+              const [day, month, time] = parts;
+              const months: Record<string, number> = {
+                'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+                'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+              };
+              const monthNum = months[month] ?? 0;
+              const [hours, minutes] = time.split(':').map(Number);
+              // Use year 2026 for all (current season)
+              return new Date(2026, monthNum, parseInt(day), hours, minutes);
+            }
+            return new Date(0); // Fallback
+          };
+          
+          const dateA = parseKickoff(kickoffA);
+          const dateB = parseKickoff(kickoffB);
+          
+          return dateA.getTime() - dateB.getTime();  // Chronological: earliest first
         });
         
         // Regroup by date
@@ -561,7 +582,7 @@ function App() {
         });
         
         result = finalSorted;
-        console.log('📋 Search results: Sorted by time');
+        console.log('📋 Search results: Sorted by date then time');
       } else {
         console.log('📋 Search results: Sorted by date');
       }
