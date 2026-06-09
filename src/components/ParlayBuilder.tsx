@@ -48,10 +48,14 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       const optionDetails = getOptionDetails(selection);
       console.log(`📋 Option details for selection ${index}:`, optionDetails);
           
-      // Generate betRef (format: marketId-optionNo) - Use marketId NOT marketBookNo!
-      const marketIdToUse = selection.marketId || selection.marketBookNo || selection.matchId;
+      // Generate betRef (format: marketId-optionNo) - Use ACTUAL marketId from GetMatch API
+      // DO NOT use marketBookNo which is only for 1X2!
+      const marketIdToUse = (selection.marketId && selection.marketId !== '0' && selection.marketId !== 'undefined' && selection.marketId !== 'null')
+        ? selection.marketId
+        : (selection.matchId || '0');
       const betRef = `${marketIdToUse}-${optionDetails.optionNo}`;
       console.log(`🔍 betRef result - marketIdToUse: ${marketIdToUse}, optionNo: ${optionDetails.optionNo}, betRef: ${betRef}`);
+      console.log(`🎯 betRef should use actual market ID (e.g., 96909 for Highest Scoring Half), NOT 96901 for 1X2`);
       
       // Extract real market data from the match
       const marketData = extractMarketData(selection);
@@ -180,14 +184,16 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       formData.append(`data[SingleBets][${index}][sportIcon]`, 'soccer_icn');
       formData.append(`data[SingleBets][${index}][competitionName]`, marketData.competitionName);
       formData.append(`data[SingleBets][${index}][competitionId]`, marketData.competitionId);
-      // Use selection.marketId if available (from GetMatch API), otherwise fall back to marketBookNo or matchId
+      
+      // CRITICAL: Use selection.marketId (actual market ID from GetMatch API like 96909 for Highest Scoring Half)
+      // DO NOT fall back to marketBookNo which is only for 1X2!
       console.log(`🔍 marketId generation - selection:`, selection);
       
-      const marketId = (selection.marketId && selection.marketId !== '0')
+      const marketId = (selection.marketId && selection.marketId !== '0' && selection.marketId !== 'undefined' && selection.marketId !== 'null')
         ? selection.marketId
-        : (selection.marketBookNo && selection.marketBookNo !== '0')
-        ? selection.marketBookNo
         : (selection.matchId || '0');
+      
+      console.log(`🎯 FINAL marketId being sent: ${marketId} (should be 96909 for Highest Scoring Half, NOT 96901 for 1X2)`);
       
       console.log(`🔍 marketId result - selection.marketId: ${selection.marketId}, selection.marketBookNo: ${selection.marketBookNo}, final marketId: ${marketId}`);
       
