@@ -738,11 +738,20 @@ function App() {
     const newState = !showAllMatches;
     setShowAllMatches(newState);
     console.log(`📋 All Matches toggle: ${newState ? 'ON' : 'OFF'}`);
+    console.log(`📋 Current matches count: ${matches.length}`);
     
-    // When turning ON All Matches, don't deselect - just show all
-    // When turning OFF, restore to today's date
+    // Re-group matches if needed
+    if (matches.length > 0 && Object.keys(groupedMatches).length === 0) {
+      console.log('📋 Re-grouping existing matches');
+      const grouped = totelepepService.groupMatchesByDate(matches);
+      setGroupedMatches(grouped);
+    }
+    
+    // When turning OFF All Matches, restore to today's date
     if (!newState) {
-      setSelectedDate(getTodayDate());
+      const today = getTodayDate();
+      setSelectedDate(today);
+      console.log('📋 Turning off All Matches, restoring to:', today);
     }
   };
 
