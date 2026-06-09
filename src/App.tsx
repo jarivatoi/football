@@ -125,6 +125,13 @@ function App() {
     console.log('🏆 Competition changed to:', competitionId);
     setSelectedCompetition(competitionId);
     
+    // Don't reload calendar if competition is being reset (empty string)
+    // This happens when category changes and resets competition
+    if (!competitionId) {
+      console.log('🏆 Competition reset - skipping calendar reload');
+      return;
+    }
+    
     // Reload calendar with the competition filter and get the first date
     const firstDate = await reloadCalendarWithFilters(selectedCategory, competitionId);
     
