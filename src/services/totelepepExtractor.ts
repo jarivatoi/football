@@ -429,27 +429,20 @@ class TotelepepExtractor {
     const page = pageNo || 1;
     
     let apiUrl;
-    if (targetDate && competitionId) {
-      // Category + Competition: use "08 Jun 2026" format
+    if (targetDate) {
+      // Category only or Category + Competition: use "08 Jun 2026" format
+      // NOTE: Don't pass competitionId to API - it returns empty matchData
+      // We'll filter by competition on the frontend instead
       const dateObj = new Date(targetDate);
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const day = String(dateObj.getDate()).padStart(2, '0');
       const month = months[dateObj.getMonth()];
       const year = dateObj.getFullYear();
       const formattedDate = `${day} ${month} ${year}`;
-      apiUrl = `${this.baseUrl}?sportId=soccer&date=${encodeURIComponent(formattedDate)}&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=${page}&inclusive=0&matchid=0&periodCode=all`;
-    } else if (targetDate) {
-      // Category only: use "08 Jun 2026" format with inclusive=0
-      const dateObj = new Date(targetDate);
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const day = String(dateObj.getDate()).padStart(2, '0');
-      const month = months[dateObj.getMonth()];
-      const year = dateObj.getFullYear();
-      const formattedDate = `${day} ${month} ${year}`;
-      apiUrl = `${this.baseUrl}?sportId=soccer&date=${encodeURIComponent(formattedDate)}&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=${page}&inclusive=0&matchid=0&periodCode=all`;
+      apiUrl = `${this.baseUrl}?sportId=soccer&date=${encodeURIComponent(formattedDate)}&category=${encodeURIComponent(categoryParam)}&competitionId=0&pageNo=${page}&inclusive=0&matchid=0&periodCode=all`;
     } else {
       // No date: get all matches
-      apiUrl = `${this.baseUrl}?sportId=soccer&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=${page}&inclusive=1&matchid=0&periodCode=all`;
+      apiUrl = `${this.baseUrl}?sportId=soccer&category=${encodeURIComponent(categoryParam)}&competitionId=0&pageNo=${page}&inclusive=1&matchid=0&periodCode=all`;
     }
     
     console.log(`🌐 API URL for ${dateToFetch || 'all dates'}:`, apiUrl);
