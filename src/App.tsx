@@ -348,14 +348,15 @@ function App() {
     
     if (selectedCompetition) {
       // Filter by specific competition
-      console.log('🏆 Filtering by competition:', selectedCompetition);
+      console.log('🏆 Filtering by competition:', selectedCompetition, 'type:', typeof selectedCompetition);
       Object.entries(dateFiltered).forEach(([date, dateMatches]) => {
         console.log(`📅 Date ${date}: ${dateMatches.length} matches before competition filter`);
         if (dateMatches.length > 0) {
-          console.log('🏆 First match competitionId:', dateMatches[0].competitionId);
+          console.log('🏆 First match competitionId:', dateMatches[0].competitionId, 'type:', typeof dateMatches[0].competitionId);
         }
         const filteredMatches = dateMatches.filter(match => {
-          const matches = match.competitionId === selectedCompetition;
+          // Convert both to string for comparison to handle type mismatch
+          const matches = String(match.competitionId) === String(selectedCompetition);
           if (!matches) {
             console.log(`  ❌ Match ${match.homeTeam} vs ${match.awayTeam}: competitionId=${match.competitionId} !== ${selectedCompetition}`);
           }
