@@ -309,13 +309,9 @@ function App() {
     // Don't call loadData here - it will be called after calendar sets the date
   }, []); // Only run once on mount
   
-  // Load matches when selectedDate changes (after calendar is loaded)
-  useSafeEffect(() => {
-    if (selectedDate && calendarList.length > 0) {
-      console.log('📅 Loading matches for date:', selectedDate);
-      loadData(selectedDate);
-    }
-  }, [selectedDate, calendarList]);
+  // NOTE: Removed the useEffect that loaded data when selectedDate changed
+  // This was causing race conditions with handleCategoryChange/handleCompetitionChange
+  // Those handlers now directly call loadData with the correct date and filters
 
   // Filter matches by selected date and maintain grouping
   const filteredGroupedMatches = React.useMemo ? React.useMemo(() => {
