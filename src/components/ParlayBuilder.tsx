@@ -175,9 +175,15 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       formData.append(`data[SingleBets][${index}][matchName]`, `${selection.homeTeam} v ${selection.awayTeam}`);
       formData.append(`data[SingleBets][${index}][matchStartTime]`, formatMatchTime(selection.kickoff));
       formData.append(`data[SingleBets][${index}][matchRunTime]`, '0');
-      formData.append(`data[SingleBets][${index}][optionNo]`, optionDetails.optionNo);
-      formData.append(`data[SingleBets][${index}][optionCode]`, optionDetails.optionCode);
-      formData.append(`data[SingleBets][${index}][optionName]`, optionDetails.optionName);
+      
+      // CRITICAL: Use API values if available, otherwise fall back to getOptionDetails() mapping
+      const apiOptionNo = selection.optionNo || optionDetails.optionNo;
+      const apiOptionCode = selection.optionCode || optionDetails.optionCode;
+      const apiOptionName = optionDetails.optionName;  // Always use getOptionDetails for optionName
+      
+      formData.append(`data[SingleBets][${index}][optionNo]`, apiOptionNo);
+      formData.append(`data[SingleBets][${index}][optionCode]`, apiOptionCode);
+      formData.append(`data[SingleBets][${index}][optionName]`, apiOptionName);
       formData.append(`data[SingleBets][${index}][optionOdd]`, selection.odds.toString());
       formData.append(`data[SingleBets][${index}][optionPreviousOdd]`, selection.odds.toString());
       formData.append(`data[SingleBets][${index}][sportName]`, 'Soccer');

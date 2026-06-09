@@ -521,7 +521,7 @@ function App() {
     console.log('📊 Matches per date:', Object.entries(groupedMatches).map(([date, matches]) => `${date}: ${(matches as TotelepepMatch[]).length}`));
   }, [groupedMatches]);
 
-  const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string) => {
+  const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => {
     // Find the match details
     const match = matches.find(m => m.id === matchId);
     if (match) {
@@ -537,7 +537,7 @@ function App() {
         // Log match data for debugging
         console.log(' Adding selection from match:', match);
         console.log(` Price type: ${priceType}, Odds: ${odds}`);
-        console.log(`🔍 Market data from click - marketBookNo: ${marketBookNo}, marketCode: ${marketCode}, marketId: ${marketId}`);
+        console.log(`🔍 Market data from click - marketBookNo: ${marketBookNo}, marketCode: ${marketCode}, marketId: ${marketId}, optionCode: ${optionCode}, optionNo: ${optionNo}`);
         
         // Use the marketBookNo and marketCode passed from the click event
         const finalMarketBookNo = (marketBookNo && marketBookNo !== 'undefined' && marketBookNo !== 'null') 
@@ -570,6 +570,8 @@ function App() {
           marketLine: marketLine || '',  // Store market line for handicap/over-under markets
           periodCode: periodCode || 'FT',  // Store period code (FT, H1, 2H, etc.)
           marketDisplayName: marketDisplayName || '',  // Store full market display name from API
+          optionCode: optionCode || '',  // Store option code from API
+          optionNo: optionNo || '',  // Store option number from API
         };
         
         console.log(`🔍 App.tsx - marketId parameter received: ${marketId}`);
