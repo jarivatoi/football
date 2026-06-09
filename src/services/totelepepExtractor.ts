@@ -31,6 +31,7 @@ interface TotelepepMatch {
   allMarkets?: Array<{ // Detailed market information
     id?: string;  // Actual market ID from API
     name: string;
+    marketDisplayName?: string;  // Full market display name from API
     marketBookNo: string;
     marketCode: string;
     marketLine?: string;  // Market line for handicap/over-under
@@ -410,6 +411,7 @@ class TotelepepExtractor {
         markets.push({
           id: market.marketId || market.id || marketBookNo,  // Store actual marketId (e.g., 565968)
           name: marketName,
+          marketDisplayName: market.marketDisplayName || marketName,  // Store full display name from API
           marketBookNo,
           marketCode,
           marketLine: market.marketLine || market.line || '',  // Extract market line

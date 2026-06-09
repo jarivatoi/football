@@ -321,11 +321,11 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       formData.append(`data[SingleBets][${index}][marketIsRacing]`, '0');
       formData.append(`data[SingleBets][${index}][marketPeriodCode]`, selection.periodCode || 'FT');  // Use period code from selection
       
-      // Determine market display name
-      let marketDisplayName = '1 X 2'; // Default
+      // Determine market display name - use API value if available
+      let marketDisplayName = selection.marketDisplayName || '1 X 2'; // Default
       
-      // For All Markets selections, extract market name from priceType
-      if (selection.priceType.includes('-') && !['home', 'draw', 'away', 'over', 'under', 'btts_yes', 'btts_no'].includes(selection.priceType)) {
+      // For All Markets selections without marketDisplayName, build it from components
+      if (!selection.marketDisplayName && selection.priceType.includes('-') && !['home', 'draw', 'away', 'over', 'under', 'btts_yes', 'btts_no'].includes(selection.priceType)) {
         // Use marketCode, marketLine, and periodCode to build display name
         const code = selection.marketCode?.toUpperCase() || '';
         const line = selection.marketLine || '';
@@ -893,6 +893,7 @@ export interface ParlaySelection {
   marketId?: string;  // Actual market ID from GetMatch API
   marketLine?: string;  // Market line for handicap/over-under (e.g., "+1.5", "2.5")
   periodCode?: string;  // Period code (FT, H1, 2H, etc.)
+  marketDisplayName?: string;  // Full market display name from API
   competitionId?: string;
   hasError?: boolean;  // Track if this selection has an error
 }
@@ -1188,7 +1189,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                </div>
                <div className="text-xs text-gray-500">
                  {(() => {
-                   // Build market display with date and market name
+                   // Use marketDisplayName from API if available, otherwise build it
+                   if (selection.marketDisplayName) {
+                     return `${selection.kickoff}     ${selection.marketDisplayName}`;
+                   }
+                   
+                   // Fallback: build market name from components
                    const line = selection.marketLine || '';
                    const period = selection.periodCode || 'FT';
                    const code = selection.marketCode?.toUpperCase() || '';
@@ -1205,6 +1211,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                    // Add period suffix
                    if (period === 'H1') marketName += ' - Half Time';
                    else if (period === '2H') marketName += ' - 2nd Half';
+                   else if (period === 'FT') marketName += ' - Full Time';
                    
                    return `${selection.kickoff}     ${marketName}`;
                  })()}
