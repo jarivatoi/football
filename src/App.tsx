@@ -136,8 +136,8 @@ function App() {
     
     // If All Matches is active, reload all matches with new category
     if (showAllMatches) {
-      console.log('📋 All Matches is active - reloading all matches with new category');
-      loadAllMatches();
+      console.log('📋 All Matches is active - reloading all matches with new category:', categoryId);
+      loadAllMatches(categoryId, '');
     } else if (firstDate) {
       // Load data with the first date from the filtered calendar
       console.log('📅 Loading matches for first calendar date:', firstDate);
@@ -159,7 +159,7 @@ function App() {
       // If All Matches is active, reload with reset competition
       if (showAllMatches) {
         console.log('📋 All Matches is active - reloading all matches with reset competition');
-        loadAllMatches();
+        loadAllMatches(selectedCategory, '');
       }
       return;
     }
@@ -170,7 +170,7 @@ function App() {
     // If All Matches is active, reload all matches with new competition
     if (showAllMatches) {
       console.log('📋 All Matches is active - reloading all matches with new competition');
-      loadAllMatches();
+      loadAllMatches(selectedCategory, competitionId);
     } else if (firstDate) {
       // Load data with the first date from the filtered calendar
       console.log('📅 Loading matches for first calendar date:', firstDate);
@@ -294,12 +294,17 @@ function App() {
   };
   
   // Load ALL matches from all dates and combine them
-  const loadAllMatches = async () => {
+  const loadAllMatches = async (categoryId?: string, competitionId?: string) => {
     setLoading(true);
     setError(null);
     console.log('📋 Loading all matches from all dates...');
     console.log('📋 availableDates:', availableDates);
     console.log('📋 calendarList:', calendarList);
+    
+    // Use provided params or fall back to state
+    const catId = categoryId !== undefined ? categoryId : selectedCategory;
+    const compId = competitionId !== undefined ? competitionId : selectedCompetition;
+    console.log('📋 Using category:', catId, 'competition:', compId);
     
     try {
       const allMatches: TotelepepMatch[] = [];
@@ -312,7 +317,7 @@ function App() {
       for (const dateInfo of datesToFetch) {
         console.log(`📅 Fetching matches for ${dateInfo.date} (${dateInfo.displayName})...`);
         try {
-          const matches = await totelepepExtractor.extractMatches(dateInfo.date, selectedCategory, selectedCompetition);
+          const matches = await totelepepExtractor.extractMatches(dateInfo.date, catId, compId);
           console.log(`  ✅ Got ${matches.length} matches for ${dateInfo.date}`);
           allMatches.push(...matches);
         } catch (error) {
@@ -875,8 +880,8 @@ function App() {
       setMatches([]);
       setGroupedMatches({});
       
-      // Load all matches
-      loadAllMatches();
+      // Load all matches with current filters
+      loadAllMatches(selectedCategory, selectedCompetition);
     } else {
       // Turn OFF All Matches, restore to today's date
       const today = getTodayDate();
