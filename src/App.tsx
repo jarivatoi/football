@@ -603,9 +603,14 @@ function App() {
   }, [groupedMatches, searchTerm, selectedDate, calendarList, selectedCategory, selectedCompetition, showAllMatches]) : groupedMatches;
 
   const totalAllMatchesCount = React.useMemo(() => {
-      // Calculate total from all loaded matches - stable across date changes
-      return matches.length > 0 ? matches.length : Object.values(groupedMatches).flat().length;
-    }, [matches, groupedMatches]);
+    // Calculate total from filtered matches (respects category/competition filters)
+    if (showAllMatches) {
+      // Use filteredGroupedMatches to get the filtered count
+      return Object.values(filteredGroupedMatches).flat().length;
+    }
+    // For non-All Matches, use the loaded matches
+    return matches.length > 0 ? matches.length : Object.values(groupedMatches).flat().length;
+  }, [matches, groupedMatches, filteredGroupedMatches, showAllMatches]);
     
     const totalMatches = matches.length;
   const totalFilteredMatches = Object.values(filteredGroupedMatches)
