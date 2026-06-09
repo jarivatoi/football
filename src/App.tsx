@@ -573,10 +573,11 @@ function App() {
           return (dateA.getTime() - dateB.getTime()) * -1;  // FIX: Multiply by -1 to reverse to ascending
         });
         
-        // Regroup by date
+        // Regroup by date (use the ORIGINAL date from match.date, not kickoff)
         const finalSorted: Record<string, TotelepepMatch[]> = {};
         allMatches.forEach(match => {
-          const matchDate = match.kickoff?.split(' ')[0] || 'Unknown';
+          // Use match.date (YYYY-MM-DD format) instead of parsing kickoff
+          const matchDate = match.date || match.kickoff?.split(' ')[0] || 'Unknown';
           if (!finalSorted[matchDate]) {
             finalSorted[matchDate] = [];
           }
