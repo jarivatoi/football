@@ -696,6 +696,11 @@ const getOptionDetails = (selection: ParlaySelection) => {
       optionNo = '2';
       optionCode = 'H2';
       optionName = '2nd';
+    } else if (selectionName === '0' || selectionName === '3') {
+      // Handle numeric option index from API (0-based or 1-based)
+      optionNo = selectionName === '0' ? '1' : selectionName;
+      optionCode = selectionName;
+      optionName = selectionName;
     } else if (selectionName.toLowerCase() === 'home' || selectionName === selection.homeTeam) {
       optionNo = '1';
       optionCode = 'H';
