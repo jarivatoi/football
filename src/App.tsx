@@ -341,8 +341,20 @@ function App() {
     
     if (selectedCompetition) {
       // Filter by specific competition
+      console.log('🏆 Filtering by competition:', selectedCompetition);
       Object.entries(dateFiltered).forEach(([date, dateMatches]) => {
-        const filteredMatches = dateMatches.filter(match => match.competitionId === selectedCompetition);
+        console.log(`📅 Date ${date}: ${dateMatches.length} matches before competition filter`);
+        if (dateMatches.length > 0) {
+          console.log('🏆 First match competitionId:', dateMatches[0].competitionId);
+        }
+        const filteredMatches = dateMatches.filter(match => {
+          const matches = match.competitionId === selectedCompetition;
+          if (!matches) {
+            console.log(`  ❌ Match ${match.homeTeam} vs ${match.awayTeam}: competitionId=${match.competitionId} !== ${selectedCompetition}`);
+          }
+          return matches;
+        });
+        console.log(`📅 Date ${date}: ${filteredMatches.length} matches after competition filter`);
         if (filteredMatches.length > 0) {
           categoryFiltered[date] = filteredMatches;
         }
