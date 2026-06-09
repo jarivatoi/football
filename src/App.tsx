@@ -365,6 +365,7 @@ function App() {
       selectedDate,
       selectedCategory,
       selectedCompetition,
+      showAllMatches,
       groupedMatchesKeys: Object.keys(groupedMatches)
     });
     
@@ -375,11 +376,13 @@ function App() {
     
     let dateFiltered: Record<string, TotelepepMatch[]> = {};
     
+    console.log('📋 Filtering check - showAllMatches:', showAllMatches, 'selectedDate:', selectedDate);
+    
     // Check if "All Matches" mode is enabled - this takes priority over date selection
     if (showAllMatches) {
       // Show ALL matches from all dates, sorted by time
       dateFiltered = { ...groupedMatches };
-      console.log('📋 All Matches mode: Showing all dates');
+      console.log('📋 All Matches mode: Showing ALL dates, total:', Object.values(groupedMatches).flat().length);
     } else if (isBeyondDate) {
       // For Beyond, show ALL matches from all dates
       dateFiltered = { ...groupedMatches };
