@@ -134,9 +134,12 @@ function App() {
     const firstDate = await reloadCalendarWithFilters(categoryId, '');
     console.log('📅 reloadCalendarWithFilters returned:', firstDate);
     
-    // Load data with the first date from the filtered calendar
-    // Pass categoryId directly to avoid stale state issue
-    if (firstDate) {
+    // If All Matches is active, reload all matches with new category
+    if (showAllMatches) {
+      console.log('📋 All Matches is active - reloading all matches with new category');
+      loadAllMatches();
+    } else if (firstDate) {
+      // Load data with the first date from the filtered calendar
       console.log('📅 Loading matches for first calendar date:', firstDate);
       loadData(firstDate, categoryId, '');
     } else {
@@ -153,15 +156,23 @@ function App() {
     // This happens when category changes and resets competition
     if (!competitionId) {
       console.log('🏆 Competition reset - skipping calendar reload');
+      // If All Matches is active, reload with reset competition
+      if (showAllMatches) {
+        console.log('📋 All Matches is active - reloading all matches with reset competition');
+        loadAllMatches();
+      }
       return;
     }
     
     // Reload calendar with the competition filter and get the first date
     const firstDate = await reloadCalendarWithFilters(selectedCategory, competitionId);
     
-    // Load data with the first date from the filtered calendar
-    // Pass competitionId directly to avoid stale state issue
-    if (firstDate) {
+    // If All Matches is active, reload all matches with new competition
+    if (showAllMatches) {
+      console.log('📋 All Matches is active - reloading all matches with new competition');
+      loadAllMatches();
+    } else if (firstDate) {
+      // Load data with the first date from the filtered calendar
       console.log('📅 Loading matches for first calendar date:', firstDate);
       loadData(firstDate, selectedCategory, competitionId);
     }
