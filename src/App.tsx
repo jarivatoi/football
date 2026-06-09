@@ -517,31 +517,54 @@ function App() {
     
     let result = filtered;
     
-    // If All Matches mode is enabled, sort all matches by kickoff time
-    if (showAllMatches && Object.keys(result).length > 0) {
-      // Flatten all matches, sort by kickoff time, then regroup by date
-      const allMatches = Object.values(result).flat() as TotelepepMatch[];
-      
-      // Sort by kickoff time
-      allMatches.sort((a, b) => {
-        const timeA = a.kickoff || '';
-        const timeB = b.kickoff || '';
-        return timeA.localeCompare(timeB);
-      });
-      
-      // Regroup by date (keeping the date grouping but sorted within and across dates)
-      const sorted: Record<string, TotelepepMatch[]> = {};
-      allMatches.forEach(match => {
-        // Extract date from kickoff
-        const matchDate = match.kickoff?.split(' ')[0] || 'Unknown';
-        if (!sorted[matchDate]) {
-          sorted[matchDate] = [];
+    // Sort search results by date and time
+    if (Object.keys(result).length > 0) {
+      // Sort the date keys chronologically
+      const sortedDates = Object.keys(result).sort((a, b) => {
+        // Try to parse as dates
+        const dateA = new Date(a);
+        const dateB = new Date(b);
+        if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+          return dateA.getTime() - dateB.getTime();
         }
-        sorted[matchDate].push(match);
+        // Fallback to string comparison
+        return a.localeCompare(b);
       });
       
+      // Rebuild result with sorted dates
+      const sorted: Record<string, TotelepepMatch[]> = {};
+      for (const date of sortedDates) {
+        sorted[date] = result[date];
+      }
       result = sorted;
-      console.log('📋 All Matches: Sorted by time');
+      
+      // If All Matches mode is enabled, also sort within each date by kickoff time
+      if (showAllMatches) {
+        // Flatten all matches, sort by kickoff time, then regroup by date
+        const allMatches = Object.values(result).flat() as TotelepepMatch[];
+        
+        // Sort by kickoff time
+        allMatches.sort((a, b) => {
+          const timeA = a.kickoff || '';
+          const timeB = b.kickoff || '';
+          return timeA.localeCompare(timeB);
+        });
+        
+        // Regroup by date
+        const finalSorted: Record<string, TotelepepMatch[]> = {};
+        allMatches.forEach(match => {
+          const matchDate = match.kickoff?.split(' ')[0] || 'Unknown';
+          if (!finalSorted[matchDate]) {
+            finalSorted[matchDate] = [];
+          }
+          finalSorted[matchDate].push(match);
+        });
+        
+        result = finalSorted;
+        console.log('📋 Search results: Sorted by time');
+      } else {
+        console.log('📋 Search results: Sorted by date');
+      }
     }
     
     return result;
