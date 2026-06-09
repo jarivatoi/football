@@ -115,9 +115,10 @@ function App() {
     console.log('📅 reloadCalendarWithFilters returned:', firstDate);
     
     // Load data with the first date from the filtered calendar
+    // Pass categoryId directly to avoid stale state issue
     if (firstDate) {
       console.log('📅 Loading matches for first calendar date:', firstDate);
-      loadData(firstDate);
+      loadData(firstDate, categoryId, '');
     } else {
       console.log('⚠️ No date returned from reloadCalendarWithFilters');
     }
@@ -139,9 +140,10 @@ function App() {
     const firstDate = await reloadCalendarWithFilters(selectedCategory, competitionId);
     
     // Load data with the first date from the filtered calendar
+    // Pass competitionId directly to avoid stale state issue
     if (firstDate) {
       console.log('📅 Loading matches for first calendar date:', firstDate);
-      loadData(firstDate);
+      loadData(firstDate, selectedCategory, competitionId);
     }
   };
   
@@ -194,18 +196,20 @@ function App() {
     console.log('🚀 App initialized - Direct API mode (no Supabase)');
   }, [selectedDate]);
   
-  const loadData = async (targetDate?: string) => {
+  const loadData = async (targetDate?: string, categoryId?: string, competitionId?: string) => {
     setLoading(true);
     setError(null);
     const dateToFetch = targetDate || selectedDate;
+    const catId = categoryId !== undefined ? categoryId : selectedCategory;
+    const compId = competitionId !== undefined ? competitionId : selectedCompetition;
     try {
       console.log('🔍 Fetching data for date:', dateToFetch);
-      console.log('📂 Selected category:', selectedCategory);
-      console.log('🏆 Selected competition:', selectedCompetition);
+      console.log('📂 Category to use:', catId);
+      console.log('🏆 Competition to use:', compId);
       
       // Fetch matches DIRECTLY from Totelepep API with category/competition filters
       console.log('📡 Fetching from Totelepep API with filters...');
-      const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, selectedCategory, selectedCompetition);
+      const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId);
       
       console.log(`📊 Loaded ${fetchedMatches.length} matches with allMarkets:`, 
         fetchedMatches.slice(0, 3).map((m: TotelepepMatch) => ({
@@ -638,11 +642,11 @@ function App() {
       const beyondDate = newDate.split('T')[0];
       console.log('📅 Beyond date (extracted):', beyondDate);
       // Pass the date - API will use inclusive=1 to return all matches from that date onwards
-      loadData(beyondDate);
+      loadData(beyondDate, selectedCategory, selectedCompetition);
     } else {
       // For regular dates, load with current filters
       console.log('📅 Loading regular date with filters:', newDate);
-      loadData(newDate);
+      loadData(newDate, selectedCategory, selectedCompetition);
     }
   };
   
