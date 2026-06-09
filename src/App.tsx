@@ -519,13 +519,13 @@ function App() {
     
     // Sort search results by date and time
     if (Object.keys(result).length > 0) {
-      // Sort the date keys chronologically
+      // Sort the date keys chronologically (ascending - earliest first)
       const sortedDates = Object.keys(result).sort((a, b) => {
         // Try to parse as dates
         const dateA = new Date(a);
         const dateB = new Date(b);
         if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
-          return dateA.getTime() - dateB.getTime();
+          return dateA.getTime() - dateB.getTime();  // Ascending: earliest first
         }
         // Fallback to string comparison
         return a.localeCompare(b);
@@ -543,11 +543,11 @@ function App() {
         // Flatten all matches, sort by kickoff time, then regroup by date
         const allMatches = Object.values(result).flat() as TotelepepMatch[];
         
-        // Sort by kickoff time
+        // Sort by kickoff time (ascending - earliest first)
         allMatches.sort((a, b) => {
           const timeA = a.kickoff || '';
           const timeB = b.kickoff || '';
-          return timeA.localeCompare(timeB);
+          return timeA.localeCompare(timeB);  // Ascending: earliest first
         });
         
         // Regroup by date
