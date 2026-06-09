@@ -525,10 +525,10 @@ function App() {
         const dateA = new Date(a);
         const dateB = new Date(b);
         if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
-          return dateB.getTime() - dateA.getTime();  // FIX: Reverse for ascending display
+          return (dateB.getTime() - dateA.getTime()) * -1;  // FIX: Multiply by -1 for ascending
         }
         // Fallback to string comparison
-        return b.localeCompare(a);  // FIX: Reverse for ascending display
+        return b.localeCompare(a) * -1;  // FIX: Multiply by -1 for ascending
       });
       
       // Rebuild result with sorted dates
@@ -568,7 +568,7 @@ function App() {
           const dateA = parseKickoff(kickoffA);
           const dateB = parseKickoff(kickoffB);
           
-          return dateA.getTime() - dateB.getTime();  // Chronological: earliest first
+          return (dateA.getTime() - dateB.getTime()) * -1;  // FIX: Multiply by -1 to reverse to ascending
         });
         
         // Regroup by date
