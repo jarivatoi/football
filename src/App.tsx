@@ -375,7 +375,7 @@ function App() {
     
     let dateFiltered: Record<string, TotelepepMatch[]> = {};
     
-    // Check if "All Matches" mode is enabled
+    // Check if "All Matches" mode is enabled - this takes priority over date selection
     if (showAllMatches) {
       // Show ALL matches from all dates, sorted by time
       dateFiltered = { ...groupedMatches };
@@ -694,6 +694,13 @@ function App() {
     console.log('📅 Date changed to:', newDate);
     console.log('📂 Current category:', selectedCategory);
     console.log('🏆 Current competition:', selectedCompetition);
+    
+    // Turn off All Matches when a specific date is selected
+    if (showAllMatches) {
+      setShowAllMatches(false);
+      console.log('📋 Turning off All Matches - date selected');
+    }
+    
     setSelectedDate(newDate);
     
     // Handle "beyond" date - check if this date corresponds to Beyond entry
@@ -724,9 +731,10 @@ function App() {
     setShowAllMatches(newState);
     console.log(`📋 All Matches toggle: ${newState ? 'ON' : 'OFF'}`);
     
-    // When turning ON All Matches, deselect the specific date
-    if (newState) {
-      setSelectedDate('');
+    // When turning ON All Matches, don't deselect - just show all
+    // When turning OFF, restore to today's date
+    if (!newState) {
+      setSelectedDate(getTodayDate());
     }
   };
 
