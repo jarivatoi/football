@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, Calculator, DollarSign, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { ApiSource } from './Header';
 
 // Totelepep betting API integration
-const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) => {
+const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, selectedSource?: ApiSource) => {
   try {
     console.log('🔍 Analyzing selections for market data:', selections);
     console.log('💰 Stake amount:', stake);
@@ -383,10 +384,12 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number) =
       }
     });
     
-    // Place bet on Totelepep API (with CORS proxy for GitHub Pages)
-    const betUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://www.totelepep.mu/webapi/placebet');
+    // Place bet on API (with CORS proxy for GitHub Pages)
+    // Use selected source or default to Totelepep
+    const baseUrl = selectedSource?.baseUrl.replace('/webapi/GetSport', '') || 'https://www.totelepep.mu';
+    const betUrl = 'https://corsproxy.io/?' + encodeURIComponent(`${baseUrl}/webapi/placebet`);
     
-    console.log('📡 Sending bet request to Totelepep API (via CORS proxy)');
+    console.log('📡 Sending bet request to API (via CORS proxy):', baseUrl);
     console.log('📝 Form data:', formData.toString());
     
     const response = await fetch(betUrl, {
@@ -769,6 +772,7 @@ interface ParlayBuilderProps {
   onRemoveSelection: (matchId: string) => void;
   onClearAll: () => void;
   onClose?: () => void;  // Optional close button handler
+  selectedSource?: ApiSource;  // API source to use for placing bets
 }
 
 const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
@@ -776,6 +780,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   onRemoveSelection,
   onClearAll,
   onClose,
+  selectedSource
 }) => {
   const [betAmount, setBetAmount] = useState<number>(50);
   const [isPlacing, setIsPlacing] = useState(false);
@@ -872,8 +877,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     try {
       console.log('🚀 Attempting to place bet...');
       
-      // Use real Totelepep booking API
-      const bookingResult = await placeTotelepepBet(selections, betAmount);
+      // Use real booking API with selected source
+      const bookingResult = await placeTotelepepBet(selections, betAmount, selectedSource);
       
       console.log('📄 Full Totelepep response:', bookingResult);
       console.log('📄 betList details:', JSON.stringify(bookingResult.betList, null, 2));

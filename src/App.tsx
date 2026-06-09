@@ -745,11 +745,12 @@ function App() {
       {/* Parlay Builder - Slide in from right */}
       <div className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${showParlayBuilder ? 'translate-x-0' : 'translate-x-full'}`}>
         {parlaySelections.length > 0 ? (
-          <ParlayBuilder 
+          <ParlayBuilder
             selections={parlaySelections}
             onRemoveSelection={handleRemoveSelection}
             onClearAll={handleClearAll}
             onClose={() => setShowParlayBuilder(false)}
+            selectedSource={selectedSource}
           />
         ) : (
           // Show empty state when no selections but panel is still open
