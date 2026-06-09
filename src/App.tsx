@@ -142,10 +142,16 @@ function App() {
     // Load calendar with the filters
     await loadCalendarList(categoryId, competitionId);
     
-    // Return the first date from the updated calendar
-    // We need to access it from the extractor since state updates are async
+    // Return the first date that has matches > 0
     const calendarData = (totelepepExtractor as any).calendarList || [];
     if (calendarData && calendarData.length > 0) {
+      // Find first date with matches
+      const firstDateWithMatches = calendarData.find((entry: any) => entry.matchCount > 0);
+      if (firstDateWithMatches) {
+        console.log('📅 First date with matches:', firstDateWithMatches.entryDate, 'count:', firstDateWithMatches.matchCount);
+        return firstDateWithMatches.entryDate;
+      }
+      // Fallback to first date even if it has 0 matches
       return calendarData[0].entryDate;
     }
     return null;
