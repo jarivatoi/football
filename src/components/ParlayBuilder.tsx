@@ -696,9 +696,21 @@ const getOptionDetails = (selection: ParlaySelection) => {
       optionNo = '2';
       optionCode = 'H2';
       optionName = '2nd';
-    } else if (selectionName === '0' || selectionName === '3') {
-      // Handle numeric option index from API (0-based or 1-based)
-      optionNo = selectionName === '0' ? '1' : selectionName;
+    } else if (selectionName === '0') {
+      // For HSH (Highest Scoring Half): index 0 = 1st half
+      if (selection.marketCode === 'HSH') {
+        optionNo = '1';
+        optionCode = 'H1';
+        optionName = '1st';
+      } else {
+        // For other markets, use index + 1
+        optionNo = '1';
+        optionCode = String(optionNo);
+        optionName = String(optionNo);
+      }
+    } else if (selectionName === '1' || selectionName === '2' || selectionName === '3') {
+      // Numeric selections (1-based)
+      optionNo = selectionName;
       optionCode = selectionName;
       optionName = selectionName;
     } else if (selectionName.toLowerCase() === 'home' || selectionName === selection.homeTeam) {

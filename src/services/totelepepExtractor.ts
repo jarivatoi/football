@@ -376,7 +376,13 @@ class TotelepepExtractor {
         const marketCode = market.marketCode || '';
         const periodCode = market.periodCode || '';
         
-        console.log(`📊 Market ${index + 1}: ${marketName} (BookNo: ${marketBookNo}, Code: ${marketCode}, Period: ${periodCode})`);
+        console.log(`📊 Market ${index + 1}: ${marketName}`);
+        console.log(`   📊 Full market object keys:`, Object.keys(market));
+        console.log(`   📊 market.id:`, market.id);
+        console.log(`   📊 market.marketId:`, market.marketId);
+        console.log(`   📊 market.marketBookNo:`, market.marketBookNo);
+        console.log(`   📊 market.marketCode:`, market.marketCode);
+        console.log(`   📊 Using - BookNo: ${marketBookNo}, Code: ${marketCode}, Period: ${periodCode}`);
         
         // Parse selections
         const selections: any[] = [];
