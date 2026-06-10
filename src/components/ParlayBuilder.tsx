@@ -1025,17 +1025,19 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         bonusAmount: fullResponse.bonusAmount
       });
       
-      stake = parseFloat(fullResponse.multiStake || betAmount.toString());
-      apiPotentialPayout = parseFloat(fullResponse.potentialPayout || lastResult.potentialPayout || '0');
-      taxAmount = parseFloat(fullResponse.taxAmount || '0') || 0;
-      bonusAmount = parseFloat(fullResponse.bonusAmount || '0') || 0;
+      // Remove commas before parsing (API returns "2,546" not "2546")
+      stake = parseFloat((fullResponse.multiStake || betAmount.toString()).replace(/,/g, ''));
+      apiPotentialPayout = parseFloat((fullResponse.potentialPayout || lastResult.potentialPayout || '0').replace(/,/g, ''));
+      taxAmount = parseFloat((fullResponse.taxAmount || '0').replace(/,/g, '')) || 0;
+      bonusAmount = parseFloat((fullResponse.bonusAmount || '0').replace(/,/g, '')) || 0;
     } else {
       console.log('🎯 Single bet detected - using betList[0]');
       const firstBet = betList[0];
-      stake = parseFloat(firstBet.stake || betAmount.toString());
-      apiPotentialPayout = parseFloat(firstBet.potentialPayout || lastResult.potentialPayout || '0');
-      taxAmount = parseFloat(firstBet.taxAmount || '0') || 0;
-      bonusAmount = parseFloat(firstBet.bonusAmount || '0') || 0;
+      // Remove commas before parsing
+      stake = parseFloat((firstBet.stake || betAmount.toString()).replace(/,/g, ''));
+      apiPotentialPayout = parseFloat((firstBet.potentialPayout || lastResult.potentialPayout || '0').replace(/,/g, ''));
+      taxAmount = parseFloat((firstBet.taxAmount || '0').replace(/,/g, '')) || 0;
+      bonusAmount = parseFloat((firstBet.bonusAmount || '0').replace(/,/g, '')) || 0;
     }
     
     console.log('✅ Parsed breakdown:', { stake, apiPotentialPayout, taxAmount, bonusAmount, isMultiBet });
@@ -1348,11 +1350,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   min="25"
                   step="10"
                   value={betAmount}
-                  onChange={(e) => {
-                    setBetAmount(parseInt(e.target.value) || 0);
-                    // Clear last result when stake changes to avoid showing stale data
-                    setLastResult(null);
-                  }}
+                  onChange={(e) => setBetAmount(parseInt(e.target.value) || 0)}
                   className="w-full pl-16 pr-4 py-3 text-xl font-bold border-2 border-yellow-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                   placeholder={selections.length === 1 && selectedSource?.id === 'superscore' ? "25" : "50"}
                 />
