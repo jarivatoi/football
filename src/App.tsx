@@ -29,68 +29,38 @@ const getTodayDate = () => {
   return `${year}-${month}-${day}`;
 };
 
-// Add a safety check for React hooks
-const useSafeState = <T,>(initialState: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
-  // Check if we're in a browser environment and React is properly initialized
-  if (typeof window === 'undefined' || !React || !React.useState) {
-    return [initialState, (() => {}) as React.Dispatch<React.SetStateAction<T>>];
-  }
-  
-  try {
-    return React.useState(initialState);
-  } catch (error) {
-    console.warn('Error initializing state:', error);
-    return [initialState, (() => {}) as React.Dispatch<React.SetStateAction<T>>];
-  }
-};
-
-// Add a safety check for useEffect
-const useSafeEffect = (effect: React.EffectCallback, deps?: React.DependencyList) => {
-  // Check if we're in a browser environment and React is properly initialized
-  if (typeof window === 'undefined' || !React || !React.useEffect) {
-    return;
-  }
-  
-  try {
-    React.useEffect(effect, deps);
-  } catch (error) {
-    console.warn('Error initializing effect:', error);
-  }
-};
-
 function App() {
   // Add a simple test to see if the component is rendering
   console.log('App component is rendering');
   
   
-  // Use safe state initialization
-  const [matches, setMatches] = useSafeState<TotelepepMatch[]>([]);
-  const [groupedMatches, setGroupedMatches] = useSafeState<Record<string, TotelepepMatch[]>>({});
-  const [loading, setLoading] = useSafeState(false);
-  const [error, setError] = useSafeState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useSafeState('');
-  const [lastUpdated, setLastUpdated] = useSafeState<Date>(new Date());
-  const [parlaySelections, setParlaySelections] = useSafeState<ParlaySelection[]>([]);
-  const [showExtractor, setShowExtractor] = useSafeState(false);
-  const [showEndpointDiscovery, setShowEndpointDiscovery] = useSafeState(false);
-  const [showResponseAnalyzer, setShowResponseAnalyzer] = useSafeState(false);
-  const [showAlternatives, setShowAlternatives] = useSafeState(false);
-  const [showMatchTester, setShowMatchTester] = useSafeState(false);
-  const [showBetAnalyzer, setShowBetAnalyzer] = useSafeState(false);
-  const [showBookingGuide, setShowBookingGuide] = useSafeState(false);
-  const [selectedDate, setSelectedDate] = useSafeState<string>(getTodayDate());
-  const [showAllMatches, setShowAllMatches] = useSafeState<boolean>(false);  // Toggle for showing all matches from all dates
-  const [lastScrapeTime, setLastScrapeTime] = useSafeState<number>(0); // Track last scrape time
-  const [isOnline, setIsOnline] = useSafeState<boolean>(true);
-  const [availableDates, setAvailableDates] = useSafeState<Array<{date: string, matchCount: number, displayName: string}>>([]);
-  const [calendarList, setCalendarList] = useSafeState<Array<{date: string, matchCount: number, displayName: string}>>([]);
-  const [showParlayBuilder, setShowParlayBuilder] = useSafeState(false); // Control parlay builder slide animation
+  const [matches, setMatches] = useState<TotelepepMatch[]>([]);
+  const [groupedMatches, setGroupedMatches] = useState<Record<string, TotelepepMatch[]>>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
+  const [showExtractor, setShowExtractor] = useState(false);
+  const [showEndpointDiscovery, setShowEndpointDiscovery] = useState(false);
+  const [showResponseAnalyzer, setShowResponseAnalyzer] = useState(false);
+  const [showAlternatives, setShowAlternatives] = useState(false);
+  const [showMatchTester, setShowMatchTester] = useState(false);
+  const [showBetAnalyzer, setShowBetAnalyzer] = useState(false);
+  const [showBookingGuide, setShowBookingGuide] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>(getTodayDate());
+  const [showAllMatches, setShowAllMatches] = useState<boolean>(false);
+  const [lastScrapeTime, setLastScrapeTime] = useState<number>(0);
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+  const [availableDates, setAvailableDates] = useState<Array<{date: string, matchCount: number, displayName: string}>>([]);
+  const [calendarList, setCalendarList] = useState<Array<{date: string, matchCount: number, displayName: string}>>([]);
+  const [showParlayBuilder, setShowParlayBuilder] = useState(false);
   
   // Category and Competition filter states
-  const [categories, setCategories] = useSafeState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
-  const [selectedCategory, setSelectedCategory] = useSafeState<string>('');
-  const [selectedCompetition, setSelectedCompetition] = useSafeState<string>('');
-  const [selectedSource, setSelectedSource] = useSafeState<ApiSource>(API_SOURCES[0]); // Default to Totelepep
+  const [categories, setCategories] = useState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCompetition, setSelectedCompetition] = useState<string>('');
+  const [selectedSource, setSelectedSource] = useState<ApiSource>(API_SOURCES[0]);
   
   // Handle API source change
   const handleSourceChange = async (source: ApiSource) => {
@@ -222,7 +192,7 @@ function App() {
   };
 
   // Initialize online status
-  useSafeEffect(() => {
+  useEffect(() => {
     const updateOnlineStatus = () => {
       setIsOnline(navigator.onLine);
     };
@@ -237,7 +207,7 @@ function App() {
   }, []);
 
   // Initialize PWA features
-  useSafeEffect(() => {
+  useEffect(() => {
     registerServiceWorker();
     requestNotificationPermission();
     scheduleBackgroundSync();
@@ -440,7 +410,7 @@ function App() {
 
 
   // Load initial data on mount
-  useSafeEffect(() => {
+  useEffect(() => {
     console.log('📅 Initial load...');
     console.log('📅 Local timezone today is:', getTodayDate());
     
@@ -711,7 +681,7 @@ function App() {
   }, [calendarList, matches]) : [];
 
   // Debug: Log grouped matches to see what dates we have
-  useSafeEffect(() => {
+  useEffect(() => {
     console.log('📅 Available dates in groupedMatches:', Object.keys(groupedMatches));
     console.log('📊 Matches per date:', Object.entries(groupedMatches).map(([date, matches]) => `${date}: ${(matches as TotelepepMatch[]).length}`));
   }, [groupedMatches]);
