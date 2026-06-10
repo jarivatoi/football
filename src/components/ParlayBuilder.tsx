@@ -1338,7 +1338,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
         <div className="bg-blue-50 p-4 rounded-lg mb-4">
           {/* BEFORE bet: Show simple calculation */}
-          {!apiBreakdown ? (
+          {(() => {
+            console.log('🎨 RENDERING - apiBreakdown:', apiBreakdown);
+            return !apiBreakdown ? (
             <>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-700">Potential Return:</span>
@@ -1374,7 +1376,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 </div>
               </div>
             </>
-          )}
+          );
+          })()}
           {/* Show rebate information when available from Totelepep */}
           {lastResult && lastResult.fullResponse && lastResult.fullResponse.betList && lastResult.fullResponse.betList.length > 0 && (
             <div className="text-xs text-gray-500 mt-2">
