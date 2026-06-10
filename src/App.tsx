@@ -107,11 +107,15 @@ function App() {
     setMatches([]);
     setGroupedMatches({});
     
-    // Reload calendar to update match counts for the new source
-    console.log('📅 Reloading calendar from new source...');
+    // Reload calendar and matches with current filters (category + competition)
+    // This will update the counts based on the new API source
+    console.log('📅 Reloading calendar from new source with filters...', { 
+      category: selectedCategory, 
+      competition: selectedCompetition 
+    });
     await loadCalendarList(selectedCategory, selectedCompetition);
     
-    // Reload data with new source
+    // Reload data with new source and current filters
     if (showAllMatches) {
       // If All Matches is active, reload all matches from new source
       console.log('📋 All Matches is active - reloading all matches from new source');
