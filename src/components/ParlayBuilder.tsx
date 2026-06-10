@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Trash2, Calculator, DollarSign, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { ApiSource } from './Header';
 
@@ -984,36 +984,34 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   const potentialReturn = betAmount * totalOdds;
   
   // After successful bet, extract detailed breakdown from API response
-  let apiBreakdown: {
-    stake: number;
-    tax: number;
-    bonus: number;
-    netPayout: number;
-    finalPayout: number;
-  } | null = null;
-  
-  if (lastResult && lastResult.success && lastResult.fullResponse) {
-    const betList = lastResult.fullResponse.betList;
-    if (betList && betList.length > 0) {
-      const firstBet = betList[0];
-      const apiPotentialPayout = parseFloat(firstBet.potentialPayout || lastResult.potentialPayout || '0');
-      
-      // Calculate tax: Stake - Net Stake
-      const netStakeFromAPI = apiPotentialPayout / totalOdds;
-      const taxAmount = betAmount - netStakeFromAPI;
-      
-      // Get bonus from API response if available
-      const bonusAmount = firstBet.bonusAmount || 0;
-      
-      apiBreakdown = {
-        stake: betAmount,
-        tax: Math.max(0, taxAmount),
-        bonus: bonusAmount,
-        netPayout: apiPotentialPayout,
-        finalPayout: apiPotentialPayout + bonusAmount
-      };
+  const apiBreakdown = useMemo(() => {
+    if (!lastResult || !lastResult.success || !lastResult.fullResponse) {
+      return null;
     }
-  }
+    
+    const betList = lastResult.fullResponse.betList;
+    if (!betList || betList.length === 0) {
+      return null;
+    }
+    
+    const firstBet = betList[0];
+    const apiPotentialPayout = parseFloat(firstBet.potentialPayout || lastResult.potentialPayout || '0');
+    
+    // Calculate tax: Stake - Net Stake
+    const netStakeFromAPI = apiPotentialPayout / totalOdds;
+    const taxAmount = betAmount - netStakeFromAPI;
+    
+    // Get bonus from API response if available
+    const bonusAmount = firstBet.bonusAmount || 0;
+    
+    return {
+      stake: betAmount,
+      tax: Math.max(0, taxAmount),
+      bonus: bonusAmount,
+      netPayout: apiPotentialPayout,
+      finalPayout: apiPotentialPayout + bonusAmount
+    };
+  }, [lastResult, totalOdds, betAmount]);
 
   const handlePlaceBet = async () => {
     console.log('🎯 Place bet button clicked');
