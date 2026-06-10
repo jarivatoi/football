@@ -1340,13 +1340,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           ) : (
             /* AFTER bet: Show detailed API breakdown */
             <>
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-medium text-gray-700">Net Payout:</span>
-                <span className="text-2xl font-bold text-green-600">
-                  MUR {apiBreakdown.netPayout.toFixed(2)}
-                </span>
-              </div>
-              <div className="text-xs text-gray-600 space-y-1 border-t border-blue-200 pt-2">
+              <div className="text-xs text-gray-600 space-y-1">
                 <div className="flex justify-between">
                   <span>Stake:</span>
                   <span className="font-medium">MUR {Math.round(apiBreakdown.stake)}</span>
@@ -1361,9 +1355,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     <span className="font-medium">+MUR {apiBreakdown.bonus.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between border-t border-blue-200 pt-1 font-bold text-base">
-                  <span>Final Payout:</span>
-                  <span className="text-green-600">MUR {apiBreakdown.finalPayout.toFixed(2)}</span>
+                <div className="flex justify-between border-t border-blue-200 pt-1 font-bold text-xl mt-2">
+                  <span className="text-gray-700">Net Payout:</span>
+                  <span className="text-green-600">MUR {apiBreakdown.netPayout.toFixed(2)}</span>
                 </div>
               </div>
             </>
