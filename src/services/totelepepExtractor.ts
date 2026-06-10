@@ -28,6 +28,7 @@ interface TotelepepMatch {
   minute?: number;
   marketCount?: number; // Total number of available markets
   availableMarkets?: string[]; // List of all available market names
+  isOutright?: boolean; // Flag for outright markets (tournament winners, etc.)
   allMarkets?: Array<{ // Detailed market information
     id?: string;  // Actual market ID from API
     name: string;
@@ -1015,6 +1016,7 @@ class TotelepepExtractor {
         },
         marketCount, // Add market count
         availableMarkets, // Add available markets
+        isOutright: !teamsString.includes(' v '), // Detect outright markets (no " v " between teams)
       };
       
       // Debug specific matches like PSV Eindhoven vs ZFK Minsk

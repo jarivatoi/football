@@ -180,8 +180,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         </div>
       </div>
 
-        {/* Quick 1X2 Odds - Only visible when NOT expanded - 3 lines layout */}
-        {!isExpanded && (
+        {/* Quick 1X2 Odds - Only visible when NOT expanded and NOT an outright market */}
+        {!isExpanded && !match.isOutright && (
           <div className="mt-2 space-y-1">
             <button
               onClick={(e) => {
