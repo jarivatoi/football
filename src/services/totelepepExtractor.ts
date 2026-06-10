@@ -90,11 +90,14 @@ class TotelepepExtractor {
   async extractMatches(targetDate?: string, categoryId?: string, competitionId?: string): Promise<TotelepepMatch[]> {
     try {
       // Check cache first
-      // Use a more specific cache key to avoid conflicts between different dates
-      const cacheKey = targetDate ? `date_${targetDate}_${categoryId || 'all'}_${competitionId || 'all'}` : `all_dates_${new Date().toISOString().split('T')[0]}`;
+      // Include baseUrl in cache key to prevent mixing data from different sources
+      const sourceId = this.baseUrl.includes('superscore') ? 'superscore' : 
+                       this.baseUrl.includes('stevenhills') ? 'stevenhills' : 
+                       this.baseUrl.includes('valueplus') ? 'valueplus' : 'totelepep';
+      const cacheKey = targetDate ? `date_${targetDate}_${categoryId || 'all'}_${competitionId || 'all'}_${sourceId}` : `all_dates_${new Date().toISOString().split('T')[0]}_${sourceId}`;
       const cached = this.getCachedData(cacheKey);
       if (cached) {
-        console.log('📦 Returning cached data for date:', targetDate);
+        console.log('📦 Returning cached data for date:', targetDate, 'from source:', sourceId);
         return cached;
       }
 
@@ -162,10 +165,13 @@ class TotelepepExtractor {
       console.error('❌ Error extracting matches:', error);
       
       // Try to return cached data even if expired
-      const cacheKey = targetDate ? `date_${targetDate}` : `all_dates_${new Date().toISOString().split('T')[0]}`;
+      const sourceId = this.baseUrl.includes('superscore') ? 'superscore' : 
+                       this.baseUrl.includes('stevenhills') ? 'stevenhills' : 
+                       this.baseUrl.includes('valueplus') ? 'valueplus' : 'totelepep';
+      const cacheKey = targetDate ? `date_${targetDate}_${sourceId}` : `all_dates_${new Date().toISOString().split('T')[0]}_${sourceId}`;
       const cached = this.getCachedData(cacheKey, true);
       if (cached) {
-        console.log('📦 Returning expired cached data as fallback');
+        console.log('📦 Returning expired cached data as fallback for source:', sourceId);
         return cached;
       }
       
