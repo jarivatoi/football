@@ -570,7 +570,14 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       errorMessage: result.errorMessage,
       multiErrorMessage: result.multiErrorMessage,
       balanceAmount: result.balanceAmount,
-      betList: result.betList
+      betList: result.betList,
+      // Include multi-bet fields for breakdown calculation
+      multiStake: result.multiStake,
+      multiPrice: result.multiPrice,
+      taxAmount: result.taxAmount,
+      bonusAmount: result.bonusAmount,
+      rebateAmount: result.rebateAmount,
+      bookingReference: result.bookingReference
     };
     
   } catch (error) {
