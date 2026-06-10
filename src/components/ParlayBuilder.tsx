@@ -980,27 +980,34 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     return acc * odds;
   }, 1);
   
-  // Use Totelepep's potential payout when available (from last result), otherwise use our calculation
-  // Simulate Totelepep's tax and bonus system
-  const potentialPayout = lastResult && lastResult.potentialPayout 
-    ? parseFloat(lastResult.potentialPayout) 
-    : (() => {
-        // Calculate potential payout with tax applied to stake, not to payout
-        // Use actual tax rate from Totelepep response: 6.14 tax for 50 stake = 12.28% tax rate
-        const taxRate = 0.1228; // 12.28% tax rate based on actual Totelepep data
-        const taxAmount = betAmount * taxRate;
-        const netStake = betAmount - taxAmount;
-        const netPayout = netStake * totalOdds;
-        // Totelepep rounds to whole number first
-        // Ensure proper rounding to match Totelepep's calculation
-        return Math.round(netPayout);
-      })();
-      
-  // Calculate bonus amount (for display only, not sent to API)
-  const bonusAmount = calculateTotelepepBonus(selections, potentialPayout, betAmount);
+  // Simple calculation BEFORE bet: Total Odds × Stake
+  // AFTER bet: Use API values
+  const potentialReturn = betAmount * totalOdds;
   
-  // Calculate final payout including bonus (for display only)
-  const finalPayout = potentialPayout + bonusAmount;
+  // After successful bet, extract detailed breakdown from API response
+  const apiBreakdown = lastResult && lastResult.success && lastResult.fullResponse ? (() => {
+    const betList = lastResult.fullResponse.betList;
+    if (!betList || betList.length === 0) return null;
+    
+    const firstBet = betList[0];
+    const apiPotentialPayout = parseFloat(firstBet.potentialPayout || lastResult.potentialPayout || '0');
+    
+    // Calculate tax: Stake - Net Stake (if API provides it)
+    // API may not provide tax directly, so we calculate: Tax = Stake - (Payout / Odds)
+    const netStakeFromAPI = apiPotentialPayout / totalOdds;
+    const taxAmount = betAmount - netStakeFromAPI;
+    
+    // Calculate bonus from API response if available
+    const bonusAmount = firstBet.bonusAmount || 0;
+    
+    return {
+      stake: betAmount,
+      tax: Math.max(0, taxAmount), // Tax can't be negative
+      bonus: bonusAmount,
+      netPayout: apiPotentialPayout,
+      finalPayout: apiPotentialPayout + bonusAmount
+    };
+  })() : null;
 
   const handlePlaceBet = async () => {
     console.log('🎯 Place bet button clicked');
@@ -1305,42 +1312,49 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         </div>
 
         <div className="bg-blue-50 p-4 rounded-lg mb-4">
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-gray-700">Potential Payout:</span>
-            <span className="text-2xl font-bold text-blue-600">
-              MUR {finalPayout.toFixed(2)}
-            </span>
-          </div>
-          <div className="text-sm text-gray-600 mt-1">
-            Stake: MUR {betAmount.toFixed(2)} × Odds: {totalOdds.toFixed(2)}
-          </div>
-          {/* Show tax and bonus information when using simulated calculation */}
-          {!lastResult?.potentialPayout && (
-            <div className="text-xs text-gray-500 mt-2">
-              {(() => {
-                const taxRate = 0.1228; // 12.28% tax rate based on actual Totelepep data
-                const taxAmount = betAmount * taxRate;
-                const netStake = betAmount - taxAmount;
-                return (
-                  <>
-                    <div>Gross Stake: MUR {betAmount.toFixed(2)}</div>
-                    <div>Tax (12.28%): -MUR {taxAmount.toFixed(2)}</div>
-                    <div>Net Stake: MUR {netStake.toFixed(2)}</div>
-                    <div>Net Payout: MUR {potentialPayout.toFixed(2)}</div>
-                    {bonusAmount > 0 && (
-                      <div className="mt-1">
-                        <div className="text-green-600 font-medium">
-                          Bonus ({bonusAmount > 0 ? (bonusAmount / potentialPayout * 100).toFixed(0) : '0'}%): +MUR {bonusAmount.toFixed(2)}
-                        </div>
-                        <div className="font-bold">
-                          Final Payout: MUR {finalPayout.toFixed(2)}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
+          {/* BEFORE bet: Show simple calculation */}
+          {!apiBreakdown ? (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-gray-700">Potential Return:</span>
+                <span className="text-2xl font-bold text-blue-600">
+                  MUR {potentialReturn.toFixed(2)}
+                </span>
+              </div>
+              <div className="text-sm text-gray-600 mt-1">
+                Stake: MUR {betAmount.toFixed(2)} × Odds: {totalOdds.toFixed(2)}
+              </div>
+            </>
+          ) : (
+            /* AFTER bet: Show detailed API breakdown */
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-medium text-gray-700">Net Payout:</span>
+                <span className="text-2xl font-bold text-green-600">
+                  MUR {apiBreakdown.netPayout.toFixed(2)}
+                </span>
+              </div>
+              <div className="text-xs text-gray-600 space-y-1 border-t border-blue-200 pt-2">
+                <div className="flex justify-between">
+                  <span>Stake:</span>
+                  <span className="font-medium">MUR {apiBreakdown.stake.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-red-600">
+                  <span>Tax:</span>
+                  <span className="font-medium">-MUR {apiBreakdown.tax.toFixed(2)}</span>
+                </div>
+                {apiBreakdown.bonus > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Bonus:</span>
+                    <span className="font-medium">+MUR {apiBreakdown.bonus.toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t border-blue-200 pt-1 font-bold text-base">
+                  <span>Final Payout:</span>
+                  <span className="text-green-600">MUR {apiBreakdown.finalPayout.toFixed(2)}</span>
+                </div>
+              </div>
+            </>
           )}
           {/* Show rebate information when available from Totelepep */}
           {lastResult && lastResult.fullResponse && lastResult.fullResponse.betList && lastResult.fullResponse.betList.length > 0 && (
@@ -1408,20 +1422,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 <div className="text-xs text-gray-600">Win</div>
                 <div className="text-lg font-bold text-gray-800">
                   {(() => {
-                    // Get win amount from betList in API response
-                    if (lastResult?.fullResponse?.betList && lastResult.fullResponse.betList.length > 0) {
-                      const firstBet = lastResult.fullResponse.betList[0];
-                      // Use potentialPayout from betList (this is the correct value from totelepep API)
-                      if (firstBet.potentialPayout) {
-                        return firstBet.potentialPayout;
-                      }
+                    // After successful bet, show API net payout
+                    if (apiBreakdown) {
+                      return apiBreakdown.netPayout.toFixed(2);
                     }
-                    // Fallback to potentialPayout from top-level API response
-                    if (lastResult?.fullResponse?.potentialPayout) {
-                      return lastResult.fullResponse.potentialPayout;
-                    }
-                    // Last fallback to calculated value
-                    return potentialPayout.toFixed(2);
+                    // Before bet, show simple calculation
+                    return potentialReturn.toFixed(2);
                   })()}
                 </div>
               </div>
