@@ -1016,7 +1016,7 @@ class TotelepepExtractor {
         },
         marketCount, // Add market count
         availableMarkets, // Add available markets
-        isOutright: !teamsString.includes(' v '), // Detect outright markets (no " v " between teams)
+        isOutright: !teamsString.includes(' v ') || marketCode === 'OT', // Detect outright markets (no " v " or marketCode="OT")
       };
       
       // Debug specific matches like PSV Eindhoven vs ZFK Minsk
@@ -2630,12 +2630,12 @@ class TotelepepExtractor {
     const drawOdds = typeof match.drawOdds === 'string' ? parseFloat(match.drawOdds) : match.drawOdds;
     const awayOdds = typeof match.awayOdds === 'string' ? parseFloat(match.awayOdds) : match.awayOdds;
     
-    // For outright markets, relax validation (allow single teams, special markets)
+    // For outright markets, relax validation (allow single teams, empty odds)
     if (match.isOutright) {
       return (
         match.homeTeam.length > 0 &&
-        !match.homeTeam.toLowerCase().includes('odds') &&
-        (homeOdds >= 1.01 || drawOdds >= 1.01 || awayOdds >= 1.01) // At least one valid odds
+        !match.homeTeam.toLowerCase().includes('odds')
+        // Outright markets may not have standard 1X2 odds
       );
     }
     

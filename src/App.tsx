@@ -377,10 +377,9 @@ function App() {
       totelepepExtractor.clearCache();
       
       // We need to fetch with a date to get the calendar list
-      // Use a recent date to ensure we get the full calendar
-      const recentDate = new Date();
-      recentDate.setDate(recentDate.getDate() - 1); // Yesterday to ensure we get data
-      const dateStr = `${recentDate.getFullYear()}-${String(recentDate.getMonth() + 1).padStart(2, '0')}-${String(recentDate.getDate()).padStart(2, '0')}`;
+      // Use TODAY (not yesterday) to ensure we get the full calendar with matches
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       
       console.log('📅 Fetching calendar with date:', dateStr);
       console.log('📅 With filters - category:', categoryId || '(none)', 'competition:', competitionId || '(none)');
