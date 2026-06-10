@@ -176,17 +176,16 @@ function App() {
       return;
     }
     
-    // Reload calendar with the competition filter and get the first date
-    const firstDate = await reloadCalendarWithFilters(selectedCategory, competitionId);
-    
-    // If All Matches is active, reload all matches with new competition
+    // For competition filter, we need to load matches first, then recalculate calendar counts
+    // because the API doesn't provide competition-specific calendar counts
     if (showAllMatches) {
+      // If All Matches is active, reload all matches with new competition
       console.log('📋 All Matches is active - reloading all matches with new competition');
       loadAllMatches(selectedCategory, competitionId);
-    } else if (firstDate) {
-      // Load data with the first date from the filtered calendar
-      console.log('📅 Loading matches for first calendar date:', firstDate);
-      loadData(firstDate, selectedCategory, competitionId);
+    } else if (selectedDate) {
+      // Load data with the selected date and competition filter
+      console.log('📅 Loading matches for selected date with competition filter:', selectedDate);
+      loadData(selectedDate, selectedCategory, competitionId);
     }
   };
   

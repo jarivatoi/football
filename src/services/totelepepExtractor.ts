@@ -459,11 +459,11 @@ class TotelepepExtractor {
       const month = months[dateObj.getMonth()];
       const year = dateObj.getFullYear();
       const formattedDate = `${day} ${month} ${year}`;
-      apiUrl = `${this.baseUrl}?sportId=soccer&date=${encodeURIComponent(formattedDate)}&category=${encodeURIComponent(categoryParam)}&competitionId=0&pageNo=${page}&inclusive=0&matchid=0&periodCode=all`;
+      apiUrl = `${this.baseUrl}?sportId=soccer&date=${encodeURIComponent(formattedDate)}&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=${page}&inclusive=0&matchid=0&periodCode=all`;
       console.log(`🌐 API URL for ${dateToFetch} (inclusive=0):`, apiUrl);
     } else {
       // No date: get all matches with inclusive=1
-      apiUrl = `${this.baseUrl}?sportId=soccer&category=${encodeURIComponent(categoryParam)}&competitionId=0&pageNo=${page}&inclusive=1&matchid=0&periodCode=all`;
+      apiUrl = `${this.baseUrl}?sportId=soccer&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=${page}&inclusive=1&matchid=0&periodCode=all`;
       console.log(`🌐 API URL for all dates (inclusive=1):`, apiUrl);
     }
     
