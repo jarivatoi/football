@@ -961,6 +961,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     fullResponse?: any;
   } | null>(null);
   const [showNewBetButton, setShowNewBetButton] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   // Effect to show the "Place New Bet" button after a successful booking
   useEffect(() => {
@@ -1052,11 +1053,18 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       return;
     }
 
-    if (betAmount < 50) {
-      setLastResult({
-        success: false,
-        message: 'Minimum stake is MUR 50'
-      });
+    // Determine minimum stake based on bet type and source
+    const isSingleBet = selections.length === 1;
+    const isSuperTote = selectedSource?.id === 'supertote';
+    const minStake = isSingleBet && isSuperTote ? 20 : 50;
+    
+    if (betAmount < minStake) {
+      const toastMsg = isSingleBet && isSuperTote 
+        ? 'Minimum stake for single bet is MUR 20'
+        : `Minimum stake for multi bet is MUR ${minStake}`;
+      
+      setToast(toastMsg);
+      setTimeout(() => setToast(null), 3000);
       return;
     }
 
@@ -1176,6 +1184,16 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow-md h-full flex flex-col">
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg animate-slide-down">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" />
+            <span className="font-medium">{toast}</span>
+          </div>
+        </div>
+      )}
+      
       {/* Header - Sticky */}
       <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
         <div className="flex items-center justify-between">
@@ -1304,15 +1322,14 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 </span>
                 <input
                   type="number"
-                  min="50"
+                  min="20"
                   step="10"
                   value={betAmount}
-                  onChange={(e) => setBetAmount(Math.max(50, parseInt(e.target.value) || 50))}
+                  onChange={(e) => setBetAmount(parseInt(e.target.value) || 0)}
                   className="w-full pl-16 pr-4 py-3 text-xl font-bold border-2 border-yellow-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                  placeholder="50"
+                  placeholder={selections.length === 1 && selectedSource?.id === 'supertote' ? "20" : "50"}
                 />
               </div>
-              <p className="text-sm text-yellow-700 mt-2">Minimum stake: MUR 50</p>
             </div>
             <div className="text-center">
               <div className="text-sm text-gray-600 mb-1">Total Odds</div>
