@@ -996,6 +996,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     const fullResponse = lastResult.fullResponse;
     const betList = fullResponse.betList;
     console.log('📋 betList from fullResponse:', betList);
+    console.log('🔍 fullResponse object keys:', Object.keys(fullResponse));
+    console.log('🔍 fullResponse.taxAmount:', fullResponse.taxAmount, 'type:', typeof fullResponse.taxAmount);
+    console.log('🔍 fullResponse.bonusAmount:', fullResponse.bonusAmount, 'type:', typeof fullResponse.bonusAmount);
+    console.log('🔍 fullResponse.multiStake:', fullResponse.multiStake, 'type:', typeof fullResponse.multiStake);
     
     // For multi-bets, betList is empty - use top-level fields
     const isMultiBet = !betList || betList.length === 0;
