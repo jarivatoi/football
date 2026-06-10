@@ -1112,8 +1112,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         });
         
         // Don't clear selections immediately - let user decide when to clear
-        // Only reset the bet amount to default
-        setBetAmount(50);
+        // Reset the bet amount to minimum for the current source
+        const isSuperScore = selectedSource?.id === 'superscore';
+        setBetAmount(isSuperScore ? 25 : 50);
         setIsPlacing(false);
       } else if (bookingResult.success && !hasErrors) {
         console.log('✅ Totelepep booking successful (API reported success):', bookingResult);
@@ -1127,8 +1128,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         });
         
         // Don't clear selections immediately - let user decide when to clear
-        // Only reset the bet amount to default
-        setBetAmount(50);
+        // Reset the bet amount to minimum for the current source
+        const isSuperScore2 = selectedSource?.id === 'superscore';
+        setBetAmount(isSuperScore2 ? 25 : 50);
         setIsPlacing(false);
       } else {
         console.error('❌ Totelepep booking failed:', bookingResult);
