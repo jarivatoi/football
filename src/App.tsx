@@ -83,6 +83,11 @@ function App() {
     setSelectedCategory('');
     setSelectedCompetition('');
     
+    // Clear parlay selections since odds are source-specific
+    console.log('🎯 Clearing parlay selections (odds are source-specific)');
+    setParlaySelections([]);
+    setShowParlayBuilder(false);
+    
     // Reload calendar without any filters
     console.log('📅 Reloading calendar from new source (no filters)...');
     await loadCalendarList('', '');
