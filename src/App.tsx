@@ -60,12 +60,32 @@ function App() {
   const [categories, setCategories] = useState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedCompetition, setSelectedCompetition] = useState<string>('');
-  const [selectedSource, setSelectedSource] = useState<ApiSource>(API_SOURCES[0]);
+  
+  // Initialize selected source from localStorage or default to Totelepep
+  const [selectedSource, setSelectedSource] = useState<ApiSource>(() => {
+    try {
+      const savedSource = localStorage.getItem('selectedApiSource');
+      if (savedSource) {
+        const parsed = JSON.parse(savedSource);
+        const found = API_SOURCES.find(s => s.id === parsed.id);
+        if (found) {
+          console.log('🌐 Restored saved API source:', found.displayName);
+          return found;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load saved API source:', e);
+    }
+    return API_SOURCES[0]; // Default to Totelepep
+  });
   
   // Handle API source change
   const handleSourceChange = async (source: ApiSource) => {
     console.log('🌐 API Source changed to:', source.displayName);
     setSelectedSource(source);
+    
+    // Save to localStorage
+    localStorage.setItem('selectedApiSource', JSON.stringify(source));
     
     // Update the extractor base URL
     (totelepepExtractor as any).baseUrl = source.baseUrl;
