@@ -1016,7 +1016,7 @@ class TotelepepExtractor {
         },
         marketCount, // Add market count
         availableMarkets, // Add available markets
-        isOutright: !teamsString.includes(' v ') || marketCode === 'OT', // Detect outright markets (no " v " or marketCode="OT")
+        isOutright: marketCode === 'OT', // Detect outright markets by OT marketCode
       };
       
       // Debug specific matches like PSV Eindhoven vs ZFK Minsk
