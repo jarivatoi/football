@@ -346,7 +346,8 @@ function App() {
   // Load calendar list data with optional filters
   const loadCalendarList = async (categoryId?: string, competitionId?: string) => {
     try {
-      console.log('📅 Fetching calendar list data from Totelepep API...', { categoryId, competitionId });
+      const sourceName = selectedSource?.displayName || 'Totelepep';
+      console.log(`📅 Fetching calendar list data from ${sourceName} API...`, { categoryId, competitionId });
       
       // Clear cache to ensure fresh data
       totelepepExtractor.clearCache();
@@ -624,14 +625,16 @@ function App() {
     (window as any).__upcomingMatchesByDate = upcomingCounts;
   }
   
-  // Get available dates with match counts from Totelepep API calendarList data
+  // Get available dates with match counts from API calendarList data
   const availableDatesWithCounts = React.useMemo ? React.useMemo(() => {
-    console.log('📅 Using calendar list data from Totelepep API for date tabs...');
+    const sourceName = selectedSource?.displayName || 'Totelepep';
+    console.log(`📅 Using calendar list data from ${sourceName} API for date tabs...`);
     console.log('📅 Calendar list data:', calendarList);
     
     // Use the calendarList data directly - this is the source of truth
     if (calendarList && calendarList.length > 0) {
-      console.log('📅 Using Totelepep calendar list as source of truth');
+      const sourceName = selectedSource?.displayName || 'Totelepep';
+      console.log(`📅 Using ${sourceName} calendar list as source of truth`);
       return calendarList;
     }
     
