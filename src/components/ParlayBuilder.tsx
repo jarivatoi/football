@@ -981,33 +981,39 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   }, 1);
   
   // Simple calculation BEFORE bet: Total Odds × Stake
-  // AFTER bet: Use API values
   const potentialReturn = betAmount * totalOdds;
   
   // After successful bet, extract detailed breakdown from API response
-  const apiBreakdown = lastResult && lastResult.success && lastResult.fullResponse ? (() => {
+  let apiBreakdown: {
+    stake: number;
+    tax: number;
+    bonus: number;
+    netPayout: number;
+    finalPayout: number;
+  } | null = null;
+  
+  if (lastResult && lastResult.success && lastResult.fullResponse) {
     const betList = lastResult.fullResponse.betList;
-    if (!betList || betList.length === 0) return null;
-    
-    const firstBet = betList[0];
-    const apiPotentialPayout = parseFloat(firstBet.potentialPayout || lastResult.potentialPayout || '0');
-    
-    // Calculate tax: Stake - Net Stake (if API provides it)
-    // API may not provide tax directly, so we calculate: Tax = Stake - (Payout / Odds)
-    const netStakeFromAPI = apiPotentialPayout / totalOdds;
-    const taxAmount = betAmount - netStakeFromAPI;
-    
-    // Calculate bonus from API response if available
-    const bonusAmount = firstBet.bonusAmount || 0;
-    
-    return {
-      stake: betAmount,
-      tax: Math.max(0, taxAmount), // Tax can't be negative
-      bonus: bonusAmount,
-      netPayout: apiPotentialPayout,
-      finalPayout: apiPotentialPayout + bonusAmount
-    };
-  })() : null;
+    if (betList && betList.length > 0) {
+      const firstBet = betList[0];
+      const apiPotentialPayout = parseFloat(firstBet.potentialPayout || lastResult.potentialPayout || '0');
+      
+      // Calculate tax: Stake - Net Stake
+      const netStakeFromAPI = apiPotentialPayout / totalOdds;
+      const taxAmount = betAmount - netStakeFromAPI;
+      
+      // Get bonus from API response if available
+      const bonusAmount = firstBet.bonusAmount || 0;
+      
+      apiBreakdown = {
+        stake: betAmount,
+        tax: Math.max(0, taxAmount),
+        bonus: bonusAmount,
+        netPayout: apiPotentialPayout,
+        finalPayout: apiPotentialPayout + bonusAmount
+      };
+    }
+  }
 
   const handlePlaceBet = async () => {
     console.log('🎯 Place bet button clicked');
