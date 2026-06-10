@@ -985,24 +985,24 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   
   // After successful bet, extract detailed breakdown from API response
   const apiBreakdown = useMemo(() => {
+    console.log('🔍 Checking lastResult:', lastResult);
+    
     if (!lastResult || !lastResult.success || !lastResult.fullResponse) {
+      console.log('❌ No valid lastResult or fullResponse');
       return null;
     }
     
     const betList = lastResult.fullResponse.betList;
+    console.log('📋 betList from fullResponse:', betList);
+    
     if (!betList || betList.length === 0) {
       console.warn('⚠️ No betList found in response');
       return null;
     }
     
     const firstBet = betList[0];
-    console.log('🔍 Extracting API breakdown:', {
-      stake: firstBet.stake,
-      potentialPayout: firstBet.potentialPayout,
-      taxAmount: firstBet.taxAmount,
-      bonusAmount: firstBet.bonusAmount,
-      raw: firstBet
-    });
+    console.log('🔍 First bet object:', firstBet);
+    console.log('🔍 taxAmount value:', firstBet.taxAmount, 'type:', typeof firstBet.taxAmount);
     
     // Use actual values from API response
     const stake = parseFloat(firstBet.stake || betAmount.toString());
