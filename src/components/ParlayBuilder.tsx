@@ -1001,8 +1001,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     const netStakeFromAPI = apiPotentialPayout / totalOdds;
     const taxAmount = betAmount - netStakeFromAPI;
     
-    // Get bonus from API response if available
-    const bonusAmount = firstBet.bonusAmount || 0;
+    // Get bonus from API response if available - ensure it's a number
+    const bonusAmount = parseFloat(firstBet.bonusAmount || '0') || 0;
     
     return {
       stake: betAmount,
