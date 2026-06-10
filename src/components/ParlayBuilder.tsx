@@ -995,23 +995,21 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     }
     
     const firstBet = betList[0];
+    
+    // Use actual values from API response
+    const stake = parseFloat(firstBet.stake || betAmount.toString());
     const apiPotentialPayout = parseFloat(firstBet.potentialPayout || lastResult.potentialPayout || '0');
-    
-    // Calculate tax: Stake - Net Stake
-    const netStakeFromAPI = apiPotentialPayout / totalOdds;
-    const taxAmount = betAmount - netStakeFromAPI;
-    
-    // Get bonus from API response if available - ensure it's a number
+    const taxAmount = parseFloat(firstBet.taxAmount || '0') || 0;
     const bonusAmount = parseFloat(firstBet.bonusAmount || '0') || 0;
     
     return {
-      stake: betAmount,
-      tax: Math.max(0, taxAmount),
+      stake: stake,
+      tax: taxAmount,
       bonus: bonusAmount,
       netPayout: apiPotentialPayout,
       finalPayout: apiPotentialPayout + bonusAmount
     };
-  }, [lastResult, totalOdds, betAmount]);
+  }, [lastResult, betAmount]);
 
   const handlePlaceBet = async () => {
     console.log('🎯 Place bet button clicked');
@@ -1341,7 +1339,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               <div className="text-xs text-gray-600 space-y-1 border-t border-blue-200 pt-2">
                 <div className="flex justify-between">
                   <span>Stake:</span>
-                  <span className="font-medium">MUR {apiBreakdown.stake.toFixed(2)}</span>
+                  <span className="font-medium">MUR {Math.round(apiBreakdown.stake)}</span>
                 </div>
                 <div className="flex justify-between text-red-600">
                   <span>Tax:</span>
