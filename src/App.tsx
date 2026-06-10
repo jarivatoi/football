@@ -176,10 +176,12 @@ function App() {
       return;
     }
     
-    // For competition filter, we need to load matches first, then recalculate calendar counts
-    // because the API doesn't provide competition-specific calendar counts
+    // Reload calendar with the competition filter to get filtered counts
+    // The API DOES return competition-specific calendar counts
+    await reloadCalendarWithFilters(selectedCategory, competitionId);
+    
+    // If All Matches is active, reload all matches with new competition
     if (showAllMatches) {
-      // If All Matches is active, reload all matches with new competition
       console.log('📋 All Matches is active - reloading all matches with new competition');
       loadAllMatches(selectedCategory, competitionId);
     } else if (selectedDate) {
