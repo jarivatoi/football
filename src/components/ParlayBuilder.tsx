@@ -991,16 +991,26 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     
     const betList = lastResult.fullResponse.betList;
     if (!betList || betList.length === 0) {
+      console.warn('⚠️ No betList found in response');
       return null;
     }
     
     const firstBet = betList[0];
+    console.log('🔍 Extracting API breakdown:', {
+      stake: firstBet.stake,
+      potentialPayout: firstBet.potentialPayout,
+      taxAmount: firstBet.taxAmount,
+      bonusAmount: firstBet.bonusAmount,
+      raw: firstBet
+    });
     
     // Use actual values from API response
     const stake = parseFloat(firstBet.stake || betAmount.toString());
     const apiPotentialPayout = parseFloat(firstBet.potentialPayout || lastResult.potentialPayout || '0');
     const taxAmount = parseFloat(firstBet.taxAmount || '0') || 0;
     const bonusAmount = parseFloat(firstBet.bonusAmount || '0') || 0;
+    
+    console.log('✅ Parsed breakdown:', { stake, apiPotentialPayout, taxAmount, bonusAmount });
     
     return {
       stake: stake,
