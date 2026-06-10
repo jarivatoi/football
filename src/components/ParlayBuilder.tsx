@@ -1402,18 +1402,36 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 return (
                   <div key={index} className="p-3 border-b border-gray-200 bg-yellow-50 last:border-b-0">
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">
-                          {bet.optionOdd || selection?.odds}
-                        </div>
+                      <div className="flex-1">
+                        {/* Selection name @ odds */}
                         <div className="text-sm font-semibold text-gray-800">
-                          {selection?.homeTeam} vs {selection?.awayTeam}
+                          {(() => {
+                            let selectionName = '';
+                            if (bet.optionName) {
+                              selectionName = bet.optionName;
+                            } else if (selection) {
+                              if (selection.priceType === 'home') selectionName = selection.homeTeam;
+                              else if (selection.priceType === 'draw') selectionName = 'Draw';
+                              else if (selection.priceType === 'away') selectionName = selection.awayTeam;
+                              else selectionName = selection.priceType;
+                            }
+                            const odds = bet.optionOdd || (typeof selection?.odds === 'string' ? selection.odds : selection?.odds?.toFixed(2));
+                            return `${selectionName} @ ${odds}`;
+                          })()}
+                        </div>
+                        {/* Match name */}
+                        <div className="text-xs text-gray-600 font-medium mt-1">
+                          {selection?.homeTeam} v {selection?.awayTeam}
+                        </div>
+                        {/* Time and market */}
+                        <div className="text-xs text-gray-500 mt-1">
+                          {(() => {
+                            const kickoff = selection?.kickoff || 'Today';
+                            const marketName = bet.marketDisplayName || selection?.marketDisplayName || '1 X 2';
+                            return `${kickoff} ${marketName}`;
+                          })()}
                         </div>
                       </div>
-                      <Trash2 className="w-4 h-4 text-gray-500 cursor-pointer hover:text-red-600" />
-                    </div>
-                    <div className="mt-1 text-xs text-gray-600">
-                      <div>{selection?.kickoff || 'Today'} {selection?.priceType === 'home' ? '1 X 2' : selection?.priceType === 'draw' ? '1 X 2' : selection?.priceType === 'away' ? '1 X 2' : selection?.priceType}</div>
                     </div>
                   </div>
                 );
