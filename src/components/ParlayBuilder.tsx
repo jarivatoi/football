@@ -1055,11 +1055,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
     // Determine minimum stake based on bet type and source
     const isSingleBet = selections.length === 1;
-    const isSuperTote = selectedSource?.id === 'supertote';
-    const minStake = isSingleBet && isSuperTote ? 20 : 50;
+    const isSuperScore = selectedSource?.id === 'superscore';
+    const minStake = isSingleBet && isSuperScore ? 20 : 50;
     
     if (betAmount < minStake) {
-      const toastMsg = isSingleBet && isSuperTote 
+      const toastMsg = isSingleBet && isSuperScore
         ? 'Minimum stake for single bet is MUR 20'
         : `Minimum stake for multi bet is MUR ${minStake}`;
       
@@ -1327,7 +1327,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   value={betAmount}
                   onChange={(e) => setBetAmount(parseInt(e.target.value) || 0)}
                   className="w-full pl-16 pr-4 py-3 text-xl font-bold border-2 border-yellow-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                  placeholder={selections.length === 1 && selectedSource?.id === 'supertote' ? "20" : "50"}
+                  placeholder={selections.length === 1 && selectedSource?.id === 'superscore' ? "20" : "50"}
                 />
               </div>
             </div>
