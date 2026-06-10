@@ -163,7 +163,9 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               
         {/* Match Title */}
         <div className="text-sm font-semibold text-gray-900 mb-1">
-          {match.isOutright ? `${match.homeTeam} - ${match.awayTeam}` : `${match.homeTeam} v/s ${match.awayTeam}`}
+          {match.isOutright 
+            ? (match.awayTeam ? `${match.homeTeam} - ${match.awayTeam}` : match.homeTeam)
+            : `${match.homeTeam} v/s ${match.awayTeam}`}
         </div>
               
         {/* Date/Time and Market Code */}

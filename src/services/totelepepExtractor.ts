@@ -1399,6 +1399,16 @@ class TotelepepExtractor {
       }
     }
     
+    // For outright markets (no separator), use the entire string as homeTeam and empty awayTeam
+    // This allows outright markets like "Top Goalscorer" to be displayed
+    if (teamsString.trim().length > 0) {
+      console.log(`🎯 Outright market detected (no separator): ${teamsString}`);
+      return {
+        home: teamsString.trim(),
+        away: '' // Will be handled by isOutright logic
+      };
+    }
+    
     return null;
   }
 
