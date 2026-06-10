@@ -93,7 +93,7 @@ function App() {
   const [selectedSource, setSelectedSource] = useSafeState<ApiSource>(API_SOURCES[0]); // Default to Totelepep
   
   // Handle API source change
-  const handleSourceChange = (source: ApiSource) => {
+  const handleSourceChange = async (source: ApiSource) => {
     console.log('🌐 API Source changed to:', source.displayName);
     setSelectedSource(source);
     
@@ -106,6 +106,10 @@ function App() {
     // Clear current matches immediately to show loading state
     setMatches([]);
     setGroupedMatches({});
+    
+    // Reload calendar to update match counts for the new source
+    console.log('📅 Reloading calendar from new source...');
+    await loadCalendarList(selectedCategory, selectedCompetition);
     
     // Reload data with new source
     if (showAllMatches) {
