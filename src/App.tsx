@@ -377,6 +377,7 @@ function App() {
       const dateStr = `${recentDate.getFullYear()}-${String(recentDate.getMonth() + 1).padStart(2, '0')}-${String(recentDate.getDate()).padStart(2, '0')}`;
       
       console.log('📅 Fetching calendar with date:', dateStr);
+      console.log('📅 With filters - category:', categoryId || '(none)', 'competition:', competitionId || '(none)');
       
       // Fetch with a date to get the calendar list
       const matches = await totelepepExtractor.extractMatches(dateStr, categoryId || '', competitionId || '');
@@ -398,6 +399,7 @@ function App() {
           displayName: entry.displayDate || entry.entryDate
         }));
         
+        console.log('📅 Formatted calendar with filtered counts:', formattedCalendar);
         setCalendarList(formattedCalendar);
         
         // Set the selected date to the FIRST entry from the API (which is "Today" in API's timezone)
