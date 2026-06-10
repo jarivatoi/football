@@ -993,25 +993,34 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       return null;
     }
     
-    const betList = lastResult.fullResponse.betList;
+    const fullResponse = lastResult.fullResponse;
+    const betList = fullResponse.betList;
     console.log('📋 betList from fullResponse:', betList);
     
-    if (!betList || betList.length === 0) {
-      console.warn('⚠️ No betList found in response');
-      return null;
+    // For multi-bets, betList is empty - use top-level fields
+    const isMultiBet = !betList || betList.length === 0;
+    
+    let stake: number;
+    let apiPotentialPayout: number;
+    let taxAmount: number;
+    let bonusAmount: number;
+    
+    if (isMultiBet) {
+      console.log('🎯 Multi-bet detected - using top-level fields');
+      stake = parseFloat(fullResponse.multiStake || betAmount.toString());
+      apiPotentialPayout = parseFloat(fullResponse.potentialPayout || lastResult.potentialPayout || '0');
+      taxAmount = parseFloat(fullResponse.taxAmount || '0') || 0;
+      bonusAmount = parseFloat(fullResponse.bonusAmount || '0') || 0;
+    } else {
+      console.log('🎯 Single bet detected - using betList[0]');
+      const firstBet = betList[0];
+      stake = parseFloat(firstBet.stake || betAmount.toString());
+      apiPotentialPayout = parseFloat(firstBet.potentialPayout || lastResult.potentialPayout || '0');
+      taxAmount = parseFloat(firstBet.taxAmount || '0') || 0;
+      bonusAmount = parseFloat(firstBet.bonusAmount || '0') || 0;
     }
     
-    const firstBet = betList[0];
-    console.log('🔍 First bet object:', firstBet);
-    console.log('🔍 taxAmount value:', firstBet.taxAmount, 'type:', typeof firstBet.taxAmount);
-    
-    // Use actual values from API response
-    const stake = parseFloat(firstBet.stake || betAmount.toString());
-    const apiPotentialPayout = parseFloat(firstBet.potentialPayout || lastResult.potentialPayout || '0');
-    const taxAmount = parseFloat(firstBet.taxAmount || '0') || 0;
-    const bonusAmount = parseFloat(firstBet.bonusAmount || '0') || 0;
-    
-    console.log('✅ Parsed breakdown:', { stake, apiPotentialPayout, taxAmount, bonusAmount });
+    console.log('✅ Parsed breakdown:', { stake, apiPotentialPayout, taxAmount, bonusAmount, isMultiBet });
     
     return {
       stake: stake,
