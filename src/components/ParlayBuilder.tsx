@@ -1007,6 +1007,13 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     
     if (isMultiBet) {
       console.log('🎯 Multi-bet detected - using top-level fields');
+      console.log('🔍 Raw top-level values:', {
+        multiStake: fullResponse.multiStake,
+        potentialPayout: fullResponse.potentialPayout,
+        taxAmount: fullResponse.taxAmount,
+        bonusAmount: fullResponse.bonusAmount
+      });
+      
       stake = parseFloat(fullResponse.multiStake || betAmount.toString());
       apiPotentialPayout = parseFloat(fullResponse.potentialPayout || lastResult.potentialPayout || '0');
       taxAmount = parseFloat(fullResponse.taxAmount || '0') || 0;
