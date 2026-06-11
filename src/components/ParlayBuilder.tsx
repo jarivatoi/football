@@ -1229,12 +1229,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               {selectedSource && (
                 <div className="text-sm text-gray-600">{selectedSource.displayName}</div>
               )}
-            </div>
-            <span className="relative ml-1">
-              <span className="absolute -top-2 -right-3 bg-red-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                {selections.length}
+              <span className="relative inline-block mt-1">
+                <span className="absolute -top-2 -right-3 bg-red-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                  {selections.length}
+                </span>
               </span>
-            </span>
+            </div>
           </div>
           <div className="flex items-center gap-6">
             <button
