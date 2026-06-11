@@ -70,6 +70,8 @@ function App() {
         const found = API_SOURCES.find(s => s.id === parsed.id);
         if (found) {
           console.log('🌐 Restored saved API source:', found.displayName);
+          // Update extractor baseUrl immediately to use saved source
+          (totelepepExtractor as any).baseUrl = found.baseUrl;
           return found;
         }
       }
