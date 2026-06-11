@@ -1222,10 +1222,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       {/* Header - Sticky */}
       <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-blue-600" />
-            <div>
-              <h2 className="text-xl font-bold text-gray-800">Parlay Builder</h2>
+          <div className="flex items-center gap-2 flex-1">
+            <div className="flex-1 text-center">
+              <div className="flex items-center justify-center gap-2">
+                <Calculator className="w-5 h-5 text-blue-600" />
+                <h2 className="text-xl font-bold text-gray-800">Parlay Builder</h2>
+              </div>
               {selectedSource && (
                 <div className="text-sm text-gray-600">{selectedSource.displayName}</div>
               )}
