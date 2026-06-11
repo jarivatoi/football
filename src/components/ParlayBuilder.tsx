@@ -1336,9 +1336,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       <div className="border-t pt-4">
         {/* Prominent Stake Input */}
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-          <label className="block text-lg font-bold text-gray-800 mb-3">
-            💰 Enter Your Stake
-          </label>
+          <div className="flex items-center justify-between mb-3">
+            <label className="block text-lg font-bold text-gray-800">
+              💰 Enter Your Stake
+            </label>
+            <div className="text-sm text-gray-600">Total Odds</div>
+          </div>
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -1364,11 +1367,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 />
               </div>
             </div>
-            <div className="flex flex-col items-center justify-center">
-              <div className="text-sm text-gray-600 mb-1">Total Odds</div>
-              <div className="text-2xl font-bold text-blue-600 bg-white px-4 py-3 rounded-lg border">
-                {totalOdds.toFixed(2)}
-              </div>
+            <div className="text-2xl font-bold text-blue-600 bg-white px-4 py-3 rounded-lg border">
+              {totalOdds.toFixed(2)}
             </div>
           </div>
         </div>
