@@ -1471,12 +1471,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         </div>
 
         {/* Booking Result Display - Betslip Style */}
-        {lastResult && lastResult.success && lastResult.fullResponse && lastResult.fullResponse.betList && (
+        {lastResult && lastResult.success && lastResult.fullResponse && selections.length > 0 && (
           <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white">
             {/* Bet Selections */}
             <div className="max-h-60 overflow-y-auto">
-              {lastResult.fullResponse.betList.map((bet: any, index: number) => {
-                const selection = selections[index];
+              {selections.map((selection, index) => {
+                const bet = lastResult.fullResponse.betList?.[index] || {};
                 return (
                   <div key={index} className="p-3 border-b border-gray-200 bg-yellow-50 last:border-b-0">
                     <div className="flex items-start justify-between">
@@ -1505,7 +1505,18 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                         <div className="text-xs text-gray-500 mt-1">
                           {(() => {
                             const kickoff = selection?.kickoff || 'Today';
-                            const marketName = bet.marketDisplayName || selection?.marketDisplayName || '1 X 2';
+                            const marketDisplayName = bet.marketDisplayName || selection?.marketDisplayName || '1 X 2';
+                            
+                            // Build period suffix
+                            const periodCode = selection?.periodCode || 'FT';
+                            const periodSuffix = periodCode === 'FT' ? ' - Full Time' : 
+                                                periodCode === 'H1' ? ' - Half Time' : 
+                                                periodCode === '2H' ? ' - 2nd Half' : 
+                                                ` - ${periodCode}`;
+                            
+                            // For markets that already have period in name, don't add suffix
+                            const marketName = marketDisplayName.includes(' - ') ? marketDisplayName : `${marketDisplayName}${periodSuffix}`;
+                            
                             return `${kickoff} ${marketName}`;
                           })()}
                         </div>
