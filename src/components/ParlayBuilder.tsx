@@ -1229,7 +1229,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               {selections.length} selection{selections.length !== 1 ? 's' : ''}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <button
               onClick={onClearAll}
               className="text-red-600 hover:text-red-800 text-sm font-medium flex items-center gap-1"
