@@ -302,7 +302,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
             <div key={index} className="border-b border-gray-200 last:border-b-0">
               <button
                 onClick={() => toggleMarket(market.marketBookNo)}
-                className="w-full px-3 py-2 bg-gray-100 flex items-center justify-between hover:bg-gray-200 transition-colors"
+                className="w-full px-3 py-2 bg-red-50 flex items-center justify-between hover:bg-red-100 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   {expandedMarkets[market.marketBookNo] ? (
@@ -364,7 +364,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                               : 'bg-gray-100 hover:bg-gray-200'
                           }`}
                         >
-                          <div className="text-xs text-gray-600">{selection.name}</div>
+                          <div className={`text-xs ${isSelectedMarket ? 'text-white' : 'text-gray-600'}`}>{selection.name}</div>
                           <div className="font-bold">{formatOdds(selection.odds)}</div>
                         </button>
                       );
