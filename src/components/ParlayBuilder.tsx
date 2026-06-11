@@ -860,69 +860,6 @@ const getOptionDetails = (selection: ParlaySelection) => {
   }
 };
 
-// Calculate Totelepep bonus based on the provided rules
-const calculateTotelepepBonus = (selections: ParlaySelection[], potentialPayout: number, stake: number): number => {
-  if (selections.length === 0) return 0;
-  
-  // Get all odds values
-  const oddsValues = selections.map(selection => 
-    typeof selection.odds === 'string' ? parseFloat(selection.odds) : selection.odds
-  );
-  
-  // Check if at least one leg has odds below 1.20
-  const hasLowOdds = oddsValues.some(odds => odds < 1.20);
-  
-  // Check if all legs have odds 1.20 or above
-  const allHighOdds = oddsValues.every(odds => odds >= 1.20);
-  
-  let bonusPercentage = 0;
-  
-  if (hasLowOdds) {
-    // Bonuses For Multiple Bets if at least One leg Odd is Below 1.20
-    if (selections.length === 1) {
-      bonusPercentage = 10; // Single Bet 10%
-    } else if (selections.length >= 2 && selections.length <= 10) {
-      bonusPercentage = 14; // 2-10 Legs 14%
-    } else if (selections.length >= 11 && selections.length <= 15) {
-      bonusPercentage = 15; // 11-15 Legs 15%
-    } else if (selections.length >= 16 && selections.length <= 25) {
-      bonusPercentage = 35; // 16-25 Legs 35%
-    }
-  } else if (allHighOdds) {
-    // Exclusive Bonuses For Odds 1.20 Or Above For All Legs
-    if (selections.length >= 3 && selections.length <= 5) {
-      bonusPercentage = 15; // 3-5 Legs 15%
-    } else if (selections.length === 6) {
-      bonusPercentage = 20; // 6 Legs 20%
-    } else if (selections.length === 7) {
-      bonusPercentage = 25; // 7 Legs 25%
-    } else if (selections.length === 8) {
-      bonusPercentage = 30; // 8 Legs 30%
-    } else if (selections.length === 9) {
-      bonusPercentage = 35; // 9 Legs 35%
-    } else if (selections.length === 10) {
-      bonusPercentage = 40; // 10 Legs 40%
-    } else if (selections.length === 11) {
-      bonusPercentage = 45; // 11 Legs 45%
-    } else if (selections.length === 12) {
-      bonusPercentage = 50; // 12 Legs 50%
-    } else if (selections.length === 13) {
-      bonusPercentage = 55; // 13 Legs 55%
-    } else if (selections.length === 14) {
-      bonusPercentage = 60; // 14 Legs 60%
-    } else if (selections.length === 15) {
-      bonusPercentage = 65; // 15 Legs 65%
-    } else if (selections.length >= 16 && selections.length <= 25) {
-      bonusPercentage = 70; // 16-25 Legs 70%
-    }
-  }
-  
-  // Calculate bonus amount based on potential payout
-  // Totelepep rounds to whole number first, then to 2 decimal places
-  const bonusAmount = Math.round((potentialPayout * bonusPercentage) / 100);
-  return bonusAmount;
-};
-
 export interface ParlaySelection {
   matchId: string;
   homeTeam: string;
