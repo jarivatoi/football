@@ -1588,7 +1588,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             </>
           ) : (
             <>
-              <DollarSign className="w-5 h-5" />
               Place Parlay Bet
             </>
           )}
