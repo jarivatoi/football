@@ -1342,7 +1342,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium text-lg">
                   MUR
                 </span>
                 <input
@@ -1359,14 +1359,14 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                       setBetAmount(parseInt(value) || 0);
                     }
                   }}
-                  className="w-full pl-16 pr-4 py-3 text-xl font-bold border-2 border-yellow-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  className="w-full pl-16 pr-4 py-3 text-2xl font-bold border-2 border-yellow-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                   placeholder={selections.length === 1 && selectedSource?.id === 'superscore' ? "25" : "50"}
                 />
               </div>
             </div>
-            <div className="text-center">
+            <div className="flex flex-col items-center justify-center">
               <div className="text-sm text-gray-600 mb-1">Total Odds</div>
-              <div className="text-2xl font-bold text-blue-600 bg-white px-4 py-2 rounded-lg border">
+              <div className="text-2xl font-bold text-blue-600 bg-white px-4 py-3 rounded-lg border">
                 {totalOdds.toFixed(2)}
               </div>
             </div>
