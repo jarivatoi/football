@@ -1208,7 +1208,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md h-full flex flex-col">
+    <div className="bg-white rounded-lg shadow-md h-full flex flex-col overflow-hidden">
       {/* Toast Notification */}
       {toast && (
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg animate-slide-down">
@@ -1225,8 +1225,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           <div className="flex items-center gap-2">
             <Calculator className="w-5 h-5 text-blue-600" />
             <h2 className="text-xl font-bold text-gray-800">Parlay Builder</h2>
-            <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
-              {selections.length} selection{selections.length !== 1 ? 's' : ''}
+            <span className="relative">
+              <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                {selections.length}
+              </span>
             </span>
           </div>
           <div className="flex items-center gap-4">
@@ -1345,7 +1347,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium text-lg">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium text-2xl font-bold">
                   MUR
                 </span>
                 <input
