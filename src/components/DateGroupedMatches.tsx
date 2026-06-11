@@ -70,9 +70,9 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
 
         return (
           <div key={date}>
-            {/* League Header */}
-            <div className="bg-blue-600 text-white px-3 py-2 text-sm font-medium">
-              All Soccer
+            {/* Date Header - Sticky */}
+            <div className="sticky top-[72px] z-10 bg-blue-600 text-white px-3 py-2 text-sm font-medium shadow-md">
+              {dateHeader}
             </div>
 
             {/* Match Cards */}
