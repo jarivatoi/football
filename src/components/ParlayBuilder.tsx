@@ -1337,7 +1337,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         {/* Prominent Stake Input */}
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
           <label className="block text-lg font-bold text-gray-800 mb-3">
-            💰 Enter Your Stake Amount
+            💰 Enter Your Stake
           </label>
           <div className="flex items-center gap-4">
             <div className="flex-1">
@@ -1349,8 +1349,20 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   type="number"
                   min="25"
                   step="10"
-                  value={betAmount}
-                  onChange={(e) => setBetAmount(parseInt(e.target.value) || 0)}
+                  value={betAmount || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow clearing the input completely
+                    if (value === '') {
+                      setBetAmount(0);
+                    } else {
+                      setBetAmount(parseInt(value) || 0);
+                    }
+                    // Clear lastResult when stake changes to show Potential Return
+                    if (lastResult) {
+                      setLastResult(null);
+                    }
+                  }}
                   className="w-full pl-16 pr-4 py-3 text-xl font-bold border-2 border-yellow-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                   placeholder={selections.length === 1 && selectedSource?.id === 'superscore' ? "25" : "50"}
                 />
@@ -1472,14 +1484,28 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
             {/* Booking Reference */}
             <div className="p-3 bg-green-500 text-white text-center">
-              <div className="text-sm font-semibold">
-                Booking Ref# {lastResult.ticketNo}
+              <div className="flex items-center justify-center gap-2">
+                <div className="text-xl font-bold">
+                  Booking Ref# {lastResult.ticketNo}
+                </div>
+                <button
+                  onClick={() => {
+                    // Show instructions for device screenshot
+                    alert('📸 Save Screenshot:\n\nAndroid: Power + Volume Down\niPhone: Power + Volume Up\n\nThe screenshot will be saved to your Photos/Gallery');
+                  }}
+                  className="p-1 hover:bg-green-600 rounded transition-colors"
+                  title="Save screenshot"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
+                </button>
               </div>
             </div>
 
             {/* SMS Option */}
             <div className="p-3 bg-yellow-400 text-center border-t border-yellow-500">
-              <div className="flex items-center justify-center gap-2 text-sm font-semibold text-gray-800">
+              <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
                 <span>📱</span>
                 <span>SMS BET{lastResult.ticketNo}</span>
               </div>
