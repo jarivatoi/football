@@ -983,6 +983,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       stake: stake,
       tax: taxAmount,
       bonus: bonusAmount,
+      potentialPayout: apiPotentialPayout,
       netPayout: apiPotentialPayout,
       finalPayout: apiPotentialPayout + bonusAmount
     };
@@ -1347,9 +1348,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     <span className="font-medium">-MUR {apiBreakdown.tax.toFixed(2)}</span>
                   </div>
                   {apiBreakdown.bonus > 0 && (() => {
-                    // Calculate bonus percentage: (bonus / (stake - tax)) * 100
-                    const baseAmount = apiBreakdown.stake - apiBreakdown.tax;
-                    const bonusPercentage = baseAmount > 0 ? Math.round((apiBreakdown.bonus / baseAmount) * 100) : 0;
+                    // Calculate bonus percentage: (bonus / potentialPayout) * 100
+                    const bonusPercentage = apiBreakdown.potentialPayout > 0 ? Math.round((apiBreakdown.bonus / apiBreakdown.potentialPayout) * 100) : 0;
                     return (
                       <div className="flex justify-between text-green-600">
                         <span>Bonus ({bonusPercentage}%):</span>
@@ -1391,9 +1391,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   <span className="font-medium">-MUR {apiBreakdown.tax.toFixed(2)}</span>
                 </div>
                 {apiBreakdown.bonus > 0 && (() => {
-                  // Calculate bonus percentage: (bonus / (stake - tax)) * 100
-                  const baseAmount = apiBreakdown.stake - apiBreakdown.tax;
-                  const bonusPercentage = baseAmount > 0 ? Math.round((apiBreakdown.bonus / baseAmount) * 100) : 0;
+                  // Calculate bonus percentage: (bonus / potentialPayout) * 100
+                  const bonusPercentage = apiBreakdown.potentialPayout > 0 ? Math.round((apiBreakdown.bonus / apiBreakdown.potentialPayout) * 100) : 0;
                   return (
                     <div className="flex justify-between text-green-600">
                       <span>Bonus ({bonusPercentage}%):</span>
