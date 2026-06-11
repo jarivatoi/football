@@ -1346,12 +1346,17 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     <span>Tax:</span>
                     <span className="font-medium">-MUR {apiBreakdown.tax.toFixed(2)}</span>
                   </div>
-                  {apiBreakdown.bonus > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Bonus:</span>
-                      <span className="font-medium">+MUR {apiBreakdown.bonus.toFixed(2)}</span>
-                    </div>
-                  )}
+                  {apiBreakdown.bonus > 0 && (() => {
+                    // Calculate bonus percentage: (bonus / (stake - tax)) * 100
+                    const baseAmount = apiBreakdown.stake - apiBreakdown.tax;
+                    const bonusPercentage = baseAmount > 0 ? Math.round((apiBreakdown.bonus / baseAmount) * 100) : 0;
+                    return (
+                      <div className="flex justify-between text-green-600">
+                        <span>Bonus ({bonusPercentage}%):</span>
+                        <span className="font-medium">+MUR {apiBreakdown.bonus.toFixed(2)}</span>
+                      </div>
+                    );
+                  })()}
                   <div className="flex justify-between border-t border-blue-200 pt-1 font-bold text-lg">
                     <span className="text-gray-700">Net Payout:</span>
                     <span className="text-green-600">MUR {apiBreakdown.netPayout.toFixed(2)}</span>
@@ -1385,12 +1390,17 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   <span>Tax:</span>
                   <span className="font-medium">-MUR {apiBreakdown.tax.toFixed(2)}</span>
                 </div>
-                {apiBreakdown.bonus > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Bonus:</span>
-                    <span className="font-medium">+MUR {apiBreakdown.bonus.toFixed(2)}</span>
-                  </div>
-                )}
+                {apiBreakdown.bonus > 0 && (() => {
+                  // Calculate bonus percentage: (bonus / (stake - tax)) * 100
+                  const baseAmount = apiBreakdown.stake - apiBreakdown.tax;
+                  const bonusPercentage = baseAmount > 0 ? Math.round((apiBreakdown.bonus / baseAmount) * 100) : 0;
+                  return (
+                    <div className="flex justify-between text-green-600">
+                      <span>Bonus ({bonusPercentage}%):</span>
+                      <span className="font-medium">+MUR {apiBreakdown.bonus.toFixed(2)}</span>
+                    </div>
+                  );
+                })()}
                 <div className="flex justify-between border-t border-blue-200 pt-1 font-bold text-xl mt-2">
                   <span className="text-gray-700">Net Payout:</span>
                   <span className="text-green-600">MUR {apiBreakdown.netPayout.toFixed(2)}</span>
