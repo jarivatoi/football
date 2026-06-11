@@ -1358,10 +1358,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     } else {
                       setBetAmount(parseInt(value) || 0);
                     }
-                    // Clear lastResult when stake changes to show Potential Return
-                    if (lastResult) {
-                      setLastResult(null);
-                    }
                   }}
                   className="w-full pl-16 pr-4 py-3 text-xl font-bold border-2 border-yellow-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                   placeholder={selections.length === 1 && selectedSource?.id === 'superscore' ? "25" : "50"}
@@ -1378,10 +1374,46 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         </div>
 
         <div className="bg-blue-50 p-4 rounded-lg mb-4">
-          {/* BEFORE bet: Show simple calculation */}
-          {(() => {
-            console.log('🎨 RENDERING - apiBreakdown:', apiBreakdown);
-            return !apiBreakdown ? (
+          {/* Show Potential Return when stake has been edited (betAmount differs from apiBreakdown.stake) */}
+          {lastResult && apiBreakdown && betAmount !== apiBreakdown.stake ? (
+            <>
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium text-gray-700">Potential Return (new stake):</span>
+                <span className="text-2xl font-bold text-blue-600">
+                  MUR {(betAmount * totalOdds).toFixed(2)}
+                </span>
+              </div>
+              <div className="text-sm text-gray-600">
+                Stake: MUR {betAmount.toFixed(2)} × Odds: {totalOdds.toFixed(2)}
+              </div>
+              {/* Show previous bet breakdown */}
+              <div className="mt-3 pt-3 border-t border-blue-200">
+                <div className="text-xs text-gray-500 mb-2">Previous Bet:</div>
+                <div className="text-xs text-gray-600 space-y-1">
+                  <div className="flex justify-between">
+                    <span>Stake:</span>
+                    <span className="font-medium">MUR {Math.round(apiBreakdown.stake)}</span>
+                  </div>
+                  <div className="flex justify-between text-red-600">
+                    <span>Tax:</span>
+                    <span className="font-medium">-MUR {apiBreakdown.tax.toFixed(2)}</span>
+                  </div>
+                  {apiBreakdown.bonus > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Bonus:</span>
+                      <span className="font-medium">+MUR {apiBreakdown.bonus.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between border-t border-blue-200 pt-1 font-bold text-lg">
+                    <span className="text-gray-700">Net Payout:</span>
+                    <span className="text-green-600">MUR {apiBreakdown.netPayout.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            /* BEFORE bet: Show simple calculation */
+            (!apiBreakdown ? (
             <>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-700">Potential Return:</span>
@@ -1417,8 +1449,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 </div>
               </div>
             </>
-          );
-          })()}
+          ))
+          )}
           {/* Show rebate information when available from Totelepep */}
           {lastResult && lastResult.fullResponse && lastResult.fullResponse.betList && lastResult.fullResponse.betList.length > 0 && (
             <div className="text-xs text-gray-500 mt-2">
@@ -1484,22 +1516,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
             {/* Booking Reference */}
             <div className="p-3 bg-green-500 text-white text-center">
-              <div className="flex items-center justify-center gap-2">
-                <div className="text-xl font-bold">
-                  Booking Ref# {lastResult.ticketNo}
-                </div>
-                <button
-                  onClick={() => {
-                    // Show instructions for device screenshot
-                    alert('📸 Save Screenshot:\n\nAndroid: Power + Volume Down\niPhone: Power + Volume Up\n\nThe screenshot will be saved to your Photos/Gallery');
-                  }}
-                  className="p-1 hover:bg-green-600 rounded transition-colors"
-                  title="Save screenshot"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                  </svg>
-                </button>
+              <div className="text-xl font-bold">
+                Booking Ref# {lastResult.ticketNo}
               </div>
             </div>
 
