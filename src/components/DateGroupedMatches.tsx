@@ -20,21 +20,14 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
 }) => {
   const formatDateHeader = (dateString: string): string => {
     const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-
-    const isToday = date.toDateString() === today.toDateString();
-    const isTomorrow = date.toDateString() === tomorrow.toDateString();
-
-    if (isToday) return 'Today';
-    if (isTomorrow) return 'Tomorrow';
-
+    
+    // Format: DDD dd mmm yyyy (e.g., Thu 11 Jun 2026)
     return date.toLocaleDateString('en-GB', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-    });
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }).replace(/(\d{2})\s/, '$1 ').replace(/^\w{3}\s/, (match) => match.trim() + ' ');
   };
 
   const sortedDates = Object.keys(groupedMatches).sort();
@@ -71,7 +64,7 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
         return (
           <div key={date}>
             {/* Date Header - Sticky */}
-            <div className="sticky top-[72px] z-10 bg-blue-600 text-white px-3 py-2 text-sm font-medium shadow-md">
+            <div className="sticky top-[120px] z-10 bg-blue-600 text-white px-3 py-2 text-sm font-medium shadow-md">
               {dateHeader}
             </div>
 

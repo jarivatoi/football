@@ -1220,23 +1220,25 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       )}
       
       {/* Header - Sticky */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 flex-1">
-            <div className="flex-1 text-center">
-              <div className="flex items-center justify-center gap-2">
-                <Calculator className="w-5 h-5 text-blue-600" />
-                <h2 className="text-xl font-bold text-gray-800">Parlay Builder</h2>
-              </div>
-              {selectedSource && (
-                <div className="text-sm text-gray-600">{selectedSource.displayName}</div>
-              )}
-              <span className="relative inline-block mt-1">
-                <span className="absolute -top-2 -right-3 bg-red-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                  {selections.length}
-                </span>
+      <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
+        {/* Centered Title */}
+        <div className="flex items-center justify-center py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <Calculator className="w-5 h-5 text-blue-600" />
+            <h2 className="text-xl font-bold text-gray-800">Parlay Builder</h2>
+          </div>
+        </div>
+        {/* Source, Badge, and Buttons */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            {selectedSource && (
+              <span className="text-sm text-gray-600">{selectedSource.displayName}</span>
+            )}
+            <span className="relative">
+              <span className="bg-red-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                {selections.length}
               </span>
-            </div>
+            </span>
           </div>
           <div className="flex items-center gap-6">
             <button
