@@ -70,9 +70,9 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
 
             {/* Match Cards */}
             <div>
-              {matches.map((match) => (
+              {matches.map((match, index) => (
                 <MatchCard
-                  key={match.id}
+                  key={`${date}-${match.id}-${index}`}
                   match={match}
                   onPriceClick={onPriceClick}
                   selectedPrices={selectedPrices}
