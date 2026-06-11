@@ -1364,7 +1364,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                       setBetAmount(parseInt(value) || 0);
                     }
                   }}
-                  className="w-full pl-16 pr-4 py-3 text-2xl font-bold border-2 border-yellow-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                  className="w-full pl-20 pr-4 py-3 text-2xl font-bold border-2 border-yellow-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                   placeholder={selections.length === 1 && selectedSource?.id === 'superscore' ? "25" : "50"}
                 />
               </div>
