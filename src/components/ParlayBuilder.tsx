@@ -1231,7 +1231,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               </span>
             </span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             <button
               onClick={onClearAll}
               className="text-red-600 hover:text-red-800 text-sm font-medium flex items-center gap-1"
