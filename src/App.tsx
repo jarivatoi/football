@@ -634,18 +634,53 @@ function App() {
             const awayOdds = parseFloat(String(match.awayOdds));
             
             // If period filter is specified (H1 or H2) but no position, it means ANY position in that period
-            // We can't filter at match level since we only have FT odds here
+            // Check if match.allMarkets has the period data
             if (periodFilter && !positionFilter) {
-              // Show all matches - filtering happens in All Markets view
-              // MatchCard will highlight any H1/H2 odds that match
-              return true;
+              // Try to check allMarkets if available
+              if (match.allMarkets && match.allMarkets.length > 0) {
+                const targetPeriod = periodFilter === 'H1' ? 'H1' : '2H';
+                const periodMarket = match.allMarkets.find(m => 
+                  (m.name === '1 X 2' || m.name === '1X2' || m.marketCode === 'CP') && 
+                  m.periodCode === targetPeriod
+                );
+                
+                if (periodMarket && periodMarket.selections) {
+                  // Check if any selection in this period matches the odds
+                  const hasMatchingOdds = periodMarket.selections.some((sel: any) => {
+                    const selOdds = parseFloat(String(sel.odds));
+                    return selOdds === targetOdds;
+                  });
+                  return hasMatchingOdds;
+                }
+              }
+              // If allMarkets not available or no match, don't show
+              return false;
             }
             
-            // If period filter is specified with position, we need to check expanded markets
-            // Since we only have quick 1X2 odds at match level (Full Time), we can't filter H1/H2 here
-            // Period filtering only works in All Markets view
+            // If period filter is specified with position, check allMarkets if available
             if (periodFilter && positionFilter) {
-              // Can't filter at this level - need All Markets data
+              // Try to check allMarkets if available
+              if (match.allMarkets && match.allMarkets.length > 0) {
+                const targetPeriod = periodFilter === 'H1' ? 'H1' : '2H';
+                const periodMarket = match.allMarkets.find(m => 
+                  (m.name === '1 X 2' || m.name === '1X2' || m.marketCode === 'CP') && 
+                  m.periodCode === targetPeriod
+                );
+                
+                if (periodMarket && periodMarket.selections) {
+                  // Find the specific position selection
+                  const positionIndex = positionFilter === 'home' ? 0 : positionFilter === 'draw' ? 1 : 2;
+                  const selection = periodMarket.selections[positionIndex];
+                  
+                  if (selection) {
+                    const selOdds = parseFloat(String(selection.odds));
+                    if (searchMode === 'eq') return selOdds === targetOdds;
+                    if (searchMode === 'gte') return selOdds >= targetOdds;
+                    if (searchMode === 'lte') return selOdds <= targetOdds;
+                  }
+                }
+              }
+              // If allMarkets not available or no match, don't show
               return false;
             }
             
