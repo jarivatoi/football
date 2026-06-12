@@ -628,12 +628,19 @@ function App() {
             const drawOdds = parseFloat(String(match.drawOdds));
             const awayOdds = parseFloat(String(match.awayOdds));
             
-            // If period filter is specified (H1 or H2), skip filtering at match level
-            // Period-specific filters only work in All Markets expanded view
-            if (periodFilter) {
-              // Don't filter matches by period at this level
-              // Instead, show all matches and let MatchCard handle period-specific highlighting
-              return true; // Show all matches, filtering happens in All Markets
+            // If period filter is specified (H1 or H2) but no position, it's incomplete
+            // Period-specific filters require a position (H, D, or A)
+            if (periodFilter && !positionFilter) {
+              // Incomplete filter like "130H1" without H/D/A - show nothing
+              return false;
+            }
+            
+            // If period filter is specified with position, we need to check expanded markets
+            // Since we only have quick 1X2 odds at match level (Full Time), we can't filter H1/H2 here
+            // Period filtering only works in All Markets view
+            if (periodFilter && positionFilter) {
+              // Can't filter at this level - need All Markets data
+              return false;
             }
             
             if (positionFilter) {

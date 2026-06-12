@@ -54,9 +54,10 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       const upperSearch = searchTerm.toUpperCase().trim();
       let periodFilter: 'H1' | 'H2' | null = null;
       
-      if (upperSearch.endsWith('H1')) {
+      // Only auto-expand if search has H1 or H2 suffix AND position (H, D, or A)
+      if (upperSearch.endsWith('H1') && (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A'))) {
         periodFilter = 'H1';
-      } else if (upperSearch.endsWith('H2')) {
+      } else if (upperSearch.endsWith('H2') && (upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A'))) {
         periodFilter = 'H2';
       }
       
