@@ -628,13 +628,12 @@ function App() {
             const drawOdds = parseFloat(String(match.drawOdds));
             const awayOdds = parseFloat(String(match.awayOdds));
             
-            // If period filter is specified (H1 or H2), skip filtering at this level
-            // Period-specific filtering is handled in MatchCard for All Markets
+            // If period filter is specified (H1 or H2), skip filtering at match level
+            // Period-specific filters only work in All Markets expanded view
             if (periodFilter) {
-              // For period-specific filters, we need to check expanded markets
-              // This is a simplified check - just look at main 1X2 for now
-              // Full period filtering happens in MatchCard component
-              return false; // Will be handled in All Markets display
+              // Don't filter matches by period at this level
+              // Instead, show all matches and let MatchCard handle period-specific highlighting
+              return true; // Show all matches, filtering happens in All Markets
             }
             
             if (positionFilter) {

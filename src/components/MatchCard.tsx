@@ -48,6 +48,37 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     }
   }, [isExpanded, match.allMarkets, match.id, selectedPrices]);
 
+  // Auto-expand period-specific markets when filtering by H1/H2
+  React.useEffect(() => {
+    if (isExpanded && match.allMarkets && match.allMarkets.length > 0 && searchTerm) {
+      const upperSearch = searchTerm.toUpperCase().trim();
+      let periodFilter: 'H1' | 'H2' | null = null;
+      
+      if (upperSearch.endsWith('H1')) {
+        periodFilter = 'H1';
+      } else if (upperSearch.endsWith('H2')) {
+        periodFilter = 'H2';
+      }
+      
+      if (periodFilter) {
+        // Find the matching period market and expand it
+        const targetPeriod = periodFilter === 'H1' ? 'H1' : '2H';
+        const periodMarket = match.allMarkets.find(m => 
+          (m.name === '1 X 2' || m.name === '1X2' || m.marketCode === 'CP') && 
+          m.periodCode === targetPeriod
+        );
+        
+        if (periodMarket) {
+          console.log(`🎯 Auto-expanding ${periodFilter} market:`, periodMarket.marketBookNo);
+          setExpandedMarkets(prev => ({
+            ...prev,
+            [periodMarket.marketBookNo]: true
+          }));
+        }
+      }
+    }
+  }, [isExpanded, match.allMarkets, searchTerm]);
+
   const toggleExpand = async () => {
     const newState = !isExpanded;
     setIsExpanded(newState);
@@ -195,6 +226,12 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     const oddsValue = typeof odds === 'string' ? parseFloat(odds) : odds;
     
     if (isNaN(targetOdds) || isNaN(oddsValue)) return false;
+    
+    // If period filter is specified (H1/H2), only match All Markets (not quick 1X2)
+    // Quick 1X2 has no period parameter, so it should not match period-specific filters
+    if (periodFilter && !period) {
+      return false; // Quick 1X2 shouldn't match H1/H2 filters
+    }
     
     // If period filter is specified, check if it matches
     if (periodFilter && period) {
