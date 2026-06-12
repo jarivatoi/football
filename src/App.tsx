@@ -1064,6 +1064,8 @@ function App() {
           onPriceClick={handlePriceClick}
           selectedPrices={parlaySelections.map((s, index) => `${s.matchId}-${s.priceType}`)}
           apiSourceName={selectedSource.displayName}
+          searchMode={searchMode}
+          searchTerm={searchTerm}
         />
       </div>
       

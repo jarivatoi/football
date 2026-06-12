@@ -7,9 +7,11 @@ interface MatchCardProps {
   match: TotelepepMatch;
   onPriceClick: (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => void;
   selectedPrices: string[];
+  searchMode?: 'matches' | 'gte' | 'lte'; // Search filter mode
+  searchTerm?: string; // Search term for odds highlighting
 }
 
-const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices }) => {
+const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoadingMarkets, setIsLoadingMarkets] = useState(false);
   const [expandedMarkets, setExpandedMarkets] = useState<Record<string, boolean>>({});
@@ -130,6 +132,24 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     return num.toFixed(2);
   };
 
+  // Check if an odds value matches the current search filter
+  const oddsMatchFilter = (odds: number | string): boolean => {
+    if (searchMode === 'matches' || !searchTerm) return false;
+    
+    const targetOdds = parseFloat(searchTerm);
+    const oddsValue = typeof odds === 'string' ? parseFloat(odds) : odds;
+    
+    if (isNaN(targetOdds) || isNaN(oddsValue)) return false;
+    
+    if (searchMode === 'gte') {
+      return oddsValue >= targetOdds;
+    } else if (searchMode === 'lte') {
+      return oddsValue <= targetOdds;
+    }
+    
+    return false;
+  };
+
   return (
     <div className="bg-white border-b border-gray-200">
       {/* Match Header - Compact View */}
@@ -193,6 +213,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               className={`w-full flex items-center justify-between py-2 px-4 rounded text-sm font-medium transition-all ${
                 isSelected('home')
                   ? 'bg-blue-600 text-white'
+                  : oddsMatchFilter(match.homeOdds)
+                  ? 'bg-orange-500 text-white'
                   : 'bg-white text-gray-900 hover:bg-gray-50 border border-gray-200'
               }`}
             >
@@ -207,6 +229,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               className={`w-full flex items-center justify-between py-2 px-4 rounded text-sm font-medium transition-all ${
                 isSelected('draw')
                   ? 'bg-blue-600 text-white'
+                  : oddsMatchFilter(match.drawOdds)
+                  ? 'bg-orange-500 text-white'
                   : 'bg-white text-gray-900 hover:bg-gray-50 border border-gray-200'
               }`}
             >
@@ -221,6 +245,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               className={`w-full flex items-center justify-between py-2 px-4 rounded text-sm font-medium transition-all ${
                 isSelected('away')
                   ? 'bg-blue-600 text-white'
+                  : oddsMatchFilter(match.awayOdds)
+                  ? 'bg-orange-500 text-white'
                   : 'bg-white text-gray-900 hover:bg-gray-50 border border-gray-200'
               }`}
             >
