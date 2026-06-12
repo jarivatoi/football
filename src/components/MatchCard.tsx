@@ -468,8 +468,16 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                     // First apply period filter if active (hide non-matching periods)
                     if (periodFilter) {
                       const targetPeriod = periodFilter === 'H1' ? 'H1' : '2H';
-                      if (market.periodCode !== targetPeriod) {
-                        return false; // Hide markets that don't match the period filter
+                      // H1 filter should match 'H1' or 'HT' (Half Time)
+                      // H2 filter should match '2H' or 'H2'
+                      const isH1Match = market.periodCode === 'H1' || market.periodCode === 'HT';
+                      const isH2Match = market.periodCode === '2H' || market.periodCode === 'H2';
+                      
+                      if (periodFilter === 'H1' && !isH1Match) {
+                        return false;
+                      }
+                      if (periodFilter === 'H2' && !isH2Match) {
+                        return false;
                       }
                     }
 
