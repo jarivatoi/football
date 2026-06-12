@@ -1046,10 +1046,8 @@ function App() {
       console.log('📋 Turning off All Matches - date selected');
     }
     
-    // Clear search when changing dates
-    setSearchTerm('');
-    setSearchMode('matches');
-    setSearchOddsValue('');
+    // Keep search filters when changing dates
+    // setSearchTerm, setSearchMode, and setSearchOddsValue are NOT reset
     
     setSelectedDate(newDate);
     
