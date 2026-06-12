@@ -41,46 +41,6 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchMode, setSearchMode] = useState<'matches' | 'eq' | 'gte' | 'lte'>('matches'); // matches, = (eq), >= (gte), <= (lte)
   const [searchOddsValue, setSearchOddsValue] = useState<string>('');
-  const [selectedMarketCode, setSelectedMarketCode] = useState<string>(''); // Market code filter for All Markets
-  
-  // Extract unique market codes from loaded matches
-  // Start with common markets, then add dynamic ones from allMarkets
-  const uniqueMarketCodes = React.useMemo(() => {
-    const codes = new Map<string, string>(); // marketCode -> marketName
-    
-    // Add common markets first (in priority order)
-    codes.set('CP', '1 X 2');
-    codes.set('CP_H1', '1 X 2 - First Half (H1)');
-    codes.set('CP_H2', '1 X 2 - 2nd Half (H2)');
-    codes.set('OU', 'Over/Under');
-    codes.set('BTTS', 'Both Teams to Score');
-    codes.set('DC', 'Double Chance');
-    codes.set('DC_H1', 'Double Chance - First Half (H1)');
-    codes.set('DC_H2', 'Double Chance - 2nd Half (H2)');
-    codes.set('CS', 'Correct Score');
-    codes.set('HTFT', 'Half Time/Full Time');
-    codes.set('HSH', 'Highest Scoring Half');
-    codes.set('OE', 'Odd/Even');
-    codes.set('WM', 'Winning Margin');
-    codes.set('GM', 'Goal Market');
-    
-    // Add dynamic markets from allMarkets data
-    Object.values(matches).forEach((dateMatches: any) => {
-      if (Array.isArray(dateMatches)) {
-        dateMatches.forEach((match: any) => {
-          if (match.allMarkets && match.allMarkets.length > 0) {
-            match.allMarkets.forEach((market: any) => {
-              if (market.marketCode && !codes.has(market.marketCode)) {
-                codes.set(market.marketCode, market.name);
-              }
-            });
-          }
-        });
-      }
-    });
-    
-    return Array.from(codes.entries()).sort((a, b) => a[1].localeCompare(b[1]));
-  }, [matches]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
   const [showExtractor, setShowExtractor] = useState(false);
@@ -611,13 +571,44 @@ function App() {
         // Filter by odds value
         let targetOdds = parseFloat(searchTerm);
         let positionFilter: 'home' | 'draw' | 'away' | null = null;
-        let marketCodeFilter = selectedMarketCode; // Use dropdown selection
+        let periodFilter: 'H1' | 'H2' | null = null;
         
-        // Check for position suffix (H=Home, D=Draw, A=Away)
+        // Check for position suffix (H=Home, D=Draw, A=Away) and period (H1=1st Half, H2=2nd Half)
         const upperSearch = searchTerm.toUpperCase().trim();
         
-        // Parse position from search term (e.g., 190H, 190D, 190A)
-        if (upperSearch.endsWith('H')) {
+        // Check for period + position suffix FIRST (H1H, H1D, H1A, H2H, H2D, H2A)
+        if (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A')) {
+          periodFilter = 'H1';
+          const withoutPeriodAndPosition = upperSearch.slice(0, -3); // Remove H1H, H1D, or H1A (3 chars)
+          if (upperSearch.endsWith('H1H')) {
+            positionFilter = 'home';
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          } else if (upperSearch.endsWith('H1D')) {
+            positionFilter = 'draw';
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          } else if (upperSearch.endsWith('H1A')) {
+            positionFilter = 'away';
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          }
+        } else if (upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A')) {
+          periodFilter = 'H2';
+          const withoutPeriodAndPosition = upperSearch.slice(0, -3); // Remove H2H, H2D, or H2A (3 chars)
+          if (upperSearch.endsWith('H2H')) {
+            positionFilter = 'home';
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          } else if (upperSearch.endsWith('H2D')) {
+            positionFilter = 'draw';
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          } else if (upperSearch.endsWith('H2A')) {
+            positionFilter = 'away';
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          }
+        } else if (upperSearch.endsWith('H1') || upperSearch.endsWith('H2')) {
+          // Incomplete period filter (e.g., "190H1" without H/D/A) - mark as invalid
+          periodFilter = upperSearch.endsWith('H1') ? 'H1' : 'H2';
+          positionFilter = null; // No position = incomplete
+          targetOdds = parseFloat(upperSearch.slice(0, -2));
+        } else if (upperSearch.endsWith('H')) {
           positionFilter = 'home';
           targetOdds = parseFloat(upperSearch.slice(0, -1));
         } else if (upperSearch.endsWith('D')) {
@@ -637,83 +628,78 @@ function App() {
           filteredDateMatches = [];
         } else {
           filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
-            // If market code filter is selected, check allMarkets
-            if (marketCodeFilter) {
-              if (!match.allMarkets || match.allMarkets.length === 0) {
-                return false; // Can't filter without allMarkets data
-              }
-              
-              // Parse market code and period (e.g., CP_H1, DC_H2)
-              let baseMarketCode = marketCodeFilter;
-              let periodCode: string | null = null;
-              
-              if (marketCodeFilter.includes('_H1')) {
-                baseMarketCode = marketCodeFilter.replace('_H1', '');
-                periodCode = 'H1';
-              } else if (marketCodeFilter.includes('_H2')) {
-                baseMarketCode = marketCodeFilter.replace('_H2', '');
-                periodCode = '2H'; // API uses '2H' for second half
-              }
-              
-              // Find matching market
-              const targetMarket = match.allMarkets.find(m => 
-                m.marketCode === baseMarketCode && 
-                (!periodCode || m.periodCode === periodCode || (periodCode === '2H' && m.periodCode === 'H2'))
-              );
-              
-              if (!targetMarket || !targetMarket.selections) {
-                return false;
-              }
-              
-              // Check if any selection matches the odds filter
-              if (positionFilter) {
-                // Specific position (H, D, or A)
-                const positionIndex = positionFilter === 'home' ? 0 : positionFilter === 'draw' ? 1 : 2;
-                const selection = targetMarket.selections[positionIndex];
-                if (!selection) return false;
+            // Check if any of the match's odds match the filter
+            const homeOdds = parseFloat(String(match.homeOdds));
+            const drawOdds = parseFloat(String(match.drawOdds));
+            const awayOdds = parseFloat(String(match.awayOdds));
+            
+            // If period filter is specified (H1 or H2) but no position, it means ANY position in that period
+            // allMarkets data is only available after match expansion, so we can't filter at this level
+            if (periodFilter && !positionFilter) {
+              // Show all matches - filtering happens visually in MatchCard after expansion
+              // MatchCard will auto-expand and highlight matching odds
+              return true;
+            }
+            
+            // If period filter is specified with position, check allMarkets if available
+            if (periodFilter && positionFilter) {
+              // Try to check allMarkets if available
+              if (match.allMarkets && match.allMarkets.length > 0) {
+                // Try both '2H' and 'H2' for second half
+                const possiblePeriodCodes = periodFilter === 'H1' ? ['H1'] : ['2H', 'H2'];
+                let periodMarket = null;
                 
-                const selOdds = parseFloat(String(selection.odds));
-                if (searchMode === 'eq') return selOdds === targetOdds;
-                if (searchMode === 'gte') return selOdds >= targetOdds;
-                if (searchMode === 'lte') return selOdds <= targetOdds;
+                for (const periodCode of possiblePeriodCodes) {
+                  periodMarket = match.allMarkets.find(m => 
+                    (m.name === '1 X 2' || m.name === '1X2' || m.marketCode === 'CP') && 
+                    m.periodCode === periodCode
+                  );
+                  if (periodMarket) break;
+                }
+                
+                if (periodMarket && periodMarket.selections) {
+                  // Find the specific position selection
+                  const positionIndex = positionFilter === 'home' ? 0 : positionFilter === 'draw' ? 1 : 2;
+                  const selection = periodMarket.selections[positionIndex];
+                  
+                  if (selection) {
+                    const selOdds = parseFloat(String(selection.odds));
+                    if (searchMode === 'eq') return selOdds === targetOdds;
+                    if (searchMode === 'gte') return selOdds >= targetOdds;
+                    if (searchMode === 'lte') return selOdds <= targetOdds;
+                  }
+                }
+              }
+              // If allMarkets not available or no match, don't show
+              return false;
+            }
+            
+            if (positionFilter) {
+              // Filter by specific position (H, D, or A)
+              if (searchMode === 'eq') {
+                if (positionFilter === 'home') return homeOdds === targetOdds;
+                if (positionFilter === 'draw') return drawOdds === targetOdds;
+                if (positionFilter === 'away') return awayOdds === targetOdds;
+              } else if (searchMode === 'gte') {
+                if (positionFilter === 'home') return homeOdds >= targetOdds;
+                if (positionFilter === 'draw') return drawOdds >= targetOdds;
+                if (positionFilter === 'away') return awayOdds >= targetOdds;
               } else {
-                // Any position
-                return targetMarket.selections.some((sel: any) => {
-                  const selOdds = parseFloat(String(sel.odds));
-                  if (searchMode === 'eq') return selOdds === targetOdds;
-                  if (searchMode === 'gte') return selOdds >= targetOdds;
-                  if (searchMode === 'lte') return selOdds <= targetOdds;
-                  return false;
-                });
+                if (positionFilter === 'home') return homeOdds <= targetOdds;
+                if (positionFilter === 'draw') return drawOdds <= targetOdds;
+                if (positionFilter === 'away') return awayOdds <= targetOdds;
               }
             } else {
-              // No market code filter - use quick 1X2 odds
-              const homeOdds = parseFloat(String(match.homeOdds));
-              const drawOdds = parseFloat(String(match.drawOdds));
-              const awayOdds = parseFloat(String(match.awayOdds));
-              
-              if (positionFilter) {
-                if (searchMode === 'eq') {
-                  if (positionFilter === 'home') return homeOdds === targetOdds;
-                  if (positionFilter === 'draw') return drawOdds === targetOdds;
-                  if (positionFilter === 'away') return awayOdds === targetOdds;
-                } else if (searchMode === 'gte') {
-                  if (positionFilter === 'home') return homeOdds >= targetOdds;
-                  if (positionFilter === 'draw') return drawOdds >= targetOdds;
-                  if (positionFilter === 'away') return awayOdds >= targetOdds;
-                } else {
-                  if (positionFilter === 'home') return homeOdds <= targetOdds;
-                  if (positionFilter === 'draw') return drawOdds <= targetOdds;
-                  if (positionFilter === 'away') return awayOdds <= targetOdds;
-                }
+              // Filter any position (no suffix)
+              if (searchMode === 'eq') {
+                // = (equal to)
+                return homeOdds === targetOdds || drawOdds === targetOdds || awayOdds === targetOdds;
+              } else if (searchMode === 'gte') {
+                // >= (greater than or equal)
+                return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
               } else {
-                if (searchMode === 'eq') {
-                  return homeOdds === targetOdds || drawOdds === targetOdds || awayOdds === targetOdds;
-                } else if (searchMode === 'gte') {
-                  return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
-                } else {
-                  return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
-                }
+                // <= (less than or equal)
+                return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
               }
             }
           });
@@ -1121,12 +1107,12 @@ function App() {
         {/* Search Bar */}
         <div className="bg-white shadow-sm border-b border-gray-200">
           <div className="px-3 py-2 flex items-center gap-2">
-            {/* Search Input - Reduced Width */}
-            <div className="relative" style={{width: '35%'}}>
+            {/* Search Input - Half Width */}
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder={searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A' : 'Enter odds...'}
+                placeholder={searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A, 130H1H' : 'Enter odds (e.g., 130H, 150H2A)...'}
                 value={searchTerm}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -1154,23 +1140,6 @@ function App() {
               )}
             </div>
             
-            {/* Market Code Dropdown - Hide when in Matches mode */}
-            {searchMode !== 'matches' && (
-              <select
-                value={selectedMarketCode}
-                onChange={(e) => setSelectedMarketCode(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium"
-                style={{width: '25%'}}
-              >
-                <option value="">All Markets</option>
-                {uniqueMarketCodes.map(([code, name]) => (
-                  <option key={code} value={code}>
-                    {name} ({code})
-                  </option>
-                ))}
-              </select>
-            )}
-            
             {/* Filter Mode Dropdown */}
             <select
               value={searchMode}
@@ -1186,7 +1155,6 @@ function App() {
                 // When switching between odds modes (=, >=, <=), keep the search text
               }}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium"
-              style={{width: '25%'}}
             >
               <option value="matches">Matches</option>
               <option value="eq">= Equal to</option>

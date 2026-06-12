@@ -48,7 +48,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     }
   }, [isExpanded, match.allMarkets, match.id, selectedPrices]);
 
-  // Auto-expand period-specific markets when filtering by H1/H2
+  // Auto-expand period-specific markets when filtering by H1/H2 with position
+  // For period-only filters (e.g., 215H1), don't auto-expand specific markets - just show all
   React.useEffect(() => {
     if (isExpanded && match.allMarkets && match.allMarkets.length > 0 && searchTerm) {
       const upperSearch = searchTerm.toUpperCase().trim();
@@ -66,18 +67,12 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         if (upperSearch.endsWith('H2H')) positionFilter = 'home';
         else if (upperSearch.endsWith('H2D')) positionFilter = 'draw';
         else if (upperSearch.endsWith('H2A')) positionFilter = 'away';
-      } else if (upperSearch.endsWith('H1') || upperSearch.endsWith('H2')) {
-        // Period only (e.g., 190H1) - any position
-        periodFilter = upperSearch.endsWith('H1') ? 'H1' : 'H2';
       }
       
-      if (periodFilter) {
+      // Only auto-expand if we have BOTH period AND position
+      // For period-only filters, just show all markets and let user browse
+      if (periodFilter && positionFilter) {
         // Find the matching period market and expand it
-        const targetPeriod = periodFilter === 'H1' ? 'H1' : '2H';
-        console.log(`🔍 Looking for period: ${targetPeriod}, search: ${searchTerm}`);
-        console.log(`  Available markets:`, match.allMarkets.map(m => ({ name: m.name, periodCode: m.periodCode, marketCode: m.marketCode })));
-        
-        // Try both '2H' and 'H2' for second half
         const possiblePeriodCodes = periodFilter === 'H1' ? ['H1'] : ['2H', 'H2'];
         let periodMarket = null;
         
@@ -86,13 +81,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
             (m.name === '1 X 2' || m.name === '1X2' || m.marketCode === 'CP') && 
             m.periodCode === periodCode
           );
-          if (periodMarket) {
-            console.log(`  ✓ Found with periodCode: ${periodCode}`);
-            break;
-          }
+          if (periodMarket) break;
         }
-        
-        console.log(`  Found market:`, periodMarket?.name, 'periodCode:', periodMarket?.periodCode);
         
         if (periodMarket) {
           console.log(`🎯 Auto-expanding ${periodFilter} market:`, periodMarket.marketBookNo);
@@ -100,8 +90,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
             ...prev,
             [periodMarket.marketBookNo]: true
           }));
-        } else {
-          console.log(`❌ Period market not found for ${targetPeriod}, tried: ${possiblePeriodCodes.join(', ')}`);
         }
       }
     }
