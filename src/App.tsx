@@ -233,6 +233,25 @@ function App() {
     };
   }, []);
 
+  // Calculate sticky header height and set CSS variable
+  useEffect(() => {
+    const updateHeaderHeight = () => {
+      const header = document.getElementById('main-sticky-header');
+      if (header) {
+        const height = header.offsetHeight;
+        document.documentElement.style.setProperty('--header-height', `${height}px`);
+        console.log('📏 Sticky header height:', height, 'px');
+      }
+    };
+    
+    // Run after render
+    updateHeaderHeight();
+    
+    // Update on resize
+    window.addEventListener('resize', updateHeaderHeight);
+    return () => window.removeEventListener('resize', updateHeaderHeight);
+  }, []);
+
   // Initialize PWA features
   useEffect(() => {
     registerServiceWorker();
@@ -918,7 +937,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Combined Sticky Header: Header + Date Selector + Search */}
-      <div className="sticky top-0 z-40">
+      <div className="sticky top-0 z-40" id="main-sticky-header">
         <Header 
           selectionCount={parlaySelections.length}
           onSlipClick={toggleParlayBuilder}
