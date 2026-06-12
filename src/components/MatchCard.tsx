@@ -75,12 +75,22 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         // Find the matching period market and expand it
         const targetPeriod = periodFilter === 'H1' ? 'H1' : '2H';
         console.log(`🔍 Looking for period: ${targetPeriod}, search: ${searchTerm}`);
-        console.log(`  Available markets:`, match.allMarkets.map(m => ({ name: m.name, periodCode: m.periodCode })));
+        console.log(`  Available markets:`, match.allMarkets.map(m => ({ name: m.name, periodCode: m.periodCode, marketCode: m.marketCode })));
         
-        const periodMarket = match.allMarkets.find(m => 
-          (m.name === '1 X 2' || m.name === '1X2' || m.marketCode === 'CP') && 
-          m.periodCode === targetPeriod
-        );
+        // Try both '2H' and 'H2' for second half
+        const possiblePeriodCodes = periodFilter === 'H1' ? ['H1'] : ['2H', 'H2'];
+        let periodMarket = null;
+        
+        for (const periodCode of possiblePeriodCodes) {
+          periodMarket = match.allMarkets.find(m => 
+            (m.name === '1 X 2' || m.name === '1X2' || m.marketCode === 'CP') && 
+            m.periodCode === periodCode
+          );
+          if (periodMarket) {
+            console.log(`  ✓ Found with periodCode: ${periodCode}`);
+            break;
+          }
+        }
         
         console.log(`  Found market:`, periodMarket?.name, 'periodCode:', periodMarket?.periodCode);
         
@@ -91,7 +101,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
             [periodMarket.marketBookNo]: true
           }));
         } else {
-          console.log(`❌ Period market not found for ${targetPeriod}`);
+          console.log(`❌ Period market not found for ${targetPeriod}, tried: ${possiblePeriodCodes.join(', ')}`);
         }
       }
     }
