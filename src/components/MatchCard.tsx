@@ -82,7 +82,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   // Check if a market has any selections matching the filter
   const marketHasMatchingOdds = (market: any): boolean => {
     if (searchMode === 'matches' || !searchTerm || !market.selections) return false;
-    return market.selections.some((sel: any) => oddsMatchFilter(sel.odds));
+    return market.selections.some((sel: any) => oddsMatchFilter(sel.odds, undefined, market.periodCode));
   };
 
   // Check if a market selection matches a quick 1X2 selection
@@ -139,15 +139,44 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   };
 
   // Check if an odds value matches the current search filter
-  const oddsMatchFilter = (odds: number | string, position?: 'home' | 'draw' | 'away'): boolean => {
+  const oddsMatchFilter = (odds: number | string, position?: 'home' | 'draw' | 'away', period?: string): boolean => {
     if (searchMode === 'matches' || !searchTerm) return false;
     
     let targetOdds = parseFloat(searchTerm);
     let positionFilter: 'home' | 'draw' | 'away' | null = null;
+    let periodFilter: 'H1' | 'H2' | null = null;
     
-    // Check for position suffix (H=Home, D=Draw, A=Away)
+    // Check for position suffix (H=Home, D=Draw, A=Away) and period (H1=1st Half, H2=2nd Half)
     const upperSearch = searchTerm.toUpperCase().trim();
-    if (upperSearch.endsWith('H')) {
+    
+    // Check for period suffix first (H1 or H2)
+    if (upperSearch.endsWith('H1')) {
+      periodFilter = 'H1';
+      const withoutPeriod = upperSearch.slice(0, -2);
+      if (withoutPeriod.endsWith('H')) {
+        positionFilter = 'home';
+        targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+      } else if (withoutPeriod.endsWith('D')) {
+        positionFilter = 'draw';
+        targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+      } else if (withoutPeriod.endsWith('A')) {
+        positionFilter = 'away';
+        targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+      }
+    } else if (upperSearch.endsWith('H2')) {
+      periodFilter = 'H2';
+      const withoutPeriod = upperSearch.slice(0, -2);
+      if (withoutPeriod.endsWith('H')) {
+        positionFilter = 'home';
+        targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+      } else if (withoutPeriod.endsWith('D')) {
+        positionFilter = 'draw';
+        targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+      } else if (withoutPeriod.endsWith('A')) {
+        positionFilter = 'away';
+        targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+      }
+    } else if (upperSearch.endsWith('H')) {
       positionFilter = 'home';
       targetOdds = parseFloat(upperSearch.slice(0, -1));
     } else if (upperSearch.endsWith('D')) {
@@ -166,6 +195,13 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     const oddsValue = typeof odds === 'string' ? parseFloat(odds) : odds;
     
     if (isNaN(targetOdds) || isNaN(oddsValue)) return false;
+    
+    // If period filter is specified, check if it matches
+    if (periodFilter && period) {
+      const marketPeriod = period.toUpperCase();
+      if (periodFilter === 'H1' && marketPeriod !== 'H1') return false;
+      if (periodFilter === 'H2' && marketPeriod !== '2H') return false; // API uses '2H' for second half
+    }
     
     // If position filter is specified, only match that position
     if (positionFilter && position) {
@@ -422,12 +458,12 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                           className={`flex-1 min-w-[80px] py-2 px-2 rounded text-sm font-medium transition-all ${
                             isSelectedMarket
                               ? 'bg-blue-600 text-white'
-                              : oddsMatchFilter(selection.odds)
+                              : oddsMatchFilter(selection.odds, undefined, market.periodCode)
                               ? 'bg-orange-500 text-white'
                               : 'bg-gray-100 hover:bg-gray-200'
                           }`}
                         >
-                          <div className={`text-xs ${isSelectedMarket ? 'text-white' : oddsMatchFilter(selection.odds) ? 'text-white' : 'text-gray-600'}`}>{selection.name}</div>
+                          <div className={`text-xs ${isSelectedMarket ? 'text-white' : oddsMatchFilter(selection.odds, undefined, market.periodCode) ? 'text-white' : 'text-gray-600'}`}>{selection.name}</div>
                           <div className="font-bold">{formatOdds(selection.odds)}</div>
                         </button>
                       );

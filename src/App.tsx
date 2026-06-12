@@ -571,10 +571,39 @@ function App() {
         // Filter by odds value
         let targetOdds = parseFloat(searchTerm);
         let positionFilter: 'home' | 'draw' | 'away' | null = null;
+        let periodFilter: 'H1' | 'H2' | null = null;
         
-        // Check for position suffix (H=Home, D=Draw, A=Away)
+        // Check for position suffix (H=Home, D=Draw, A=Away) and period (H1=1st Half, H2=2nd Half)
         const upperSearch = searchTerm.toUpperCase().trim();
-        if (upperSearch.endsWith('H')) {
+        
+        // Check for period suffix first (H1 or H2)
+        if (upperSearch.endsWith('H1')) {
+          periodFilter = 'H1';
+          const withoutPeriod = upperSearch.slice(0, -2);
+          if (withoutPeriod.endsWith('H')) {
+            positionFilter = 'home';
+            targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+          } else if (withoutPeriod.endsWith('D')) {
+            positionFilter = 'draw';
+            targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+          } else if (withoutPeriod.endsWith('A')) {
+            positionFilter = 'away';
+            targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+          }
+        } else if (upperSearch.endsWith('H2')) {
+          periodFilter = 'H2';
+          const withoutPeriod = upperSearch.slice(0, -2);
+          if (withoutPeriod.endsWith('H')) {
+            positionFilter = 'home';
+            targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+          } else if (withoutPeriod.endsWith('D')) {
+            positionFilter = 'draw';
+            targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+          } else if (withoutPeriod.endsWith('A')) {
+            positionFilter = 'away';
+            targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+          }
+        } else if (upperSearch.endsWith('H')) {
           positionFilter = 'home';
           targetOdds = parseFloat(upperSearch.slice(0, -1));
         } else if (upperSearch.endsWith('D')) {
@@ -598,6 +627,15 @@ function App() {
             const homeOdds = parseFloat(String(match.homeOdds));
             const drawOdds = parseFloat(String(match.drawOdds));
             const awayOdds = parseFloat(String(match.awayOdds));
+            
+            // If period filter is specified (H1 or H2), skip filtering at this level
+            // Period-specific filtering is handled in MatchCard for All Markets
+            if (periodFilter) {
+              // For period-specific filters, we need to check expanded markets
+              // This is a simplified check - just look at main 1X2 for now
+              // Full period filtering happens in MatchCard component
+              return false; // Will be handled in All Markets display
+            }
             
             if (positionFilter) {
               // Filter by specific position (H, D, or A)
@@ -1037,7 +1075,7 @@ function App() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder={searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A' : 'Enter odds (e.g., 130H, 150A)...'}
+                placeholder={searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A, 130H1H' : 'Enter odds (e.g., 130H, 150H2A)...'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
