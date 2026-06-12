@@ -576,8 +576,8 @@ function App() {
         // Check for position suffix (H=Home, D=Draw, A=Away) and period (H1=1st Half, H2=2nd Half)
         const upperSearch = searchTerm.toUpperCase().trim();
         
-        // Check for period suffix first (H1 or H2)
-        if (upperSearch.endsWith('H1')) {
+        // Check for period + position suffix FIRST (H1H, H1D, H1A, H2H, H2D, H2A)
+        if (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A')) {
           periodFilter = 'H1';
           const withoutPeriod = upperSearch.slice(0, -2);
           if (withoutPeriod.endsWith('H')) {
@@ -590,7 +590,7 @@ function App() {
             positionFilter = 'away';
             targetOdds = parseFloat(withoutPeriod.slice(0, -1));
           }
-        } else if (upperSearch.endsWith('H2')) {
+        } else if (upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A')) {
           periodFilter = 'H2';
           const withoutPeriod = upperSearch.slice(0, -2);
           if (withoutPeriod.endsWith('H')) {
