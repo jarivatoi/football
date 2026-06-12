@@ -107,7 +107,16 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                 if (index !== positionIndex) return false;
               }
               
-              return selOdds === targetOdds;
+              // Check based on search mode (=, >=, <=)
+              const upperSearch = searchTerm.toUpperCase().trim();
+              if (upperSearch.startsWith('>=')) {
+                return selOdds >= targetOdds;
+              } else if (upperSearch.startsWith('<=')) {
+                return selOdds <= targetOdds;
+              } else {
+                // Default: equal to
+                return selOdds === targetOdds;
+              }
             });
             
             if (hasMatchingOdds) {
