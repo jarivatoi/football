@@ -107,11 +107,39 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                 if (index !== positionIndex) return false;
               }
               
-              // Check based on searchMode (=, >=, <=)
+              // Check based on searchMode (=, >=, <=, between)
               if (searchMode === 'gte') {
                 return selOdds >= targetOdds;
               } else if (searchMode === 'lte') {
                 return selOdds <= targetOdds;
+              } else if (searchMode === 'between') {
+                // Parse range from searchTerm (e.g., "100-200H1")
+                if (searchTerm.includes('-')) {
+                  const rangeParts = searchTerm.split('-');
+                  if (rangeParts.length === 2) {
+                    let minStr = rangeParts[0].trim();
+                    let maxStr = rangeParts[1].trim();
+                    
+                    // Remove period/position suffixes
+                    if (maxStr.toUpperCase().endsWith('H1H') || maxStr.toUpperCase().endsWith('H1D') || maxStr.toUpperCase().endsWith('H1A') ||
+                        maxStr.toUpperCase().endsWith('H2H') || maxStr.toUpperCase().endsWith('H2D') || maxStr.toUpperCase().endsWith('H2A')) {
+                      maxStr = maxStr.slice(0, -3);
+                    } else if (maxStr.toUpperCase().endsWith('H1') || maxStr.toUpperCase().endsWith('H2')) {
+                      maxStr = maxStr.slice(0, -2);
+                    } else if (maxStr.toUpperCase().endsWith('H') || maxStr.toUpperCase().endsWith('D') || maxStr.toUpperCase().endsWith('A')) {
+                      maxStr = maxStr.slice(0, -1);
+                    }
+                    
+                    const minOdds = parseFloat(minStr);
+                    const maxOdds = parseFloat(maxStr);
+                    
+                    const adjustedMin = minOdds > 10 ? minOdds / 100 : minOdds;
+                    const adjustedMax = maxOdds > 10 ? maxOdds / 100 : maxOdds;
+                    
+                    return selOdds >= adjustedMin && selOdds <= adjustedMax;
+                  }
+                }
+                return false;
               } else {
                 // Default (eq): equal to
                 return selOdds === targetOdds;
@@ -325,6 +353,34 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       return oddsValue >= targetOdds;
     } else if (searchMode === 'lte') {
       return oddsValue <= targetOdds;
+    } else if (searchMode === 'between') {
+      // Parse range for "between" mode
+      if (searchTerm.includes('-')) {
+        const rangeParts = searchTerm.split('-');
+        if (rangeParts.length === 2) {
+          let minStr = rangeParts[0].trim();
+          let maxStr = rangeParts[1].trim();
+          
+          // Remove period/position suffixes
+          if (maxStr.toUpperCase().endsWith('H1H') || maxStr.toUpperCase().endsWith('H1D') || maxStr.toUpperCase().endsWith('H1A') ||
+              maxStr.toUpperCase().endsWith('H2H') || maxStr.toUpperCase().endsWith('H2D') || maxStr.toUpperCase().endsWith('H2A')) {
+            maxStr = maxStr.slice(0, -3);
+          } else if (maxStr.toUpperCase().endsWith('H1') || maxStr.toUpperCase().endsWith('H2')) {
+            maxStr = maxStr.slice(0, -2);
+          } else if (maxStr.toUpperCase().endsWith('H') || maxStr.toUpperCase().endsWith('D') || maxStr.toUpperCase().endsWith('A')) {
+            maxStr = maxStr.slice(0, -1);
+          }
+          
+          const minOdds = parseFloat(minStr);
+          const maxOdds = parseFloat(maxStr);
+          
+          const adjustedMin = minOdds > 10 ? minOdds / 100 : minOdds;
+          const adjustedMax = maxOdds > 10 ? maxOdds / 100 : maxOdds;
+          
+          return oddsValue >= adjustedMin && oddsValue <= adjustedMax;
+        }
+      }
+      return false;
     }
     
     return false;
