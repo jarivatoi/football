@@ -634,10 +634,32 @@ function App() {
             const awayOdds = parseFloat(String(match.awayOdds));
             
             // If period filter is specified (H1 or H2) but no position, it means ANY position in that period
-            // allMarkets data is only available after match expansion, so we can't filter at this level
+            // Check allMarkets if available
             if (periodFilter && !positionFilter) {
-              // Show all matches - filtering happens visually in MatchCard after expansion
-              // MatchCard will auto-expand and highlight matching odds
+              if (match.allMarkets && match.allMarkets.length > 0) {
+                // Try both '2H' and 'H2' for second half
+                const possiblePeriodCodes = periodFilter === 'H1' ? ['H1'] : ['2H', 'H2'];
+                
+                // Check ALL markets in the specified period for matching odds
+                for (const periodCode of possiblePeriodCodes) {
+                  const periodMarkets = match.allMarkets.filter(m => 
+                    m.periodCode === periodCode && m.selections && m.selections.length > 0
+                  );
+                  
+                  for (const market of periodMarkets) {
+                    const hasMatchingOdds = market.selections.some((sel: any) => {
+                      const selOdds = parseFloat(String(sel.odds));
+                      return selOdds === targetOdds;
+                    });
+                    
+                    if (hasMatchingOdds) return true;
+                  }
+                }
+                
+                // No matching odds found in any period market
+                return false;
+              }
+              // allMarkets not loaded yet - show match and let it load
               return true;
             }
             
