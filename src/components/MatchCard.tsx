@@ -74,10 +74,15 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       if (periodFilter) {
         // Find the matching period market and expand it
         const targetPeriod = periodFilter === 'H1' ? 'H1' : '2H';
+        console.log(`🔍 Looking for period: ${targetPeriod}, search: ${searchTerm}`);
+        console.log(`  Available markets:`, match.allMarkets.map(m => ({ name: m.name, periodCode: m.periodCode })));
+        
         const periodMarket = match.allMarkets.find(m => 
           (m.name === '1 X 2' || m.name === '1X2' || m.marketCode === 'CP') && 
           m.periodCode === targetPeriod
         );
+        
+        console.log(`  Found market:`, periodMarket?.name, 'periodCode:', periodMarket?.periodCode);
         
         if (periodMarket) {
           console.log(`🎯 Auto-expanding ${periodFilter} market:`, periodMarket.marketBookNo);
@@ -85,6 +90,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
             ...prev,
             [periodMarket.marketBookNo]: true
           }));
+        } else {
+          console.log(`❌ Period market not found for ${targetPeriod}`);
         }
       }
     }
