@@ -90,6 +90,21 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     }
   }, [isExpanded, match.allMarkets, searchTerm]);
 
+  // Auto-expand match card when period filter is active
+  React.useEffect(() => {
+    if (!isExpanded && searchTerm) {
+      const upperSearch = searchTerm.toUpperCase().trim();
+      const hasPeriodFilter = upperSearch.endsWith('H1') || upperSearch.endsWith('H2') || 
+                              upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A') ||
+                              upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A');
+      
+      if (hasPeriodFilter) {
+        console.log('🚀 Auto-expanding match card for period filter');
+        toggleExpand();
+      }
+    }
+  }, [searchTerm, isExpanded]);
+
   const toggleExpand = async () => {
     const newState = !isExpanded;
     setIsExpanded(newState);
