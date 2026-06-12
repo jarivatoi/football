@@ -48,48 +48,78 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     }
   }, [isExpanded, match.allMarkets, match.id, selectedPrices]);
 
-  // Auto-expand period-specific markets when filtering by H1/H2 with position
-  // For period-only filters (e.g., 215H1), don't auto-expand specific markets - just show all
+  // Auto-expand period-specific markets when filtering by H1/H2
   React.useEffect(() => {
     if (isExpanded && match.allMarkets && match.allMarkets.length > 0 && searchTerm) {
       const upperSearch = searchTerm.toUpperCase().trim();
       let periodFilter: 'H1' | 'H2' | null = null;
       let positionFilter: 'home' | 'draw' | 'away' | null = null;
+      let targetOdds = parseFloat(searchTerm);
       
       // Check for period + position (H1H, H1D, H1A, H2H, H2D, H2A)
       if (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A')) {
         periodFilter = 'H1';
+        const withoutPeriodAndPosition = upperSearch.slice(0, -3);
         if (upperSearch.endsWith('H1H')) positionFilter = 'home';
         else if (upperSearch.endsWith('H1D')) positionFilter = 'draw';
         else if (upperSearch.endsWith('H1A')) positionFilter = 'away';
+        targetOdds = parseFloat(withoutPeriodAndPosition);
       } else if (upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A')) {
         periodFilter = 'H2';
+        const withoutPeriodAndPosition = upperSearch.slice(0, -3);
         if (upperSearch.endsWith('H2H')) positionFilter = 'home';
         else if (upperSearch.endsWith('H2D')) positionFilter = 'draw';
         else if (upperSearch.endsWith('H2A')) positionFilter = 'away';
+        targetOdds = parseFloat(withoutPeriodAndPosition);
+      } else if (upperSearch.endsWith('H1') || upperSearch.endsWith('H2')) {
+        // Period only (e.g., 190H1) - any position
+        periodFilter = upperSearch.endsWith('H1') ? 'H1' : 'H2';
+        targetOdds = parseFloat(upperSearch.slice(0, -2));
       }
       
-      // Only auto-expand if we have BOTH period AND position
-      // For period-only filters, just show all markets and let user browse
-      if (periodFilter && positionFilter) {
-        // Find the matching period market and expand it
+      // Handle input like "130" as "1.30" for decimal odds
+      if (!isNaN(targetOdds) && targetOdds > 10) {
+        targetOdds = targetOdds / 100;
+      }
+      
+      if (periodFilter && !isNaN(targetOdds)) {
+        // Try both '2H' and 'H2' for second half
         const possiblePeriodCodes = periodFilter === 'H1' ? ['H1'] : ['2H', 'H2'];
-        let periodMarket = null;
+        
+        // Find and expand only markets that have matching odds
+        const newExpandedMarkets = { ...expandedMarkets };
         
         for (const periodCode of possiblePeriodCodes) {
-          periodMarket = match.allMarkets.find(m => 
-            (m.name === '1 X 2' || m.name === '1X2' || m.marketCode === 'CP') && 
-            m.periodCode === periodCode
+          const periodMarkets = match.allMarkets.filter(m => 
+            m.periodCode === periodCode && m.selections && m.selections.length > 0
           );
-          if (periodMarket) break;
+          
+          for (const market of periodMarkets) {
+            // Check if this market has any selection matching the filter
+            const hasMatchingOdds = market.selections.some((sel: any) => {
+              const selOdds = parseFloat(String(sel.odds));
+              if (isNaN(selOdds)) return false;
+              
+              // If position filter specified, check specific position
+              if (positionFilter) {
+                const positionIndex = positionFilter === 'home' ? 0 : positionFilter === 'draw' ? 1 : 2;
+                const index = market.selections.indexOf(sel);
+                if (index !== positionIndex) return false;
+              }
+              
+              return selOdds === targetOdds;
+            });
+            
+            if (hasMatchingOdds) {
+              newExpandedMarkets[market.marketBookNo] = true;
+            }
+          }
         }
         
-        if (periodMarket) {
-          console.log(`🎯 Auto-expanding ${periodFilter} market:`, periodMarket.marketBookNo);
-          setExpandedMarkets(prev => ({
-            ...prev,
-            [periodMarket.marketBookNo]: true
-          }));
+        // Update all at once
+        if (Object.keys(newExpandedMarkets).length > 0) {
+          console.log(`🎯 Auto-expanding ${periodFilter} markets with matching odds:`, Object.keys(newExpandedMarkets));
+          setExpandedMarkets(newExpandedMarkets);
         }
       }
     }
