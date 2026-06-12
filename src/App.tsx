@@ -41,6 +41,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchMode, setSearchMode] = useState<'matches' | 'eq' | 'gte' | 'lte'>('matches'); // matches, = (eq), >= (gte), <= (lte)
   const [searchOddsValue, setSearchOddsValue] = useState<string>('');
+  const [selectedMarketCode, setSelectedMarketCode] = useState<string>(''); // Market code filter for All Markets
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
   const [showExtractor, setShowExtractor] = useState(false);
@@ -1107,12 +1108,12 @@ function App() {
         {/* Search Bar */}
         <div className="bg-white shadow-sm border-b border-gray-200">
           <div className="px-3 py-2 flex items-center gap-2">
-            {/* Search Input - Half Width */}
-            <div className="relative flex-1">
+            {/* Search Input - Reduced Width */}
+            <div className="relative" style={{width: '35%'}}>
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder={searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A, 130H1H' : 'Enter odds (e.g., 130H, 150H2A)...'}
+                placeholder={searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A' : 'Enter odds...'}
                 value={searchTerm}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -1140,6 +1141,22 @@ function App() {
               )}
             </div>
             
+            {/* Market Code Dropdown */}
+            <select
+              value={selectedMarketCode}
+              onChange={(e) => setSelectedMarketCode(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium"
+              style={{width: '25%'}}
+            >
+              <option value="">All Markets</option>
+              <option value="CP">1 X 2</option>
+              <option value="OU">Over/Under</option>
+              <option value="BTTS">Both Teams to Score</option>
+              <option value="DC">Double Chance</option>
+              <option value="CS">Correct Score</option>
+              <option value="HTFT">Half Time/Full Time</option>
+            </select>
+            
             {/* Filter Mode Dropdown */}
             <select
               value={searchMode}
@@ -1155,6 +1172,7 @@ function App() {
                 // When switching between odds modes (=, >=, <=), keep the search text
               }}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium"
+              style={{width: '25%'}}
             >
               <option value="matches">Matches</option>
               <option value="eq">= Equal to</option>
