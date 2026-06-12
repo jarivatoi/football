@@ -238,7 +238,7 @@ function App() {
     const updateHeaderHeight = () => {
       const header = document.getElementById('main-sticky-header');
       if (header) {
-        const height = header.offsetHeight + 10; // Add 10px buffer to prevent overlap
+        const height = header.offsetHeight + 0; // Add ?px buffer to prevent overlap
         document.documentElement.style.setProperty('--header-height', `${height}px`);
         console.log('📏 Sticky header height:', height, 'px');
       }
