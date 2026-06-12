@@ -44,9 +44,23 @@ function App() {
   const [selectedMarketCode, setSelectedMarketCode] = useState<string>(''); // Market code filter for All Markets
   
   // Extract unique market codes from loaded matches
+  // Start with common markets, then add dynamic ones from allMarkets
   const uniqueMarketCodes = React.useMemo(() => {
     const codes = new Map<string, string>(); // marketCode -> marketName
     
+    // Add common markets first
+    codes.set('CP', '1 X 2');
+    codes.set('OU', 'Over/Under');
+    codes.set('BTTS', 'Both Teams to Score');
+    codes.set('DC', 'Double Chance');
+    codes.set('CS', 'Correct Score');
+    codes.set('HTFT', 'Half Time/Full Time');
+    codes.set('HSH', 'Highest Scoring Half');
+    codes.set('OE', 'Odd/Even');
+    codes.set('WM', 'Winning Margin');
+    codes.set('GM', 'Goal Market');
+    
+    // Add dynamic markets from allMarkets data
     Object.values(matches).forEach((dateMatches: any) => {
       if (Array.isArray(dateMatches)) {
         dateMatches.forEach((match: any) => {
