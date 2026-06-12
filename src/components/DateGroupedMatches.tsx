@@ -64,7 +64,7 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
         return (
           <div key={date}>
             {/* Date Header - Sticky */}
-            <div className="sticky top-[160px] z-10 bg-blue-600 text-white px-3 py-2 text-sm font-medium shadow-md">
+            <div className="sticky top-[240px] z-10 bg-blue-600 text-white px-3 py-2 text-sm font-medium shadow-md">
               {dateHeader}
             </div>
 
