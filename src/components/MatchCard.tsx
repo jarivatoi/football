@@ -53,12 +53,22 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     if (isExpanded && match.allMarkets && match.allMarkets.length > 0 && searchTerm) {
       const upperSearch = searchTerm.toUpperCase().trim();
       let periodFilter: 'H1' | 'H2' | null = null;
+      let positionFilter: 'home' | 'draw' | 'away' | null = null;
       
-      // Only auto-expand if search has H1 or H2 suffix AND position (H, D, or A)
-      if (upperSearch.endsWith('H1') && (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A'))) {
+      // Check for period + position (H1H, H1D, H1A, H2H, H2D, H2A)
+      if (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A')) {
         periodFilter = 'H1';
-      } else if (upperSearch.endsWith('H2') && (upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A'))) {
+        if (upperSearch.endsWith('H1H')) positionFilter = 'home';
+        else if (upperSearch.endsWith('H1D')) positionFilter = 'draw';
+        else if (upperSearch.endsWith('H1A')) positionFilter = 'away';
+      } else if (upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A')) {
         periodFilter = 'H2';
+        if (upperSearch.endsWith('H2H')) positionFilter = 'home';
+        else if (upperSearch.endsWith('H2D')) positionFilter = 'draw';
+        else if (upperSearch.endsWith('H2A')) positionFilter = 'away';
+      } else if (upperSearch.endsWith('H1') || upperSearch.endsWith('H2')) {
+        // Period only (e.g., 190H1) - any position
+        periodFilter = upperSearch.endsWith('H1') ? 'H1' : 'H2';
       }
       
       if (periodFilter) {

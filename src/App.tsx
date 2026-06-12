@@ -603,6 +603,11 @@ function App() {
             positionFilter = 'away';
             targetOdds = parseFloat(withoutPeriod.slice(0, -1));
           }
+        } else if (upperSearch.endsWith('H1') || upperSearch.endsWith('H2')) {
+          // Incomplete period filter (e.g., "190H1" without H/D/A) - mark as invalid
+          periodFilter = upperSearch.endsWith('H1') ? 'H1' : 'H2';
+          positionFilter = null; // No position = incomplete
+          targetOdds = parseFloat(upperSearch.slice(0, -2));
         } else if (upperSearch.endsWith('H')) {
           positionFilter = 'home';
           targetOdds = parseFloat(upperSearch.slice(0, -1));
@@ -628,11 +633,12 @@ function App() {
             const drawOdds = parseFloat(String(match.drawOdds));
             const awayOdds = parseFloat(String(match.awayOdds));
             
-            // If period filter is specified (H1 or H2) but no position, it's incomplete
-            // Period-specific filters require a position (H, D, or A)
+            // If period filter is specified (H1 or H2) but no position, it means ANY position in that period
+            // We can't filter at match level since we only have FT odds here
             if (periodFilter && !positionFilter) {
-              // Incomplete filter like "130H1" without H/D/A - show nothing
-              return false;
+              // Show all matches - filtering happens in All Markets view
+              // MatchCard will highlight any H1/H2 odds that match
+              return true;
             }
             
             // If period filter is specified with position, we need to check expanded markets
