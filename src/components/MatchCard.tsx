@@ -451,16 +451,36 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                 </button>
               </div>
 
-              {/* Markets List - Filtered by active tab */}
-              {match.allMarkets
-                .filter(market => {
-                  if (activeMarketTab === 'ALL') return true;
-                  if (activeMarketTab === 'FT') return market.periodCode === 'FT' || !market.periodCode;
-                  if (activeMarketTab === 'HT') return market.periodCode === 'HT' || market.periodCode === 'H1';
-                  if (activeMarketTab === '2H') return market.periodCode === '2H' || market.periodCode === 'H2';
-                  return true;
-                })
-                .map((market, index) => (
+              {/* Markets List - Filtered by active tab AND period filter */}
+              {(() => {
+                // Check if there's an active period filter
+                let periodFilter: 'H1' | 'H2' | null = null;
+                if (searchTerm) {
+                  const upperSearch = searchTerm.toUpperCase().trim();
+                  if (upperSearch.endsWith('H1') || upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A')) {
+                    periodFilter = 'H1';
+                  } else if (upperSearch.endsWith('H2') || upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A')) {
+                    periodFilter = 'H2';
+                  }
+                }
+
+                return match.allMarkets?.filter(market => {
+                    // First apply period filter if active (hide non-matching periods)
+                    if (periodFilter) {
+                      const targetPeriod = periodFilter === 'H1' ? 'H1' : '2H';
+                      if (market.periodCode !== targetPeriod) {
+                        return false; // Hide markets that don't match the period filter
+                      }
+                    }
+
+                    // Then apply tab filter
+                    if (activeMarketTab === 'ALL') return true;
+                    if (activeMarketTab === 'FT') return market.periodCode === 'FT' || !market.periodCode;
+                    if (activeMarketTab === 'HT') return market.periodCode === 'HT' || market.periodCode === 'H1';
+                    if (activeMarketTab === '2H') return market.periodCode === '2H' || market.periodCode === 'H2';
+                    return true;
+                  })
+                  .map((market, index) => (
             <div key={index} className="border-b border-gray-200 last:border-b-0">
               <button
                 onClick={() => toggleMarket(market.marketBookNo)}
@@ -539,7 +559,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                 </div>
               )}
             </div>
-          ))}
+          ))})}
             </>
           )}
         </div>
