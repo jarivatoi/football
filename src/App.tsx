@@ -947,17 +947,94 @@ function App() {
       return availableDatesWithCounts;
     }
     
-    // Update matchCount for each date based on filtered results
-    return availableDatesWithCounts.map(dateInfo => {
-      const dateMatches = filteredGroupedMatches[dateInfo.date];
-      const filteredCount = dateMatches ? (dateMatches as TotelepepMatch[]).length : 0;
+    // Calculate filtered counts for ALL dates (not just selected date)
+    const filteredCounts: Record<string, number> = {};
+    
+    // Iterate through ALL dates in groupedMatches
+    Object.entries(groupedMatches).forEach(([date, dateMatches]) => {
+      if (!dateMatches || dateMatches.length === 0) {
+        filteredCounts[date] = 0;
+        return;
+      }
       
-      return {
-        ...dateInfo,
-        matchCount: filteredCount
-      };
+      // Apply the same filtering logic to count matches
+      const matchingMatches = (dateMatches as TotelepepMatch[]).filter(match => {
+        // Skip if match doesn't have odds data
+        if (!match.homeOdds || !match.drawOdds || !match.awayOdds) return false;
+        
+        const homeOdds = parseFloat(String(match.homeOdds));
+        const drawOdds = parseFloat(String(match.drawOdds));
+        const awayOdds = parseFloat(String(match.awayOdds));
+        
+        if (isNaN(homeOdds) || isNaN(drawOdds) || isNaN(awayOdds)) return false;
+        
+        // Parse search term for period/position
+        const upperSearch = searchTerm.toUpperCase().trim();
+        let periodFilter: 'H1' | 'H2' | null = null;
+        let positionFilter: 'home' | 'draw' | 'away' | null = null;
+        let targetOdds = parseFloat(searchTerm);
+        
+        // Parse suffixes
+        if (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A')) {
+          periodFilter = 'H1';
+        } else if (upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A')) {
+          periodFilter = 'H2';
+        } else if (upperSearch.endsWith('H1') || upperSearch.endsWith('H2')) {
+          periodFilter = upperSearch.endsWith('H1') ? 'H1' : 'H2';
+        } else if (upperSearch.endsWith('H')) {
+          positionFilter = 'home';
+        } else if (upperSearch.endsWith('D')) {
+          positionFilter = 'draw';
+        } else if (upperSearch.endsWith('A')) {
+          positionFilter = 'away';
+        }
+        
+        // For Full Time (no period filter), check quick1x2
+        if (!periodFilter) {
+          if (positionFilter) {
+            const odds = positionFilter === 'home' ? homeOdds : positionFilter === 'draw' ? drawOdds : awayOdds;
+            if (searchMode === 'eq') return odds === targetOdds;
+            if (searchMode === 'gte') return odds >= targetOdds;
+            if (searchMode === 'lte') return odds <= targetOdds;
+            if (searchMode === 'between') {
+              const rangeParts = searchTerm.split('-');
+              if (rangeParts.length === 2) {
+                const minOdds = parseFloat(rangeParts[0]) > 10 ? parseFloat(rangeParts[0]) / 100 : parseFloat(rangeParts[0]);
+                const maxOdds = parseFloat(rangeParts[1].replace(/[^\d.]/g, '')) > 10 ? parseFloat(rangeParts[1].replace(/[^\d.]/g, '')) / 100 : parseFloat(rangeParts[1].replace(/[^\d.]/g, ''));
+                return odds >= minOdds && odds <= maxOdds;
+              }
+            }
+          } else {
+            if (searchMode === 'eq') return homeOdds === targetOdds || drawOdds === targetOdds || awayOdds === targetOdds;
+            if (searchMode === 'gte') return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
+            if (searchMode === 'lte') return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
+            if (searchMode === 'between') {
+              const rangeParts = searchTerm.split('-');
+              if (rangeParts.length === 2) {
+                const minOdds = parseFloat(rangeParts[0]) > 10 ? parseFloat(rangeParts[0]) / 100 : parseFloat(rangeParts[0]);
+                const maxOdds = parseFloat(rangeParts[1].replace(/[^\d.]/g, '')) > 10 ? parseFloat(rangeParts[1].replace(/[^\d.]/g, '')) / 100 : parseFloat(rangeParts[1].replace(/[^\d.]/g, ''));
+                return (homeOdds >= minOdds && homeOdds <= maxOdds) ||
+                       (drawOdds >= minOdds && drawOdds <= maxOdds) ||
+                       (awayOdds >= minOdds && awayOdds <= maxOdds);
+              }
+            }
+          }
+        }
+        
+        // For period filters (H1/H2), would need to check allMarkets
+        // This is a simplified count - accurate count requires allMarkets to be loaded
+        return false;
+      });
+      
+      filteredCounts[date] = matchingMatches.length;
     });
-  }, [availableDatesWithCounts, filteredGroupedMatches, searchMode, searchTerm]);
+    
+    // Update matchCount for each date based on filtered results
+    return availableDatesWithCounts.map(dateInfo => ({
+      ...dateInfo,
+      matchCount: filteredCounts[dateInfo.date] || 0
+    }));
+  }, [availableDatesWithCounts, groupedMatches, searchMode, searchTerm]);
 
   // Debug: Log grouped matches to see what dates we have
   useEffect(() => {
