@@ -42,6 +42,27 @@ function App() {
   const [searchMode, setSearchMode] = useState<'matches' | 'eq' | 'gte' | 'lte'>('matches'); // matches, = (eq), >= (gte), <= (lte)
   const [searchOddsValue, setSearchOddsValue] = useState<string>('');
   const [selectedMarketCode, setSelectedMarketCode] = useState<string>(''); // Market code filter for All Markets
+  
+  // Extract unique market codes from loaded matches
+  const uniqueMarketCodes = React.useMemo(() => {
+    const codes = new Map<string, string>(); // marketCode -> marketName
+    
+    Object.values(matches).forEach((dateMatches: any) => {
+      if (Array.isArray(dateMatches)) {
+        dateMatches.forEach((match: any) => {
+          if (match.allMarkets && match.allMarkets.length > 0) {
+            match.allMarkets.forEach((market: any) => {
+              if (market.marketCode && !codes.has(market.marketCode)) {
+                codes.set(market.marketCode, market.name);
+              }
+            });
+          }
+        });
+      }
+    });
+    
+    return Array.from(codes.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [matches]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
   const [showExtractor, setShowExtractor] = useState(false);
@@ -1149,12 +1170,11 @@ function App() {
               style={{width: '25%'}}
             >
               <option value="">All Markets</option>
-              <option value="CP">1 X 2</option>
-              <option value="OU">Over/Under</option>
-              <option value="BTTS">Both Teams to Score</option>
-              <option value="DC">Double Chance</option>
-              <option value="CS">Correct Score</option>
-              <option value="HTFT">Half Time/Full Time</option>
+              {uniqueMarketCodes.map(([code, name]) => (
+                <option key={code} value={code}>
+                  {name} ({code})
+                </option>
+              ))}
             </select>
             
             {/* Filter Mode Dropdown */}
