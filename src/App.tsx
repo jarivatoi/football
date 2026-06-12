@@ -1146,9 +1146,13 @@ function App() {
               onChange={(e) => {
                 const mode = e.target.value as 'matches' | 'eq' | 'gte' | 'lte';
                 setSearchMode(mode);
-                if (mode !== 'matches') {
+                
+                // Only clear search when switching TO "Matches" mode
+                if (mode === 'matches') {
                   setSearchTerm('');
+                  setSearchOddsValue('');
                 }
+                // When switching between odds modes (=, >=, <=), keep the search text
               }}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium"
             >
