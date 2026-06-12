@@ -940,6 +940,25 @@ function App() {
     return result;
   }, [calendarList, matches]) : [];
 
+  // Create filtered date counts based on active search filters
+  const filteredAvailableDates = React.useMemo(() => {
+    // If no active filter, return original counts
+    if (searchMode === 'matches' && !searchTerm) {
+      return availableDatesWithCounts;
+    }
+    
+    // Update matchCount for each date based on filtered results
+    return availableDatesWithCounts.map(dateInfo => {
+      const dateMatches = filteredGroupedMatches[dateInfo.date];
+      const filteredCount = dateMatches ? (dateMatches as TotelepepMatch[]).length : 0;
+      
+      return {
+        ...dateInfo,
+        matchCount: filteredCount
+      };
+    });
+  }, [availableDatesWithCounts, filteredGroupedMatches, searchMode, searchTerm]);
+
   // Debug: Log grouped matches to see what dates we have
   useEffect(() => {
     console.log('📅 Available dates in groupedMatches:', Object.keys(groupedMatches));
@@ -1163,7 +1182,7 @@ function App() {
         <DateSelector
           selectedDate={selectedDate} 
           onDateChange={handleDateChange}
-          availableDates={availableDatesWithCounts}
+          availableDates={filteredAvailableDates}
           showAllMatches={showAllMatches}
           onToggleAllMatches={toggleAllMatches}
           totalMatches={totalAllMatchesCount}
