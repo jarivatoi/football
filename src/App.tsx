@@ -1083,7 +1083,16 @@ function App() {
                 type="text"
                 placeholder={searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A, 130H1H' : 'Enter odds (e.g., 130H, 150H2A)...'}
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearchTerm(value);
+                  
+                  // If search is cleared (backspace to empty), reset to matches mode
+                  if (value === '' && searchMode !== 'matches') {
+                    setSearchMode('matches');
+                    setSearchOddsValue('');
+                  }
+                }}
                 className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               {searchTerm && (
