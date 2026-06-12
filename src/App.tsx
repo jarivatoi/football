@@ -634,39 +634,11 @@ function App() {
             const awayOdds = parseFloat(String(match.awayOdds));
             
             // If period filter is specified (H1 or H2) but no position, it means ANY position in that period
-            // Check if match.allMarkets has the period data
+            // allMarkets data is only available after match expansion, so we can't filter at this level
             if (periodFilter && !positionFilter) {
-              console.log(`🔍 Period filter: ${periodFilter}, targetOdds: ${targetOdds}`);
-              console.log(`  allMarkets available: ${match.allMarkets?.length || 0}`);
-              
-              // Try to check allMarkets if available
-              if (match.allMarkets && match.allMarkets.length > 0) {
-                const targetPeriod = periodFilter === 'H1' ? 'H1' : '2H';
-                console.log(`  Looking for period: ${targetPeriod}`);
-                
-                const periodMarket = match.allMarkets.find(m => 
-                  (m.name === '1 X 2' || m.name === '1X2' || m.marketCode === 'CP') && 
-                  m.periodCode === targetPeriod
-                );
-                
-                console.log(`  Found period market: ${periodMarket?.name}, periodCode: ${periodMarket?.periodCode}`);
-                
-                if (periodMarket && periodMarket.selections) {
-                  console.log(`  Selections:`, periodMarket.selections.map((s: any) => ({ name: s.name, odds: s.odds })));
-                  
-                  // Check if any selection in this period matches the odds
-                  const hasMatchingOdds = periodMarket.selections.some((sel: any) => {
-                    const selOdds = parseFloat(String(sel.odds));
-                    return selOdds === targetOdds;
-                  });
-                  
-                  console.log(`  Has matching odds: ${hasMatchingOdds}`);
-                  return hasMatchingOdds;
-                }
-              }
-              // If allMarkets not available or no match, don't show
-              console.log(`  ❌ No match - allMarkets not available or no selections`);
-              return false;
+              // Show all matches - filtering happens visually in MatchCard after expansion
+              // MatchCard will auto-expand and highlight matching odds
+              return true;
             }
             
             // If period filter is specified with position, check allMarkets if available
