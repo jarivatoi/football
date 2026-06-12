@@ -39,6 +39,8 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchMode, setSearchMode] = useState<'matches' | 'gte' | 'lte'>('matches'); // matches, >= (gte), <= (lte)
+  const [searchOddsValue, setSearchOddsValue] = useState<string>('');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
   const [showExtractor, setShowExtractor] = useState(false);
@@ -551,16 +553,42 @@ function App() {
     }
     
     // Then filter by search term if provided
-    if (!searchTerm) return categoryFiltered;
+    if (!searchTerm && searchMode === 'matches') return categoryFiltered;
     
     const filtered: Record<string, TotelepepMatch[]> = {};
     
     Object.entries(categoryFiltered).forEach(([date, dateMatches]) => {
-      const filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match =>
-        match.homeTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        match.awayTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        match.league.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      let filteredDateMatches: TotelepepMatch[];
+      
+      if (searchMode === 'matches') {
+        // Filter by team/league name
+        filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match =>
+          match.homeTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          match.awayTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          match.league.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      } else {
+        // Filter by odds value
+        const targetOdds = parseFloat(searchTerm);
+        if (isNaN(targetOdds)) {
+          filteredDateMatches = [];
+        } else {
+          filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
+            // Check if any of the match's odds match the filter
+            const homeOdds = parseFloat(String(match.homeOdds));
+            const drawOdds = parseFloat(String(match.drawOdds));
+            const awayOdds = parseFloat(String(match.awayOdds));
+            
+            if (searchMode === 'gte') {
+              // >= (greater than or equal)
+              return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
+            } else {
+              // <= (less than or equal)
+              return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
+            }
+          });
+        }
+      }
       
       if (filteredDateMatches.length > 0) {
         filtered[date] = filteredDateMatches;
@@ -880,6 +908,11 @@ function App() {
       console.log('📋 Turning off All Matches - date selected');
     }
     
+    // Clear search when changing dates
+    setSearchTerm('');
+    setSearchMode('matches');
+    setSearchOddsValue('');
+    
     setSelectedDate(newDate);
     
     // Handle "beyond" date - check if this date corresponds to Beyond entry
@@ -957,15 +990,47 @@ function App() {
         
         {/* Search Bar */}
         <div className="bg-white shadow-sm border-b border-gray-200">
-          <div className="relative px-3 py-2">
-            <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search matches..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+          <div className="px-3 py-2 flex items-center gap-2">
+            {/* Search Input - Half Width */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder={searchMode === 'matches' ? 'Search matches...' : 'Enter odds value...'}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSearchMode('matches');
+                    setSearchOddsValue('');
+                  }}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            
+            {/* Filter Mode Dropdown */}
+            <select
+              value={searchMode}
+              onChange={(e) => {
+                const mode = e.target.value as 'matches' | 'gte' | 'lte';
+                setSearchMode(mode);
+                if (mode !== 'matches') {
+                  setSearchTerm('');
+                }
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium"
+            >
+              <option value="matches">Matches</option>
+              <option value="gte">≥ Greater or Equal</option>
+              <option value="lte">≤ Less or Equal</option>
+            </select>
           </div>
         </div>
         
