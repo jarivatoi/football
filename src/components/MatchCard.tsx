@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Clock, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, X, ChevronsRight } from 'lucide-react';
 import { TotelepepMatch } from '../services/totelepepExtractor';
 import { totelepepExtractor } from '../services/totelepepExtractor';
 
@@ -7,7 +7,7 @@ interface MatchCardProps {
   match: TotelepepMatch;
   onPriceClick: (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => void;
   selectedPrices: string[];
-  searchMode?: 'matches' | 'gte' | 'lte'; // Search filter mode
+  searchMode?: 'matches' | 'eq' | 'gte' | 'lte'; // Search filter mode
   searchTerm?: string; // Search term for odds highlighting
 }
 
@@ -79,6 +79,12 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     return selectedPrices.includes(`${match.id}-${priceType}`);
   };
 
+  // Check if a market has any selections matching the filter
+  const marketHasMatchingOdds = (market: any): boolean => {
+    if (searchMode === 'matches' || !searchTerm || !market.selections) return false;
+    return market.selections.some((sel: any) => oddsMatchFilter(sel.odds));
+  };
+
   // Check if a market selection matches a quick 1X2 selection
   const isMarketSelectionSelected = (market: any, selectionName: string) => {
     // Check if this is a 1X2 market
@@ -136,12 +142,20 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   const oddsMatchFilter = (odds: number | string): boolean => {
     if (searchMode === 'matches' || !searchTerm) return false;
     
-    const targetOdds = parseFloat(searchTerm);
+    let targetOdds = parseFloat(searchTerm);
+    
+    // Handle input like "130" as "1.30" for decimal odds
+    if (!isNaN(targetOdds) && targetOdds > 10) {
+      targetOdds = targetOdds / 100;
+    }
+    
     const oddsValue = typeof odds === 'string' ? parseFloat(odds) : odds;
     
     if (isNaN(targetOdds) || isNaN(oddsValue)) return false;
     
-    if (searchMode === 'gte') {
+    if (searchMode === 'eq') {
+      return oddsValue === targetOdds;
+    } else if (searchMode === 'gte') {
       return oddsValue >= targetOdds;
     } else if (searchMode === 'lte') {
       return oddsValue <= targetOdds;
@@ -332,7 +346,9 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               >
                 <div className="flex items-center gap-2">
                   {expandedMarkets[market.marketBookNo] ? (
-                    <X className="w-4 h-4 text-red-600" />
+                    <X className={`w-4 h-4 ${marketHasMatchingOdds(market) ? 'text-orange-600' : 'text-red-600'}`} />
+                  ) : marketHasMatchingOdds(market) ? (
+                    <ChevronsRight className="w-4 h-4 text-orange-600" />
                   ) : (
                     <ChevronRight className="w-4 h-4 text-gray-600" />
                   )}
@@ -387,10 +403,12 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                           className={`flex-1 min-w-[80px] py-2 px-2 rounded text-sm font-medium transition-all ${
                             isSelectedMarket
                               ? 'bg-blue-600 text-white'
+                              : oddsMatchFilter(selection.odds)
+                              ? 'bg-orange-500 text-white'
                               : 'bg-gray-100 hover:bg-gray-200'
                           }`}
                         >
-                          <div className={`text-xs ${isSelectedMarket ? 'text-white' : 'text-gray-600'}`}>{selection.name}</div>
+                          <div className={`text-xs ${isSelectedMarket ? 'text-white' : oddsMatchFilter(selection.odds) ? 'text-white' : 'text-gray-600'}`}>{selection.name}</div>
                           <div className="font-bold">{formatOdds(selection.odds)}</div>
                         </button>
                       );

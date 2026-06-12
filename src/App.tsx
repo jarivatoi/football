@@ -39,7 +39,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchMode, setSearchMode] = useState<'matches' | 'gte' | 'lte'>('matches'); // matches, >= (gte), <= (lte)
+  const [searchMode, setSearchMode] = useState<'matches' | 'eq' | 'gte' | 'lte'>('matches'); // matches, = (eq), >= (gte), <= (lte)
   const [searchOddsValue, setSearchOddsValue] = useState<string>('');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
@@ -569,7 +569,13 @@ function App() {
         );
       } else {
         // Filter by odds value
-        const targetOdds = parseFloat(searchTerm);
+        let targetOdds = parseFloat(searchTerm);
+        
+        // Handle input like "130" as "1.30" for decimal odds
+        if (!isNaN(targetOdds) && targetOdds > 10) {
+          targetOdds = targetOdds / 100;
+        }
+        
         if (isNaN(targetOdds)) {
           filteredDateMatches = [];
         } else {
@@ -579,7 +585,10 @@ function App() {
             const drawOdds = parseFloat(String(match.drawOdds));
             const awayOdds = parseFloat(String(match.awayOdds));
             
-            if (searchMode === 'gte') {
+            if (searchMode === 'eq') {
+              // = (equal to)
+              return homeOdds === targetOdds || drawOdds === targetOdds || awayOdds === targetOdds;
+            } else if (searchMode === 'gte') {
               // >= (greater than or equal)
               return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
             } else {
@@ -1019,7 +1028,7 @@ function App() {
             <select
               value={searchMode}
               onChange={(e) => {
-                const mode = e.target.value as 'matches' | 'gte' | 'lte';
+                const mode = e.target.value as 'matches' | 'eq' | 'gte' | 'lte';
                 setSearchMode(mode);
                 if (mode !== 'matches') {
                   setSearchTerm('');
@@ -1028,6 +1037,7 @@ function App() {
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium"
             >
               <option value="matches">Matches</option>
+              <option value="eq">= Equal to</option>
               <option value="gte">≥ Greater or Equal</option>
               <option value="lte">≤ Less or Equal</option>
             </select>
