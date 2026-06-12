@@ -645,11 +645,17 @@ function App() {
             if (periodFilter && positionFilter) {
               // Try to check allMarkets if available
               if (match.allMarkets && match.allMarkets.length > 0) {
-                const targetPeriod = periodFilter === 'H1' ? 'H1' : '2H';
-                const periodMarket = match.allMarkets.find(m => 
-                  (m.name === '1 X 2' || m.name === '1X2' || m.marketCode === 'CP') && 
-                  m.periodCode === targetPeriod
-                );
+                // Try both '2H' and 'H2' for second half
+                const possiblePeriodCodes = periodFilter === 'H1' ? ['H1'] : ['2H', 'H2'];
+                let periodMarket = null;
+                
+                for (const periodCode of possiblePeriodCodes) {
+                  periodMarket = match.allMarkets.find(m => 
+                    (m.name === '1 X 2' || m.name === '1X2' || m.marketCode === 'CP') && 
+                    m.periodCode === periodCode
+                  );
+                  if (periodMarket) break;
+                }
                 
                 if (periodMarket && periodMarket.selections) {
                   // Find the specific position selection

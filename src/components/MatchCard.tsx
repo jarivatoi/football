@@ -284,7 +284,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     if (periodFilter && period) {
       const marketPeriod = period.toUpperCase();
       if (periodFilter === 'H1' && marketPeriod !== 'H1') return false;
-      if (periodFilter === 'H2' && marketPeriod !== '2H') return false; // API uses '2H' for second half
+      // For H2, accept both '2H' and 'H2'
+      if (periodFilter === 'H2' && marketPeriod !== '2H' && marketPeriod !== 'H2') return false;
     }
     
     // If position filter is specified, only match that position
