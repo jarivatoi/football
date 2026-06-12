@@ -21,7 +21,6 @@ export const registerServiceWorker = async (): Promise<void> => {
   if (isServiceWorkerSupported()) {
     try {
       const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker registered successfully:', registration);
       
       // Check for updates
       registration.addEventListener('updatefound', () => {
@@ -30,7 +29,6 @@ export const registerServiceWorker = async (): Promise<void> => {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               // New content is available, notify user
-              console.log('New content available, please refresh');
               showUpdateNotification();
             }
           });
@@ -38,10 +36,8 @@ export const registerServiceWorker = async (): Promise<void> => {
       });
       
     } catch (error) {
-      console.warn('Service Worker registration failed:', error);
     }
   } else {
-    console.info('Service Worker not supported in this environment (StackBlitz/WebContainer)');
   }
 };
 
@@ -57,7 +53,6 @@ export const showUpdateNotification = (): void => {
 
 export const requestNotificationPermission = async (): Promise<boolean> => {
   if (!('Notification' in window)) {
-    console.log('This browser does not support notifications');
     return false;
   }
 
@@ -78,10 +73,8 @@ export const scheduleBackgroundSync = (): void => {
     navigator.serviceWorker.ready.then((registration) => {
       return registration.sync.register('background-sync-matches');
     }).catch((error) => {
-      console.warn('Background sync registration failed:', error);
     });
   } else {
-    console.info('Background sync not supported in this environment');
   }
 };
 
@@ -100,7 +93,6 @@ export const clearCache = async (): Promise<void> => {
     await Promise.all(
       cacheNames.map(cacheName => caches.delete(cacheName))
     );
-    console.log('All caches cleared');
   }
 };
 

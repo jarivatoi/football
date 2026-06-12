@@ -19,7 +19,6 @@ const CompetitionExtractor: React.FC = () => {
     setRawData('');
 
     try {
-      console.log('🔍 Fetching all competitions from Totelepep...');
       
       // Get data for multiple dates to capture all competitions
       const dates = [];
@@ -33,7 +32,6 @@ const CompetitionExtractor: React.FC = () => {
       const allCompetitions = new Map<string, Competition>();
 
       for (const date of dates) {
-        console.log(`📅 Fetching competitions for ${date}...`);
         
         const endpoint = `/api/webapi/GetSport?sportId=soccer&date=${date}&category=&competitionId=0&pageNo=500&inclusive=1&matchid=0&periodCode=all`;
         
@@ -50,7 +48,6 @@ const CompetitionExtractor: React.FC = () => {
           
           // Extract competitions from competitionData
           if (data.competitionData) {
-            console.log(`📊 Raw competitionData for ${date}:`, data.competitionData);
             setRawData(prev => prev + `\n=== ${date} ===\n${data.competitionData}\n`);
             
             const competitions = parseCompetitionData(data.competitionData);
@@ -84,10 +81,8 @@ const CompetitionExtractor: React.FC = () => {
         .sort((a, b) => parseInt(a.id) - parseInt(b.id));
 
       setCompetitions(sortedCompetitions);
-      console.log(`✅ Extracted ${sortedCompetitions.length} unique competitions`);
 
     } catch (error) {
-      console.error('❌ Error extracting competitions:', error);
     } finally {
       setIsExtracting(false);
     }
@@ -104,7 +99,6 @@ const CompetitionExtractor: React.FC = () => {
         // Split by semicolon (;) to get fields
         const fields = entry.split(';');
         
-        console.log(`Competition ${index}: Fields:`, fields);
         
         // Try to identify ID and name fields
         // Usually: ID is first field, name is second or third field
@@ -123,7 +117,6 @@ const CompetitionExtractor: React.FC = () => {
       });
       
     } catch (error) {
-      console.error('Error parsing competition data:', error);
     }
     
     return competitions;
@@ -146,7 +139,6 @@ const CompetitionExtractor: React.FC = () => {
       });
       
     } catch (error) {
-      console.error('Error extracting competitions from matches:', error);
     }
     
     return Array.from(competitions.entries()).map(([id, count]) => ({

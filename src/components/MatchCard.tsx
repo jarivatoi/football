@@ -20,29 +20,22 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   // Sync selection state when expanding markets
   React.useEffect(() => {
     if (isExpanded && match.allMarkets && match.allMarkets.length > 0) {
-      console.log('🔍 Sync check - selectedPrices:', selectedPrices);
-      console.log('🔍 Sync check - match.id:', match.id);
       
       // Auto-expand the 1X2 market if user has a selection from quick odds
       const homeSelected = selectedPrices.includes(`${match.id}-home`);
       const drawSelected = selectedPrices.includes(`${match.id}-draw`);
       const awaySelected = selectedPrices.includes(`${match.id}-away`);
       
-      console.log('🔍 Quick 1X2 selections - home:', homeSelected, 'draw:', drawSelected, 'away:', awaySelected);
       
       if (homeSelected || drawSelected || awaySelected) {
         // Find the 1X2 market and expand it
         const x2Market = match.allMarkets.find(m => m.name === '1 X 2' || m.name === '1X2' || m.marketCode === 'CP');
         if (x2Market) {
-          console.log(' Found 1X2 market:', x2Market.name, 'marketBookNo:', x2Market.marketBookNo);
-          console.log(' 1X2 market selections:', x2Market.selections?.map(s => s.name));
           setExpandedMarkets(prev => ({
             ...prev,
             [x2Market.marketBookNo]: true
           }));
         } else {
-          console.log('⚠️ 1X2 market not found in allMarkets');
-          console.log(' Available markets:', match.allMarkets.map(m => ({ name: m.name, marketCode: m.marketCode })));
         }
       }
     }
@@ -154,7 +147,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         
         // Update all at once
         if (Object.keys(newExpandedMarkets).length > 0) {
-          console.log(`🎯 Auto-expanding ${periodFilter} markets with matching odds:`, Object.keys(newExpandedMarkets));
           setExpandedMarkets(newExpandedMarkets);
         }
       }
@@ -170,7 +162,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                               upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A');
       
       if (hasPeriodFilter) {
-        console.log('🚀 Auto-expanding match card for period filter');
         toggleExpand();
       }
     }
@@ -187,7 +178,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     
     // Lazy load markets when expanding
     if (newState && (!match.allMarkets || match.allMarkets.length === 0) && !isLoadingMarkets) {
-      console.log(`🔄 Lazy loading markets for match ${match.id}...`);
       setIsLoadingMarkets(true);
       await totelepepExtractor.fetchMarketsForMatch(match);
       setIsLoadingMarkets(false);

@@ -40,12 +40,9 @@ const MatchSpecificTester: React.FC = () => {
     }));
     setResults(initialResults);
 
-    console.log('🎯 Testing match-specific GetMatch endpoints...');
-    console.log('📋 Based on Power Query: /webapi/GetMatch?sportId=soccer&competitionId=X&matchId=Y&periodCode=all');
 
     for (const match of testMatches) {
       try {
-        console.log(`\n🔍 Testing match ${match.matchId} (${match.description})`);
         
         const oddsData = await matchSpecificExtractor.extractMatchOdds(match.matchId, match.competitionId);
         
@@ -62,7 +59,6 @@ const MatchSpecificTester: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, 1000));
 
       } catch (error) {
-        console.error(`❌ Error testing match ${match.matchId}:`, error);
         setResults(prev => prev.map(r => 
           r.matchId === match.matchId ? {
             ...r,
@@ -74,7 +70,6 @@ const MatchSpecificTester: React.FC = () => {
     }
 
     setIsExtracting(false);
-    console.log('🎯 Match-specific endpoint testing complete!');
   };
 
   const getStatusIcon = (status: string) => {

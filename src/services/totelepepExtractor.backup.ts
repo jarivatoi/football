@@ -41,7 +41,6 @@ class TotelepepExtractor {
   public updateCompetitionMapping(competitionId: string, leagueName: string): void {
     if (competitionId && leagueName && competitionId !== '0') {
       this.dynamicCompetitionMap[competitionId] = leagueName;
-      console.log(`🔄 Updated dynamic competition mapping: ${competitionId} -> ${leagueName}`);
     }
   }
   
@@ -51,7 +50,6 @@ class TotelepepExtractor {
     const teamKey = `${homeTeam.toLowerCase()}|${awayTeam.toLowerCase()}`;
     if (leagueName && leagueName !== 'Football League') {
       this.teamBasedCompetitionMap[teamKey] = leagueName;
-      console.log(`🔄 Updated team-based competition mapping: ${teamKey} -> ${leagueName}`);
     }
   }
   
@@ -67,14 +65,12 @@ class TotelepepExtractor {
       const cacheKey = targetDate || 'default';
       const cached = this.getCachedData(cacheKey);
       if (cached) {
-        console.log('📦 Returning cached data');
         return cached;
       }
 
       // Rate limiting
       await this.enforceRateLimit();
 
-      console.log('🔍 Fetching fresh data from Totelepep API...');
       
       // Fetch JSON from totelepep.mu API
       const jsonData = await this.fetchTotelepepAPI(targetDate);
@@ -91,22 +87,18 @@ class TotelepepExtractor {
       });
       
       if (matches.length > 0) {
-        console.log(`✅ Found ${matches.length} matches from Totelepep API`);
         this.setCachedData(matches, cacheKey);
         return matches;
       }
 
-      console.warn('⚠️ No matches found from Totelepep API');
       return [];
       
     } catch (error) {
-      console.error('❌ Error extracting matches:', error);
       
       // Try to return cached data even if expired
       const cacheKey = targetDate || 'default';
       const cached = this.getCachedData(cacheKey, true);
       if (cached) {
-        console.log('📦 Returning expired cached data as fallback');
         return cached;
       }
       
@@ -119,7 +111,6 @@ class TotelepepExtractor {
     const dateToFetch = targetDate || this.getTodayDate(); // YYYY-MM-DD format
     const apiUrl = `${this.baseUrl}?sportId=soccer&date=${dateToFetch}&category=&competitionId=0&pageNo=200&inclusive=1&matchid=0&periodCode=all`;
     
-    console.log(`🌐 API URL for ${dateToFetch}:`, apiUrl);
     
     const response = await fetch(apiUrl, {
       headers: {
@@ -136,7 +127,6 @@ class TotelepepExtractor {
     }
     
     const jsonData = await response.json();
-    console.log(`📄 Fetched JSON data for ${dateToFetch}:`, jsonData);
     
     return jsonData;
   }
@@ -145,18 +135,11 @@ class TotelepepExtractor {
     const matches: TotelepepMatch[] = [];
     
     try {
-      console.log('🔧 Parsing JSON for match data...');
-      console.log('📄 Full API Response:', JSON.stringify(jsonData, null, 2));
-      console.log('📊 Response type:', typeof jsonData);
-      console.log('📊 Response keys:', Object.keys(jsonData || {}));
-      console.log('📄 Full API Response:', JSON.stringify(jsonData, null, 2));
       
       // Check if there's competition data in the response
       if (jsonData && jsonData.competitions && Array.isArray(jsonData.competitions)) {
-        console.log(`🏆 Found ${jsonData.competitions.length} competitions in response`);
         // Log competition data for analysis
         jsonData.competitions.forEach((competition: any, index: number) => {
-          console.log(`   Competition ${index}: ID=${competition.id}, Name=${competition.name}`);
         });
         
         // Create a map of competition IDs to names for direct use
@@ -167,15 +150,11 @@ class TotelepepExtractor {
           }
         });
         
-        console.log(`   🗺️ Created API Competition Map:`, competitionMap);
         
         // Store this map for use in match parsing
         (this as any).apiCompetitionMap = competitionMap;
       } else {
-        console.log(`   ⚠️ No competitions found in API response`);
-        console.log(`   📄 API Response Keys:`, Object.keys(jsonData || {}));
         if (jsonData) {
-          console.log(`   📄 API Response Sample:`, JSON.stringify(jsonData).substring(0, 500));
         }
         
         // Even if we don't have competitions in this response, we might have them from a previous response
@@ -185,26 +164,19 @@ class TotelepepExtractor {
       // Parse JSON structure (equivalent to Power Query Json.Document)
       // Totelepep uses a special matchData field with pipe-delimited format
       if (jsonData && jsonData.matchData && typeof jsonData.matchData === 'string') {
-        console.log(`📊 Found matchData string with ${jsonData.matchData.length} characters`);
-        console.log(`📄 Sample matchData: ${jsonData.matchData.substring(0, 200)}...`);
         
         // Parse the pipe-delimited match data
         const parsedMatches = this.parseTotelepepMatchData(jsonData.matchData);
         matches.push(...parsedMatches);
         
-        console.log(`✅ Parsed ${parsedMatches.length} matches from matchData`);
       } else {
-        console.warn('⚠️ Unexpected JSON structure. Available keys:', Object.keys(jsonData || {}));
-        console.warn('⚠️ Sample of first few properties:', JSON.stringify(jsonData, null, 2).substring(0, 500));
       }
       
-      console.log(`🎯 Extracted ${matches.length} total matches`);
       
       // Remove duplicates and validate
       return this.deduplicateAndValidate(matches);
       
     } catch (error) {
-      console.error('❌ Error parsing JSON:', error);
       return [];
     }
   }
@@ -215,27 +187,19 @@ class TotelepepExtractor {
     try {
       // Split by pipe separator to get individual matches
       const matchEntries = matchDataString.split('|').filter(entry => entry.trim());
-      console.log(`🔍 Found ${matchEntries.length} match entries in matchData`);
       
       // Log the first few complete entries to see the full structure
-      console.log('📄 COMPLETE MATCH DATA ANALYSIS:');
       matchEntries.slice(0, 3).forEach((entry, index) => {
-        console.log(`\n🔍 COMPLETE Entry ${index}:`);
-        console.log(`📄 Full entry (${entry.length} chars): ${entry}`);
         
         const fields = entry.split(';');
-        console.log(`📊 Total fields: ${fields.length}`);
         
         // Log ALL fields with their positions
         fields.forEach((field, fieldIndex) => {
-          console.log(`   Field ${fieldIndex}: "${field}"`);
         });
         
         // Look for additional odds patterns in the complete entry
         const allOddsInEntry = this.findAllOddsInEntry(entry);
-        console.log(`📈 All odds found in entry: ${allOddsInEntry.length} total`);
         allOddsInEntry.forEach((odds, oddsIndex) => {
-          console.log(`   Odds ${oddsIndex}: ${odds.value} (position: ${odds.position}, context: "${odds.context}")`);
         });
       });
       
@@ -244,12 +208,10 @@ class TotelepepExtractor {
         const match = this.parseTotelepepMatchEntry(entry, i);
         if (match) {
           matches.push(match);
-          console.log(`✅ Parsed: ${match.homeTeam} vs ${match.awayTeam} (${match.homeOdds}/${match.drawOdds}/${match.awayOdds})`);
         }
       }
       
     } catch (error) {
-      console.error('❌ Error parsing matchData string:', error);
     }
     
     return matches;
@@ -305,15 +267,12 @@ class TotelepepExtractor {
       const fields = entry.split(';');
       
       if (fields.length < 10) {
-        console.warn(`⚠️ Entry ${index} has insufficient fields (${fields.length}): ${entry.substring(0, 100)}`);
         return null;
       }
       
-      console.log(`🔍 Entry ${index} ALL fields (${fields.length} total):`, fields);
       
       // Extract ALL possible odds from the entry
       const allOdds = this.extractAllOddsFromEntry(fields, index);
-      console.log(`📊 Entry ${index} - All extracted odds:`, allOdds);
       
       // Parse Totelepep match entry format:
       // Based on the logs, the format appears to be:
@@ -325,8 +284,6 @@ class TotelepepExtractor {
       const teamsString = fields[2]; // e.g., "Austria Lustenau v Kapfenberger SV"
       const datetime = fields[3]; // e.g., "26 Aug 20:30"
       
-      console.log(`🔍 Processing match ${matchId} with competitionId ${competitionId}`);
-      console.log(`   📂 Match entry fields:`, fields);
       
       // Use comprehensive odds extraction
       const homeOdds = allOdds.homeOdds || parseFloat(fields[7]) || this.generateRealisticOdds();
@@ -336,7 +293,6 @@ class TotelepepExtractor {
       // Extract team names from teams string
       const teamNames = this.extractTeamNamesFromTotelepepString(teamsString);
       if (!teamNames) {
-        console.warn(`⚠️ Could not extract team names from: ${teamsString}`);
         return null;
       }
       
@@ -360,18 +316,13 @@ class TotelepepExtractor {
       let league = 'Football League';
       
       // Try to get the competition name from the API data
-      console.log(`   🔍 Looking up competition ID ${competitionId} in API map`);
-      console.log(`   🔍 API Competition Map:`, (this as any).apiCompetitionMap);
       if ((this as any).apiCompetitionMap && competitionId !== '0') {
         const apiLeague = (this as any).apiCompetitionMap[competitionId];
         if (apiLeague) {
           league = apiLeague;
-          console.log(`   🎯 Using API competition name for ID ${competitionId}: ${league}`);
         } else {
-          console.log(`   ⚠️ No API competition name found for ID ${competitionId}`);
         }
       } else {
-        console.log(`   ⚠️ API Competition Map not available or competitionId is '0'`);
       }
       
       // If we don't have a league name from the API, look for it in the match data itself
@@ -388,7 +339,6 @@ class TotelepepExtractor {
             // Make sure it's not just a generic term
             if (field !== 'League' && field !== 'Cup' && field !== 'Championship') {
               league = field;
-              console.log(`   🎯 Found league name in match data field ${i}: ${league}`);
               break;
             }
           }
@@ -405,12 +355,10 @@ class TotelepepExtractor {
           const possibleCompetition = teamsAndCompetition.slice(1).join(',').trim();
           if (possibleCompetition.length > 3) {
             league = possibleCompetition;
-            console.log(`   🎯 Found league name in teams string: ${league}`);
           }
         }
       }
       
-      console.log(`🔍 Match ${matchId}: ${teamNames.home} vs ${teamNames.away} - Competition ID: ${competitionId}, League: ${league}`);
       
       const match: TotelepepMatch = {
         id: matchId,
@@ -443,16 +391,10 @@ class TotelepepExtractor {
         match.marketCode = marketCode;
       }
       
-      console.log(`✅ Final match odds for ${match.homeTeam} vs ${match.awayTeam}:`);
-      console.log(`   1X2: ${match.homeOdds}/${match.drawOdds}/${match.awayOdds}`);
-      console.log(`   O/U: ${match.overUnder.over}/${match.overUnder.under}`);
-      console.log(`   BTTS: ${match.bothTeamsScore.yes}/${match.bothTeamsScore.no}`);
-      console.log(`   Competition ID: ${match.competitionId}, League: ${match.league}`);
       
       return this.isValidMatch(match) ? match : null;
       
     } catch (error) {
-      console.warn(`⚠️ Error parsing match entry ${index}:`, error, entry.substring(0, 100));
       return null;
     }
   }
@@ -469,8 +411,6 @@ class TotelepepExtractor {
       allFoundOdds: []
     };
 
-    console.log(`🔍 Analyzing entry ${entryIndex} for odds...`);
-    console.log(`📄 ALL ${fields.length} fields:`, fields);
 
     // Extract all numeric values that could be odds
     fields.forEach((field, index) => {
@@ -505,18 +445,14 @@ class TotelepepExtractor {
             next2Field: fields[index + 2] || ''
           });
           
-          console.log(`   📈 Field ${index}: "${trimmedField}" = ${oddsValue}`);
-          console.log(`      Context: [${fields[index - 2] || ''}] [${fields[index - 1] || ''}] -> [${trimmedField}] -> [${fields[index + 1] || ''}] [${fields[index + 2] || ''}]`);
         }
       }
     });
 
-    console.log(`📊 Found ${odds.allFoundOdds.length} potential odds values`);
 
     // Map 1X2 odds based on known positions from your data
     this.identifyOddsTypes(odds, fields);
 
-    console.log(`📊 Entry ${entryIndex} final odds extraction:`, {
       homeOdds: odds.homeOdds,
       drawOdds: odds.drawOdds, 
       awayOdds: odds.awayOdds,
@@ -531,7 +467,6 @@ class TotelepepExtractor {
   }
 
   private identifyOddsTypes(odds: any, fields: string[]): void {
-    console.log(`🎯 Identifying odds types from ${odds.allFoundOdds.length} candidates...`);
     
     odds.allFoundOdds.forEach((odd: any, i: number) => {
       const prevField = odd.prevField.toLowerCase();
@@ -544,15 +479,12 @@ class TotelepepExtractor {
       // Based on your data: Field 7=Home, Field 9=Draw, Field 11=Away
       if (odd.index === 7 && !odds.homeOdds) {
         odds.homeOdds = odd.value;
-        console.log(`      ✅ Identified as HOME odds (field 7): ${odd.value}`);
       }
       if (odd.index === 9 && !odds.drawOdds) {
         odds.drawOdds = odd.value;
-        console.log(`      ✅ Identified as DRAW odds (field 9): ${odd.value}`);
       }
       if (odd.index === 11 && !odds.awayOdds) {
         odds.awayOdds = odd.value;
-        console.log(`      ✅ Identified as AWAY odds (field 11): ${odd.value}`);
       }
     });
     
@@ -587,7 +519,6 @@ class TotelepepExtractor {
             odds.bttsYes = odd2.value;
             odds.bttsNo = odd1.value;
           }
-          console.log(`   🎯 Sequential BTTS pattern: Yes=${odds.bttsYes}, No=${odds.bttsNo}`);
           break;
         }
       }
@@ -603,7 +534,6 @@ class TotelepepExtractor {
       if (remainingOdds.length >= 2 && !odds.overOdds && !odds.underOdds) {
         odds.overOdds = remainingOdds[0].value;
         odds.underOdds = remainingOdds[1].value;
-        console.log(`   🎯 O/U pattern: Over=${odds.overOdds}, Under=${odds.underOdds}`);
       }
     }
     
@@ -615,15 +545,12 @@ class TotelepepExtractor {
     
     if (!odds.homeOdds && mainOdds.length > 0) {
       odds.homeOdds = mainOdds[0].value;
-      console.log(`   🎯 Fallback HOME odds: ${odds.homeOdds}`);
     }
     if (!odds.drawOdds && mainOdds.length > 1) {
       odds.drawOdds = mainOdds[1].value;
-      console.log(`   🎯 Fallback DRAW odds: ${odds.drawOdds}`);
     }
     if (!odds.awayOdds && mainOdds.length > 2) {
       odds.awayOdds = mainOdds[2].value;
-      console.log(`   🎯 Fallback AWAY odds: ${odds.awayOdds}`);
     }
   }
 
@@ -686,7 +613,6 @@ class TotelepepExtractor {
         return { date, time };
       }
     } catch (error) {
-      console.warn('⚠️ Error parsing datetime:', datetime, error);
     }
     
     return {
@@ -697,12 +623,10 @@ class TotelepepExtractor {
   
   // Method to get league name with dynamic mapping as first priority
   private getLeagueFromCompetitionId(competitionId: string): string | null {
-    console.log(`🔍 Looking up league name for competition ID: ${competitionId}`);
     
     // Check dynamic mapping first
     if (this.dynamicCompetitionMap[competitionId]) {
       const dynamicLeague = this.dynamicCompetitionMap[competitionId];
-      console.log(`   🔄 Using dynamic mapping for competition ID ${competitionId}: ${dynamicLeague}`);
       return dynamicLeague;
     }
     
@@ -964,7 +888,6 @@ class TotelepepExtractor {
     };
     
     const leagueName = competitionMap[competitionId] || null;
-    console.log(`   🏆 Static mapping result for competition ID ${competitionId}: ${leagueName}`);
     return leagueName;
   }
   
@@ -1012,7 +935,6 @@ class TotelepepExtractor {
 
   private convertAPIMatchToTotelepepMatch(apiMatch: any, index: number): TotelepepMatch | null {
     try {
-      console.log(`🔍 Converting match ${index}:`, JSON.stringify(apiMatch, null, 2));
       
       // Map API fields to our TotelepepMatch structure
       // This will depend on the actual API response structure
@@ -1032,9 +954,7 @@ class TotelepepExtractor {
         const apiLeague = (this as any).apiCompetitionMap[competitionId];
         if (apiLeague) {
           league = apiLeague;
-          console.log(`   🎯 Using API competition name for ID ${competitionId}: ${league}`);
         } else {
-          console.log(`   ⚠️ No API competition name found for ID ${competitionId}`);
         }
       }
       
@@ -1042,7 +962,6 @@ class TotelepepExtractor {
       const result = (apiMatch.status && (apiMatch.status === 'FT' ? (apiMatch.homeTeamScore && apiMatch.awayTeamScore ? (apiMatch.homeTeamScore > apiMatch.awayTeamScore ? 'HOME_WIN' : (apiMatch.homeTeamScore < apiMatch.awayTeamScore ? 'AWAY_WIN' : 'DRAW')) : null) : 'NOT_PLAYED');
       return { league, homeTeam, awayTeam, result, homeTeamScore: apiMatch.homeTeamScore || 'N/A', awayTeamScore: apiMatch.awayTeamScore || 'N/A' };
     } catch (err) {
-      console.error('⚠️ Failed to parse the following JSON to convert into TotelepepMatch:', apiMatch, err);
     }
 
     return null;
@@ -1052,7 +971,6 @@ class TotelepepExtractor {
     try {
       return JSON.stringify(data);
     } catch (err) {
-      console.error('⚠️ Failed to parse the following data:', data, err);
     }
 
     return null;
@@ -1148,7 +1066,6 @@ class TotelepepExtractor {
 
   private convertAPIMatchToTotelepepMatch(apiMatch: any, index: number): TotelepepMatch | null {
     try {
-      console.log(`🔍 Converting match ${index}:`, JSON.stringify(apiMatch, null, 2));
       
       // Map API fields to our TotelepepMatch structure
       // This will depend on the actual API response structure
@@ -1168,9 +1085,7 @@ class TotelepepExtractor {
         const apiLeague = (this as any).apiCompetitionMap[competitionId];
         if (apiLeague) {
           league = apiLeague;
-          console.log(`   🎯 Using API competition name for ID ${competitionId}: ${league}`);
         } else {
-          console.log(`   ⚠️ No API competition name found for ID ${competitionId}`);
         }
       }
       
@@ -1178,7 +1093,6 @@ class TotelepepExtractor {
       const result = (apiMatch.status && (apiMatch.status === 'FT' ? (apiMatch.homeTeamScore && apiMatch.awayTeamScore ? (apiMatch.homeTeamScore > apiMatch.awayTeamScore ? 'HOME_WIN' : (apiMatch.homeTeamScore < apiMatch.awayTeamScore ? 'AWAY_WIN' : 'DRAW')) : null) : 'NOT_PLAYED');
       return { league, homeTeam, awayTeam, result, homeTeamScore: apiMatch.homeTeamScore || 'N/A', awayTeamScore: apiMatch.awayTeamScore || 'N/A' };
     } catch (err) {
-      console.error('⚠️ Failed to parse the following JSON to convert into TotelepepMatch:', apiMatch, err);
     }
 
     return null;
@@ -1188,7 +1102,6 @@ class TotelepepExtractor {
     try {
       return JSON.stringify(data);
     } catch (err) {
-      console.error('⚠️ Failed to parse the following data:', data, err);
     }
 
     return null;
@@ -1255,7 +1168,6 @@ class TotelepepExtractor {
                 field.includes('World Cup') || field.includes('Euro') || field.includes('Nations League') ||
                 field.includes('Qualification') || field.includes('Tournament') || field.includes('U21')) {
               league = field;
-              console.log(`   🎯 Found league name in API field: ${league}`);
               break;
             }
           }
@@ -1294,12 +1206,9 @@ class TotelepepExtractor {
         minute: apiMatch.minute || apiMatch.time?.minute,
       };
       
-      console.log(`🎯 Converted match: ${match.homeTeam} vs ${match.awayTeam}`);
-      console.log(`   Competition ID: ${match.competitionId}, League: ${match.league}`);
       return this.isValidMatch(match) ? match : null;
       
     } catch (error) {
-      console.warn('⚠️ Error converting API match:', error, apiMatch);
       return null;
     }
   }
@@ -1314,7 +1223,6 @@ class TotelepepExtractor {
     if (tables.length === 0) {
       const allTablesRegex = /<table[^>]*>(.*?)<\/table>/gis;
       const allTables = html.match(allTablesRegex) || [];
-      console.log(`📊 Found ${allTables.length} total tables, filtering for betting data...`);
       
       // Filter tables that contain betting-related content
       const filteredTables: (string | RegExpMatchArray[number])[] = [];
@@ -1326,7 +1234,6 @@ class TotelepepExtractor {
       tables = filteredTables as RegExpMatchArray;
     }
     
-    console.log(`📊 Found ${tables.length} betting tables to analyze`);
     
     for (let i = 0; i < tables.length; i++) {
       const table = tables[i];
@@ -1344,7 +1251,6 @@ class TotelepepExtractor {
         const match = this.extractMatchFromTotelepepRow(row, `table-${i}-row-${j}`);
         if (match) {
           matches.push(match);
-          console.log(`✅ Extracted: ${match.homeTeam} vs ${match.awayTeam}`);
         }
       }
     }
@@ -1386,7 +1292,6 @@ class TotelepepExtractor {
     
     for (const pattern of divPatterns) {
       const divs = html.match(pattern) || [];
-      console.log(`🔍 Found ${divs.length} divs with pattern`);
       
       for (let i = 0; i < divs.length; i++) {
         const match = this.extractMatchFromTotelepepContainer(divs[i], `div-${i}`);
@@ -1410,7 +1315,6 @@ class TotelepepExtractor {
 
   private convertAPIMatchToTotelepepMatch(apiMatch: any, index: number): TotelepepMatch | null {
     try {
-      console.log(`🔍 Converting match ${index}:`, JSON.stringify(apiMatch, null, 2));
       
       // Map API fields to our TotelepepMatch structure
       // This will depend on the actual API response structure
@@ -1430,9 +1334,7 @@ class TotelepepExtractor {
         const apiLeague = (this as any).apiCompetitionMap[competitionId];
         if (apiLeague) {
           league = apiLeague;
-          console.log(`   🎯 Using API competition name for ID ${competitionId}: ${league}`);
         } else {
-          console.log(`   ⚠️ No API competition name found for ID ${competitionId}`);
         }
       }
       
@@ -1451,7 +1353,6 @@ class TotelepepExtractor {
                 field.includes('World Cup') || field.includes('Euro') || field.includes('Nations League') ||
                 field.includes('Qualification') || field.includes('Tournament') || field.includes('U21')) {
               league = field;
-              console.log(`   🎯 Found league name in API field: ${league}`);
               break;
             }
           }
@@ -1490,12 +1391,9 @@ class TotelepepExtractor {
         minute: apiMatch.minute || apiMatch.time?.minute,
       };
       
-      console.log(`🎯 Converted match: ${match.homeTeam} vs ${match.awayTeam}`);
-      console.log(`   Competition ID: ${match.competitionId}, League: ${match.league}`);
       return this.isValidMatch(match) ? match : null;
       
     } catch (error) {
-      console.warn('⚠️ Error converting API match:', error, apiMatch);
       return null;
     }
   }
@@ -1511,7 +1409,6 @@ class TotelepepExtractor {
     if (tables.length === 0) {
       const allTablesRegex = /<table[^>]*>(.*?)<\/table>/gis;
       const allTables = html.match(allTablesRegex) || [];
-      console.log(`📊 Found ${allTables.length} total tables, filtering for betting data...`);
       
       // Filter tables that contain betting-related content
       const filteredTables: (string | RegExpMatchArray[number])[] = [];
@@ -1523,7 +1420,6 @@ class TotelepepExtractor {
       tables = filteredTables as RegExpMatchArray;
     }
     
-    console.log(`📊 Found ${tables.length} betting tables to analyze`);
     
     for (let i = 0; i < tables.length; i++) {
       const table = tables[i];
@@ -1541,7 +1437,6 @@ class TotelepepExtractor {
         const match = this.extractMatchFromTotelepepRow(row, `table-${i}-row-${j}`);
         if (match) {
           matches.push(match);
-          console.log(`✅ Extracted: ${match.homeTeam} vs ${match.awayTeam}`);
         }
       }
     }
@@ -1583,13 +1478,11 @@ class TotelepepExtractor {
     
     for (const pattern of divPatterns) {
       const divs = html.match(pattern) || [];
-      console.log(`🔍 Found ${divs.length} divs with pattern`);
       
       for (let i = 0; i < divs.length; i++) {
         const match = this.extractMatchFromTotelepepContainer(divs[i], `div-${i}`);
         if (match) {
           matches.push(match);
-          console.log(`✅ Container match: ${match.homeTeam} vs ${match.awayTeam}`);
         }
       }
     }
@@ -1634,16 +1527,13 @@ class TotelepepExtractor {
         try {
           const data = JSON.parse(match[1]);
           if (Array.isArray(data)) {
-            console.log(`📊 Found ${data.length} matches in JavaScript data`);
             const jsMatches = this.parseJavaScriptMatches(data);
             matches.push(...jsMatches);
           } else if (data.matches && Array.isArray(data.matches)) {
-            console.log(`📊 Found ${data.matches.length} matches in nested JavaScript data`);
             const jsMatches = this.parseJavaScriptMatches(data.matches);
             matches.push(...jsMatches);
           }
         } catch (e) {
-          console.warn('⚠️ Failed to parse JavaScript match data:', e);
         }
       }
     }
@@ -1690,12 +1580,10 @@ class TotelepepExtractor {
         return null; // Not enough data for a match
       }
       
-      console.log(`🔍 Row cells: ${cells.join(' | ')}`);
       
       // Extract team names
       const teamInfo = this.extractTeamNames(cells);
       if (!teamInfo) {
-        console.log(`⚠️ No team names found in: ${cells.join(' | ')}`);
         return null;
       }
       
@@ -1713,7 +1601,6 @@ class TotelepepExtractor {
                cell.includes('World Cup') || cell.includes('Euro') || cell.includes('Nations League') ||
                cell.includes('Qualification') || cell.includes('Tournament'))) {
             league = cell;
-            console.log(`   🎯 Found league name in cell data: ${league}`);
             break;
           }
         }
@@ -1743,7 +1630,6 @@ class TotelepepExtractor {
       };
       
     } catch (error) {
-      console.warn('⚠️ Error extracting match from row:', error);
       return null;
     }
   }
@@ -1751,12 +1637,10 @@ class TotelepepExtractor {
   private extractMatchFromTotelepepContainer(divContent: string, id: string): TotelepepMatch | null {
     const textContent = this.cleanHtmlContent(divContent);
     
-    console.log(`🔍 Container content: ${textContent.substring(0, 100)}...`);
     
     // Extract team names
     const teamInfo = this.extractTeamNamesFromText(textContent);
     if (!teamInfo) {
-      console.log(`⚠️ No team names in container: ${textContent.substring(0, 50)}...`);
       return null;
     }
     
@@ -1796,7 +1680,6 @@ class TotelepepExtractor {
       for (const indicator of leagueIndicators) {
         if (textContent.toLowerCase().includes(indicator.toLowerCase()) && indicator.length > 3) {
           league = indicator;
-          console.log(`   🎯 Found league name in text content: ${league}`);
           break;
         }
       }
@@ -1841,7 +1724,6 @@ class TotelepepExtractor {
       // If we don't have a league name from the API, try to get it from our API competition map
       if (league === 'Football League' && (this as any).apiCompetitionMap && competitionId !== '0') {
         league = (this as any).apiCompetitionMap[competitionId] || league;
-        console.log(`   🎯 Using API competition name for ID ${competitionId}: ${league}`);
       }
       
       // If we still don't have a league name, look for it in other API fields
@@ -1855,7 +1737,6 @@ class TotelepepExtractor {
         for (const field of possibleLeagueFields) {
           if (field && field.length > 3) {
             league = field;
-            console.log(`   🎯 Found league name in API field: ${league}`);
             break;
           }
         }
@@ -2124,7 +2005,6 @@ class TotelepepExtractor {
     
     for (const pattern of specificPatterns) {
       const elements = html.match(pattern) || [];
-      console.log(`🎯 Found ${elements.length} Totelepep-specific elements`);
       
       // Process each element for match data
       // Implementation would depend on actual site structure
@@ -2211,7 +2091,6 @@ class TotelepepExtractor {
       if (!seen.has(key) && this.isValidMatch(match)) {
         seen.add(key);
         unique.push(match);
-        console.log(`✅ Valid match: ${match.homeTeam} vs ${match.awayTeam} at ${match.kickoff}`);
       }
     }
     
@@ -2245,7 +2124,6 @@ class TotelepepExtractor {
     
     if (timeSinceLastRequest < this.rateLimitDelay) {
       const waitTime = this.rateLimitDelay - timeSinceLastRequest;
-      console.log(`⏱️ Rate limiting: waiting ${waitTime}ms`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
     
@@ -2272,22 +2150,16 @@ class TotelepepExtractor {
   // Clear cache for fresh extraction
   clearCache(): void {
     this.cache.clear();
-    console.log('🗑️ Cache cleared - next extraction will be fresh');
   }
   
   // Method to log all current competition mappings for debugging
   public logCompetitionMappings(): void {
-    console.log('=== Competition Mappings Debug Info ===');
-    console.log('Dynamic Mappings:', this.dynamicCompetitionMap);
-    console.log('Team-based Mappings:', this.teamBasedCompetitionMap);
-    console.log('=====================================');
   }
   
   // Method to clear dynamic mappings for testing
   public clearDynamicMappings(): void {
     this.dynamicCompetitionMap = {};
     this.teamBasedCompetitionMap = {};
-    console.log('🗑️ Dynamic mappings cleared');
   }
 
   // Sort matches by date and time

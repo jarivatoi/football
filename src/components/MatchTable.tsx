@@ -67,7 +67,6 @@ const MatchTable: React.FC<MatchTableProps> = ({
     if ((category === 'Both Teams To Score' || category === 'Over/Under 2.5') && competitionId) {
       // Check if we've already fetched odds for this match
       if (fetchedMarkets[matchId]) {
-        console.log(`📦 Using cached odds for match ${matchId}`);
         return;
       }
       
@@ -75,13 +74,11 @@ const MatchTable: React.FC<MatchTableProps> = ({
       setLoadingMarkets(prev => ({ ...prev, [matchId]: true }));
       
       try {
-        console.log(`🔍 Fetching ${category} odds for match ${matchId} in competition ${competitionId}`);
         
         // Fetch the detailed odds for this match
         const oddsData = await matchSpecificExtractor.extractMatchOdds(matchId, competitionId);
         
         if (oddsData) {
-          console.log(`✅ Fetched odds for match ${matchId}:`, oddsData);
           setMarketOdds(prev => ({
             ...prev,
             [matchId]: {
@@ -96,10 +93,8 @@ const MatchTable: React.FC<MatchTableProps> = ({
             [matchId]: true
           }));
         } else {
-          console.log(`⚠️ No odds data returned for match ${matchId}`);
         }
       } catch (error) {
-        console.error(`❌ Error fetching odds for match ${matchId}:`, error);
       } finally {
         setLoadingMarkets(prev => ({ ...prev, [matchId]: false }));
       }
@@ -109,7 +104,6 @@ const MatchTable: React.FC<MatchTableProps> = ({
   const selectMarketCategory = async (match: MatchData, category: string) => {
     const matchId = match.id;
     
-    console.log(`🎯 User selected market category "${category}" for match ${match.homeTeam} vs ${match.awayTeam} (${matchId})`);
     
     // Update selected category
     setSelectedMarketCategories(prev => ({
@@ -125,10 +119,8 @@ const MatchTable: React.FC<MatchTableProps> = ({
     
     // Fetch odds for the selected category if it's a special category
     if ((category === 'Both Teams To Score' || category === 'Over/Under 2.5') && match.competitionId) {
-      console.log(`🔄 Triggering odds fetch for ${category} market`);
       await fetchMarketOdds(match, category);
     } else {
-      console.log(`ℹ️  Using default 1X2 odds for category "${category}"`);
     }
   };
 
@@ -144,7 +136,6 @@ const MatchTable: React.FC<MatchTableProps> = ({
     const selectedCategory = selectedMarketCategories[match.id] || '1X2';
     const matchOdds = marketOdds[match.id];
     
-    console.log(`📊 Rendering odds for match ${match.id} with category "${selectedCategory}"`, {
       matchOdds,
       bttsYes: matchOdds?.bttsYes,
       bttsNo: matchOdds?.bttsNo,

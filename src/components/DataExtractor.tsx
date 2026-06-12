@@ -60,7 +60,6 @@ const DataExtractor: React.FC<DataExtractorProps> = ({ onDataExtracted }) => {
 
     } catch (error) {
       setExtractionStatus('Failed to extract data from Totelepep');
-      console.error('Extraction error:', error);
     } finally {
       setIsExtracting(false);
     }

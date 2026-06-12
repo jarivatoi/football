@@ -67,7 +67,6 @@ const BetPlacementAnalyzer: React.FC = () => {
 
   const testBetEndpoint = async (endpointInfo: { endpoint: string; method: string }): Promise<BetEndpointResult> => {
     const { endpoint, method } = endpointInfo;
-    console.log(`🎯 Testing bet endpoint: ${method} ${endpoint}`);
     
     try {
       const requestOptions: RequestInit = {
@@ -128,7 +127,6 @@ const BetPlacementAnalyzer: React.FC = () => {
 
       const response = await fetch(endpoint, requestOptions);
       
-      console.log(`📡 ${method} ${endpoint} - Status: ${response.status}`);
 
       if (response.status === 401 || response.status === 403) {
         return {
@@ -150,7 +148,6 @@ const BetPlacementAnalyzer: React.FC = () => {
       }
 
       const data = await response.json();
-      console.log(`✅ Success for ${method} ${endpoint}:`, data);
 
       // Analyze response for ticket information
       const analysis = analyzeBetResponse(data);
@@ -165,7 +162,6 @@ const BetPlacementAnalyzer: React.FC = () => {
       };
 
     } catch (error) {
-      console.error(`❌ Error for ${method} ${endpoint}:`, error);
       return {
         endpoint,
         method,
@@ -176,31 +172,22 @@ const BetPlacementAnalyzer: React.FC = () => {
   };
 
   const analyzeBetResponse = (data: any): { ticketFound: boolean; ticketNumber?: string } => {
-    console.log('📄 Full bet response:', JSON.stringify(data, null, 2));
     
     // Handle Totelepep-specific response format
     if (data.errorMessage) {
-      console.log(`⚠️ Totelepep Error: ${data.errorMessage}`);
       
       // Check if we got a partial response with some data
       if (data.ticketNo && data.ticketNo !== "") {
-        console.log(`🎫 Ticket found despite error: ${data.ticketNo}`);
         return { ticketFound: true, ticketNumber: data.ticketNo };
       }
       
       // Log all response fields for analysis
-      console.log('📊 Response analysis:');
-      console.log(`   multiErrorCode: ${data.multiErrorCode}`);
-      console.log(`   multiEnabled: ${data.multiEnabled}`);
-      console.log(`   betList length: ${data.betList?.length || 0}`);
-      console.log(`   balanceAmount: ${data.balanceAmount}`);
       
       return { ticketFound: false };
     }
     
     // Success case - look for ticket number
     if (data.ticketNo && data.ticketNo !== "") {
-      console.log(`✅ Ticket number found: ${data.ticketNo}`);
       return { ticketFound: true, ticketNumber: data.ticketNo };
     }
     
@@ -211,8 +198,6 @@ const BetPlacementAnalyzer: React.FC = () => {
     setIsAnalyzing(true);
     setResults([]);
 
-    console.log('🎯 Starting Totelepep bet placement endpoint analysis...');
-    console.log('📋 Test bet data:', testBetData);
 
     // Initialize results
     const initialResults = potentialBetEndpoints.map(({ endpoint, method }) => ({
@@ -255,7 +240,6 @@ const BetPlacementAnalyzer: React.FC = () => {
     }
 
     setIsAnalyzing(false);
-    console.log('🎯 Bet endpoint analysis complete!');
   };
 
   const getStatusIcon = (status: string) => {

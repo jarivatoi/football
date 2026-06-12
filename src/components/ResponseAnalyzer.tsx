@@ -57,7 +57,6 @@ const ResponseAnalyzer: React.FC = () => {
 
     for (const endpoint of keyEndpoints) {
       try {
-        console.log(`🔍 Analyzing: ${endpoint}`);
         
         const response = await fetch(endpoint, {
           headers: {
@@ -80,14 +79,12 @@ const ResponseAnalyzer: React.FC = () => {
           };
           
           results.push(analysis);
-          console.log(`✅ Analyzed: ${endpoint.split('?')[1]} - MatchData: ${analysis.matchDataLength} chars`);
         }
         
         // Small delay between requests
         await new Promise(resolve => setTimeout(resolve, 500));
         
       } catch (error) {
-        console.error(`❌ Error analyzing ${endpoint}:`, error);
       }
     }
 
@@ -116,8 +113,6 @@ const ResponseAnalyzer: React.FC = () => {
   };
 
   const logDetailedComparison = (results: ResponseComparison[]) => {
-    console.log('\n🔍 DETAILED RESPONSE COMPARISON:');
-    console.log('=====================================');
     
     // Group by response characteristics
     const byMatchDataLength = results.reduce((acc, result) => {
@@ -127,12 +122,9 @@ const ResponseAnalyzer: React.FC = () => {
       return acc;
     }, {} as Record<number, ResponseComparison[]>);
     
-    console.log('\n📊 Grouped by matchData length:');
     Object.entries(byMatchDataLength).forEach(([length, endpoints]) => {
-      console.log(`\n📏 Length ${length} chars (${endpoints.length} endpoints):`);
       endpoints.forEach(endpoint => {
         const params = endpoint.endpoint.split('?')[1];
-        console.log(`   • ${params}`);
       });
     });
     
@@ -145,20 +137,12 @@ const ResponseAnalyzer: React.FC = () => {
       }
     });
     
-    console.log(`\n🎯 Found ${uniqueResponses.size} unique response patterns:`);
     Array.from(uniqueResponses.values()).forEach((result, index) => {
-      console.log(`\n📋 Pattern ${index + 1}:`);
-      console.log(`   MatchData: ${result.matchDataLength} chars`);
-      console.log(`   CompetitionData: ${result.competitionDataLength} chars`);
-      console.log(`   Fields: ${result.uniqueFields.join(', ')}`);
-      console.log(`   Example: ${result.endpoint.split('?')[1]}`);
       
       // Show sample of response data
       if (result.response.matchData) {
         const sampleMatch = result.response.matchData.split('|')[0];
         const fieldCount = sampleMatch ? sampleMatch.split(';').length : 0;
-        console.log(`   Sample match fields: ${fieldCount}`);
-        console.log(`   Sample: ${sampleMatch?.substring(0, 100)}...`);
       }
     });
   };
@@ -311,25 +295,14 @@ const ResponseAnalyzer: React.FC = () => {
                         <td className="px-3 py-2 text-center">
                           <button
                             onClick={() => {
-                              console.log(`\n🔍 DETAILED RESPONSE for: ${params}`);
-                              console.log('📄 Full Response:', JSON.stringify(comparison.response, null, 2));
-                              console.log('📊 Response Analysis:');
-                              console.log(`   • MatchData length: ${comparison.matchDataLength}`);
-                              console.log(`   • CompetitionData length: ${comparison.competitionDataLength}`);
-                              console.log(`   • All fields: ${comparison.uniqueFields.join(', ')}`);
                               
                               if (comparison.response.matchData) {
                                 const matches = comparison.response.matchData.split('|');
-                                console.log(`   • Total matches: ${matches.length}`);
-                                console.log(`   • First match: ${matches[0]}`);
-                                console.log(`   • First match fields: ${matches[0]?.split(';').length}`);
                                 
                                 // Show field breakdown of first match
                                 if (matches[0]) {
                                   const fields = matches[0].split(';');
-                                  console.log('   • Field breakdown:');
                                   fields.forEach((field, i) => {
-                                    console.log(`     ${i}: "${field}"`);
                                   });
                                 }
                               }

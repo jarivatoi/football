@@ -43,7 +43,6 @@ export const usePWA = (): PWAHook => {
           setIsStandalone(standalone);
           setIsInstalled(standalone);
         } catch (error) {
-          console.warn('Error checking standalone mode:', error);
           setIsStandalone(false);
           setIsInstalled(false);
         }
@@ -55,7 +54,6 @@ export const usePWA = (): PWAHook => {
           e.preventDefault();
           setCanInstall(true);
         } catch (error) {
-          console.warn('Error handling beforeinstallprompt:', error);
           setCanInstall(false);
         }
       };
@@ -85,7 +83,6 @@ export const usePWA = (): PWAHook => {
           window.removeEventListener('offline', handleOffline);
         };
       } catch (error) {
-        console.warn('Error setting up PWA event listeners:', error);
         return () => {};
       }
     }, []);
@@ -97,7 +94,6 @@ export const usePWA = (): PWAHook => {
       isOnline
     };
   } catch (error) {
-    console.warn('Error initializing usePWA hook:', error);
     // Return safe defaults
     return {
       isInstalled: false,

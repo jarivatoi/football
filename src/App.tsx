@@ -31,7 +31,6 @@ const getTodayDate = () => {
 
 function App() {
   // Add a simple test to see if the component is rendering
-  console.log('App component is rendering');
   
   
   const [matches, setMatches] = useState<TotelepepMatch[]>([]);
@@ -71,21 +70,18 @@ function App() {
         const parsed = JSON.parse(savedSource);
         const found = API_SOURCES.find(s => s.id === parsed.id);
         if (found) {
-          console.log('🌐 Restored saved API source:', found.displayName);
           // Update extractor baseUrl immediately to use saved source
           (totelepepExtractor as any).baseUrl = found.baseUrl;
           return found;
         }
       }
     } catch (e) {
-      console.warn('Failed to load saved API source:', e);
     }
     return API_SOURCES[0]; // Default to Totelepep
   });
   
   // Handle API source change
   const handleSourceChange = async (source: ApiSource) => {
-    console.log('🌐 API Source changed to:', source.displayName);
     setSelectedSource(source);
     
     // Save to localStorage
@@ -103,32 +99,26 @@ function App() {
     
     // Reset both category and competition filters when switching sources
     // Each source has its own IDs, so start fresh
-    console.log('🏆 Resetting all filters for new API source');
     setSelectedCategory('');
     setSelectedCompetition('');
     
     // Clear parlay selections since odds are source-specific
-    console.log('🎯 Clearing parlay selections (odds are source-specific)');
     setParlaySelections([]);
     setShowParlayBuilder(false);
     
     // Reload calendar without any filters
-    console.log('📅 Reloading calendar from new source (no filters)...');
     await loadCalendarList('', '');
     
     // Reload data with new source (no filters)
     if (showAllMatches) {
-      console.log('📋 All Matches is active - reloading all matches from new source');
       loadAllMatches('', '');
     } else if (selectedDate) {
-      console.log('🔄 Reloading data from new source...');
       loadData(selectedDate, '', '');
     }
   };
   
   // Function to fetch competitions for a category
   const handleFetchCompetitions = async (categoryName: string) => {
-    console.log(`🏆 Fetching competitions for category: ${categoryName}`);
     const competitions = await totelepepExtractor.fetchCompetitionsForCategory(categoryName);
     
     // Update categories state with the fetched competitions
@@ -142,39 +132,31 @@ function App() {
   
   // Handle category change - reload calendar with filters
   const handleCategoryChange = async (categoryId: string) => {
-    console.log('📂 Category changed to:', categoryId);
     setSelectedCategory(categoryId);
     setSelectedCompetition('');
     
     // Reload calendar with the category filter and get the first date
     const firstDate = await reloadCalendarWithFilters(categoryId, '');
-    console.log('📅 reloadCalendarWithFilters returned:', firstDate);
     
     // If All Matches is active, reload all matches with new category
     if (showAllMatches) {
-      console.log('📋 All Matches is active - reloading all matches with new category:', categoryId);
       loadAllMatches(categoryId, '');
     } else if (firstDate) {
       // Load data with the first date from the filtered calendar
-      console.log('📅 Loading matches for first calendar date:', firstDate);
       loadData(firstDate, categoryId, '');
     } else {
-      console.log('⚠️ No date returned from reloadCalendarWithFilters');
     }
   };
   
   // Handle competition change - reload calendar with filters
   const handleCompetitionChange = async (competitionId: string) => {
-    console.log('🏆 Competition changed to:', competitionId);
     setSelectedCompetition(competitionId);
     
     // Don't reload calendar if competition is being reset (empty string)
     // This happens when category changes and resets competition
     if (!competitionId) {
-      console.log('🏆 Competition reset - skipping calendar reload');
       // If All Matches is active, reload with reset competition
       if (showAllMatches) {
-        console.log('📋 All Matches is active - reloading all matches with reset competition');
         loadAllMatches(selectedCategory, '');
       }
       return;
@@ -186,37 +168,30 @@ function App() {
     
     // If All Matches is active, reload all matches with new competition
     if (showAllMatches) {
-      console.log('📋 All Matches is active - reloading all matches with new competition');
       loadAllMatches(selectedCategory, competitionId);
     } else if (selectedDate) {
       // Load data with the selected date and competition filter
-      console.log('📅 Loading matches for selected date with competition filter:', selectedDate);
       loadData(selectedDate, selectedCategory, competitionId);
     }
   };
   
   // Reload calendar with category/competition filters to update match counts
   const reloadCalendarWithFilters = async (categoryId: string, competitionId: string): Promise<string | null> => {
-    console.log('📅 Reloading calendar with filters...', { categoryId, competitionId });
     
     // Load calendar with the filters
     await loadCalendarList(categoryId, competitionId);
     
     // Return the first date that has matches > 0
     const calendarData = (totelepepExtractor as any).calendarList || [];
-    console.log('📅 Calendar data after reload:', calendarData.length, 'entries');
     if (calendarData && calendarData.length > 0) {
       // Find first date with matches
       const firstDateWithMatches = calendarData.find((entry: any) => entry.matchCount > 0);
       if (firstDateWithMatches) {
-        console.log('📅 First date with matches:', firstDateWithMatches.entryDate, 'count:', firstDateWithMatches.matchCount);
         return firstDateWithMatches.entryDate;
       }
       // Fallback to first date even if it has 0 matches
-      console.log('⚠️ No dates with matches found, using first date:', calendarData[0].entryDate);
       return calendarData[0].entryDate;
     }
-    console.log('⚠️ No calendar data available');
     return null;
   };
 
@@ -242,7 +217,6 @@ function App() {
       if (header) {
         const height = header.offsetHeight + 0; // Add ?px buffer to prevent overlap
         document.documentElement.style.setProperty('--header-height', `${height}px`);
-        console.log('📏 Sticky header height:', height, 'px');
       }
     };
     
@@ -260,13 +234,11 @@ function App() {
     requestNotificationPermission();
     scheduleBackgroundSync();
     
-    console.log('🚀 App initialized - Direct API mode (no Supabase)');
   }, [selectedDate]);
   
   const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string) => {
     setLoading(true);
     setError(null);
-    console.log('🔍 loadData called with targetDate:', targetDate, 'type:', typeof targetDate, 'isNull:', targetDate === null);
     
     // targetDate === null means "no date, get all matches"
     // targetDate === undefined means "use selectedDate"
@@ -274,27 +246,19 @@ function App() {
     let dateToFetch: string | undefined;
     if (targetDate === null) {
       dateToFetch = undefined;  // No date = API will use inclusive=1
-      console.log('🔍 All Matches mode - no date parameter');
     } else if (targetDate === undefined) {
       dateToFetch = selectedDate;  // Use selected date
-      console.log('🔍 Using selectedDate:', selectedDate);
     } else {
       dateToFetch = targetDate;  // Use provided date
-      console.log('🔍 Using provided date:', targetDate);
     }
     
     const catId = categoryId !== undefined ? categoryId : selectedCategory;
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
     try {
-      console.log('🔍 Fetching data for date:', dateToFetch);
-      console.log('📂 Category to use:', catId);
-      console.log('🏆 Competition to use:', compId);
       
       // Fetch matches DIRECTLY from Totelepep API with category/competition filters
-      console.log('📡 Fetching from Totelepep API with filters...');
       const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId);
       
-      console.log(`📊 Loaded ${fetchedMatches.length} matches with allMarkets:`, 
         fetchedMatches.slice(0, 3).map((m: TotelepepMatch) => ({
           id: m.id,
           marketCount: m.marketCount,
@@ -320,9 +284,7 @@ function App() {
       setGroupedMatches(grouped);
       
       setLastUpdated(new Date());
-      console.log(`✅ Loaded ${sortedMatches.length} matches for ${dateToFetch}`);
     } catch (error) {
-      console.error('Error loading data:', error);
       setError('Failed to load data. Please try again.');
     } finally {
       setLoading(false);
@@ -333,35 +295,26 @@ function App() {
   const loadAllMatches = async (categoryId?: string, competitionId?: string) => {
     setLoading(true);
     setError(null);
-    console.log('📋 Loading all matches from all dates...');
-    console.log('📋 availableDates:', availableDates);
-    console.log('📋 calendarList:', calendarList);
     
     // Use provided params or fall back to state
     const catId = categoryId !== undefined ? categoryId : selectedCategory;
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
-    console.log('📋 Using category:', catId, 'competition:', compId);
     
     try {
       const allMatches: TotelepepMatch[] = [];
       
       // Use calendarList which has all the dates
       const datesToFetch = calendarList.length > 0 ? calendarList : availableDates;
-      console.log('📋 Using dates:', datesToFetch);
       
       // Fetch matches from each date
       for (const dateInfo of datesToFetch) {
-        console.log(`📅 Fetching matches for ${dateInfo.date} (${dateInfo.displayName})...`);
         try {
           const matches = await totelepepExtractor.extractMatches(dateInfo.date, catId, compId);
-          console.log(`  ✅ Got ${matches.length} matches for ${dateInfo.date}`);
           allMatches.push(...matches);
         } catch (error) {
-          console.error(`  ❌ Failed to fetch ${dateInfo.date}:`, error);
         }
       }
       
-      console.log(`📋 Total matches loaded: ${allMatches.length}`);
       
       // Sort all matches by date and time
       const sortedMatches = allMatches.sort((a, b) => {
@@ -377,9 +330,7 @@ function App() {
       setGroupedMatches(grouped);
       
       setLastUpdated(new Date());
-      console.log(`✅ Loaded ${sortedMatches.length} total matches from all dates`);
     } catch (error) {
-      console.error('Error loading all matches:', error);
       setError('Failed to load all matches. Please try again.');
     } finally {
       setLoading(false);
@@ -390,7 +341,6 @@ function App() {
   const loadCalendarList = async (categoryId?: string, competitionId?: string) => {
     try {
       const sourceName = selectedSource?.displayName || 'Totelepep';
-      console.log(`📅 Fetching calendar list data from ${sourceName} API...`, { categoryId, competitionId });
       
       // Clear cache to ensure fresh data
       totelepepExtractor.clearCache();
@@ -400,8 +350,6 @@ function App() {
       const today = new Date();
       const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       
-      console.log('📅 Fetching calendar with date:', dateStr);
-      console.log('📅 With filters - category:', categoryId || '(none)', 'competition:', competitionId || '(none)');
       
       // Fetch with a date to get the calendar list
       const matches = await totelepepExtractor.extractMatches(dateStr, categoryId || '', competitionId || '');
@@ -412,10 +360,8 @@ function App() {
       // Get calendar list from extractor
       const calendarData = (totelepepExtractor as any).calendarList || [];
       
-      console.log('📅 Extractor calendarList after extraction:', calendarData);
       
       if (calendarData && calendarData.length > 0) {
-        console.log('📅 Calendar list data loaded:', calendarData);
         
         const formattedCalendar = calendarData.map((entry: any) => ({
           date: entry.entryDate,
@@ -423,12 +369,10 @@ function App() {
           displayName: entry.displayDate || entry.entryDate
         }));
         
-        console.log('📅 Formatted calendar with filtered counts:', formattedCalendar);
         setCalendarList(formattedCalendar);
         
         // Set the selected date to the FIRST entry from the API (which is "Today" in API's timezone)
         const firstDate = formattedCalendar[0].date;
-        console.log('📅 Setting selected date to API today:', firstDate);
         setSelectedDate(firstDate);
         
         // NOTE: Don't auto-load matches here - let the caller (handleCategoryChange, etc.) do it
@@ -437,11 +381,9 @@ function App() {
       
       // Fetch categories from the API (only on initial load without filters)
       if (!categoryId) {
-        console.log('📂 Fetching categories from API...');
         const categoryList = await totelepepExtractor.fetchCategories();
         
         if (categoryList && categoryList.length > 0) {
-          console.log('📂 Categories loaded:', categoryList);
           setCategories(categoryList.map(cat => ({
             id: cat.id,
             name: cat.name,
@@ -450,7 +392,6 @@ function App() {
         }
       }
     } catch (error) {
-      console.error('Error loading calendar list:', error);
       setError('Failed to load calendar data from Totelepep API.');
     }
   };
@@ -460,8 +401,6 @@ function App() {
 
   // Load initial data on mount
   useEffect(() => {
-    console.log('📅 Initial load...');
-    console.log('📅 Local timezone today is:', getTodayDate());
     
     // Clear all caches on initial load
     totelepepExtractor.clearCache();
@@ -471,7 +410,6 @@ function App() {
       // After calendar is loaded, load matches for the first date
       const firstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
       if (firstDate) {
-        console.log('📅 Loading initial matches for:', firstDate);
         loadData(firstDate);
       }
     });
@@ -483,7 +421,6 @@ function App() {
 
   // Filter matches by selected date and maintain grouping
   const filteredGroupedMatches = React.useMemo ? React.useMemo(() => {
-    console.log('🔍 filteredGroupedMatches computing...', {
       selectedDate,
       selectedCategory,
       selectedCompetition,
@@ -498,13 +435,11 @@ function App() {
     
     let dateFiltered: Record<string, TotelepepMatch[]> = {};
     
-    console.log('📋 Filtering check - showAllMatches:', showAllMatches, 'selectedDate:', selectedDate);
     
     // Check if "All Matches" mode is enabled - this takes priority over date selection
     if (showAllMatches) {
       // Show ALL matches from all dates, sorted by time
       dateFiltered = { ...groupedMatches };
-      console.log('📋 All Matches mode: Showing ALL dates, total:', Object.values(groupedMatches).flat().length);
     } else if (isBeyondDate) {
       // For Beyond, show ALL matches from all dates
       dateFiltered = { ...groupedMatches };
@@ -520,21 +455,16 @@ function App() {
     
     if (selectedCompetition) {
       // Filter by specific competition
-      console.log('🏆 Filtering by competition:', selectedCompetition, 'type:', typeof selectedCompetition);
       Object.entries(dateFiltered).forEach(([date, dateMatches]) => {
-        console.log(`📅 Date ${date}: ${dateMatches.length} matches before competition filter`);
         if (dateMatches.length > 0) {
-          console.log('🏆 First match competitionId:', dateMatches[0].competitionId, 'type:', typeof dateMatches[0].competitionId);
         }
         const filteredMatches = dateMatches.filter(match => {
           // Convert both to string for comparison to handle type mismatch
           const matches = String(match.competitionId) === String(selectedCompetition);
           if (!matches) {
-            console.log(`  ❌ Match ${match.homeTeam} vs ${match.awayTeam}: competitionId=${match.competitionId} !== ${selectedCompetition}`);
           }
           return matches;
         });
-        console.log(`📅 Date ${date}: ${filteredMatches.length} matches after competition filter`);
         if (filteredMatches.length > 0) {
           categoryFiltered[date] = filteredMatches;
         }
@@ -847,7 +777,6 @@ function App() {
         
         result = finalSorted;
       } else {
-        console.log('📋 Search results: Sorted by date');
       }
     }
     
@@ -880,18 +809,14 @@ function App() {
   // Get available dates with match counts from API calendarList data
   const availableDatesWithCounts = React.useMemo ? React.useMemo(() => {
     const sourceName = selectedSource?.displayName || 'Totelepep';
-    console.log(`📅 Using calendar list data from ${sourceName} API for date tabs...`);
-    console.log('📅 Calendar list data:', calendarList);
     
     // Use the calendarList data directly - this is the source of truth
     if (calendarList && calendarList.length > 0) {
       const sourceName = selectedSource?.displayName || 'Totelepep';
-      console.log(`📅 Using ${sourceName} calendar list as source of truth`);
       return calendarList;
     }
     
     // Fallback to local calculation if calendarList is not available
-    console.log('⚠️ Calendar list not available, falling back to local calculation');
     
     // Get all unique dates from the matches
     const dates = new Set<string>();
@@ -927,7 +852,6 @@ function App() {
         });
       }
       
-      console.log(`📅 Date ${dateString}: Local count = ${matches.filter(match => match.date === dateString).length}, Final count = ${matchCount}`);
       
       return {
         date: dateString,
@@ -936,110 +860,11 @@ function App() {
       };
     });
     
-    console.log('📅 Available dates with counts (fallback):', result);
     return result;
   }, [calendarList, matches]) : [];
 
-  // Create filtered date counts based on active search filters
-  const filteredAvailableDates = React.useMemo(() => {
-    // If no active filter, return original counts
-    if (searchMode === 'matches' && !searchTerm) {
-      return availableDatesWithCounts;
-    }
-    
-    // Calculate filtered counts for ALL dates (not just selected date)
-    const filteredCounts: Record<string, number> = {};
-    
-    // Iterate through ALL dates in groupedMatches
-    Object.entries(groupedMatches).forEach(([date, dateMatches]) => {
-      if (!dateMatches || dateMatches.length === 0) {
-        filteredCounts[date] = 0;
-        return;
-      }
-      
-      // Apply the same filtering logic to count matches
-      const matchingMatches = (dateMatches as TotelepepMatch[]).filter(match => {
-        // Skip if match doesn't have odds data
-        if (!match.homeOdds || !match.drawOdds || !match.awayOdds) return false;
-        
-        const homeOdds = parseFloat(String(match.homeOdds));
-        const drawOdds = parseFloat(String(match.drawOdds));
-        const awayOdds = parseFloat(String(match.awayOdds));
-        
-        if (isNaN(homeOdds) || isNaN(drawOdds) || isNaN(awayOdds)) return false;
-        
-        // Parse search term for period/position
-        const upperSearch = searchTerm.toUpperCase().trim();
-        let periodFilter: 'H1' | 'H2' | null = null;
-        let positionFilter: 'home' | 'draw' | 'away' | null = null;
-        let targetOdds = parseFloat(searchTerm);
-        
-        // Parse suffixes
-        if (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A')) {
-          periodFilter = 'H1';
-        } else if (upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A')) {
-          periodFilter = 'H2';
-        } else if (upperSearch.endsWith('H1') || upperSearch.endsWith('H2')) {
-          periodFilter = upperSearch.endsWith('H1') ? 'H1' : 'H2';
-        } else if (upperSearch.endsWith('H')) {
-          positionFilter = 'home';
-        } else if (upperSearch.endsWith('D')) {
-          positionFilter = 'draw';
-        } else if (upperSearch.endsWith('A')) {
-          positionFilter = 'away';
-        }
-        
-        // For Full Time (no period filter), check quick1x2
-        if (!periodFilter) {
-          if (positionFilter) {
-            const odds = positionFilter === 'home' ? homeOdds : positionFilter === 'draw' ? drawOdds : awayOdds;
-            if (searchMode === 'eq') return odds === targetOdds;
-            if (searchMode === 'gte') return odds >= targetOdds;
-            if (searchMode === 'lte') return odds <= targetOdds;
-            if (searchMode === 'between') {
-              const rangeParts = searchTerm.split('-');
-              if (rangeParts.length === 2) {
-                const minOdds = parseFloat(rangeParts[0]) > 10 ? parseFloat(rangeParts[0]) / 100 : parseFloat(rangeParts[0]);
-                const maxOdds = parseFloat(rangeParts[1].replace(/[^\d.]/g, '')) > 10 ? parseFloat(rangeParts[1].replace(/[^\d.]/g, '')) / 100 : parseFloat(rangeParts[1].replace(/[^\d.]/g, ''));
-                return odds >= minOdds && odds <= maxOdds;
-              }
-            }
-          } else {
-            if (searchMode === 'eq') return homeOdds === targetOdds || drawOdds === targetOdds || awayOdds === targetOdds;
-            if (searchMode === 'gte') return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
-            if (searchMode === 'lte') return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
-            if (searchMode === 'between') {
-              const rangeParts = searchTerm.split('-');
-              if (rangeParts.length === 2) {
-                const minOdds = parseFloat(rangeParts[0]) > 10 ? parseFloat(rangeParts[0]) / 100 : parseFloat(rangeParts[0]);
-                const maxOdds = parseFloat(rangeParts[1].replace(/[^\d.]/g, '')) > 10 ? parseFloat(rangeParts[1].replace(/[^\d.]/g, '')) / 100 : parseFloat(rangeParts[1].replace(/[^\d.]/g, ''));
-                return (homeOdds >= minOdds && homeOdds <= maxOdds) ||
-                       (drawOdds >= minOdds && drawOdds <= maxOdds) ||
-                       (awayOdds >= minOdds && awayOdds <= maxOdds);
-              }
-            }
-          }
-        }
-        
-        // For period filters (H1/H2), would need to check allMarkets
-        // This is a simplified count - accurate count requires allMarkets to be loaded
-        return false;
-      });
-      
-      filteredCounts[date] = matchingMatches.length;
-    });
-    
-    // Update matchCount for each date based on filtered results
-    return availableDatesWithCounts.map(dateInfo => ({
-      ...dateInfo,
-      matchCount: filteredCounts[dateInfo.date] || 0
-    }));
-  }, [availableDatesWithCounts, groupedMatches, searchMode, searchTerm]);
-
   // Debug: Log grouped matches to see what dates we have
   useEffect(() => {
-    console.log('📅 Available dates in groupedMatches:', Object.keys(groupedMatches));
-    console.log('📊 Matches per date:', Object.entries(groupedMatches).map(([date, matches]) => `${date}: ${(matches as TotelepepMatch[]).length}`));
   }, [groupedMatches]);
 
   const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => {
@@ -1056,9 +881,6 @@ function App() {
         setParlaySelections(prev => prev.filter((_, index) => index !== existingIndex));
       } else {
         // Log match data for debugging
-        console.log(' Adding selection from match:', match);
-        console.log(` Price type: ${priceType}, Odds: ${odds}`);
-        console.log(`🔍 Market data from click - marketBookNo: ${marketBookNo}, marketCode: ${marketCode}, marketId: ${marketId}, optionCode: ${optionCode}, optionNo: ${optionNo}`);
         
         // Use the marketBookNo and marketCode passed from the click event
         const finalMarketBookNo = (marketBookNo && marketBookNo !== 'undefined' && marketBookNo !== 'null') 
@@ -1070,8 +892,6 @@ function App() {
           : (match.marketCode || 'CP');
         
         // Debug the final values
-        console.log(`🔍 App.tsx - final marketBookNo:`, finalMarketBookNo);
-        console.log(`🔍 App.tsx - final marketCode:`, finalMarketCode);
       
         // Add new selection
         const newSelection: ParlaySelection = {
@@ -1095,25 +915,13 @@ function App() {
           optionNo: optionNo || '',  // Store option number from API
         };
         
-        console.log(`🔍 App.tsx - marketId parameter received: ${marketId}`);
-        console.log(`🔍 App.tsx - match.marketId: ${match.marketId}`);
-        console.log(`🔍 App.tsx - final marketId for selection: ${newSelection.marketId}`);
         
-        console.log(`🔍 App.tsx - newSelection with market data:`, newSelection);
         
         // Debug specific match data
         if (match.homeTeam && match.awayTeam) {
-          console.log(`🎯 MATCH SELECTION DEBUG: ${match.homeTeam} vs ${match.awayTeam}`);
-          console.log(`   matchId:`, match.id);
-          console.log(`   marketBookNo:`, match.marketBookNo);
-          console.log(`   marketCode:`, match.marketCode);
-          console.log(`   competitionId:`, match.competitionId);
-          console.log(`   Final selection marketBookNo:`, finalMarketBookNo);
-          console.log(`   Final selection marketCode:`, finalMarketCode);
           
           // Additional validation debugging
           if (match.marketBookNo) {
-            console.log(`🔍 MARKETBOOKNO VALIDATION:`, {
               value: match.marketBookNo,
               type: typeof match.marketBookNo,
               length: match.marketBookNo.length,
@@ -1126,12 +934,10 @@ function App() {
             
             // Special handling for the correct marketBookNo
             if (match.marketBookNo === '5160495') {
-              console.log(`🎯 FOUND EXACT MATCH MARKETBOOKNO for match ${match.homeTeam} vs ${match.awayTeam}!`);
             }
           }
         }
       
-        console.log('📋 New selection with market data:', newSelection);
         setParlaySelections(prev => [...prev, newSelection]);
       }
     }
@@ -1177,14 +983,10 @@ function App() {
   };
 
   const handleDateChange = (newDate: string) => {
-    console.log('📅 Date changed to:', newDate);
-    console.log('📂 Current category:', selectedCategory);
-    console.log('🏆 Current competition:', selectedCompetition);
     
     // Turn off All Matches when a specific date is selected
     if (showAllMatches) {
       setShowAllMatches(false);
-      console.log('📋 Turning off All Matches - date selected');
     }
     
     // Keep search filters when changing dates
@@ -1198,15 +1000,12 @@ function App() {
     );
     
     if (isBeyondDate) {
-      console.log('📅 Fetching Beyond matches from date:', newDate);
       // Extract just the date part (YYYY-MM-DD) from the ISO string
       const beyondDate = newDate.split('T')[0];
-      console.log('📅 Beyond date (extracted):', beyondDate);
       // Pass the date - API will use inclusive=1 to return all matches from that date onwards
       loadData(beyondDate, selectedCategory, selectedCompetition);
     } else {
       // For regular dates, load with current filters
-      console.log('📅 Loading regular date with filters:', newDate);
       loadData(newDate, selectedCategory, selectedCompetition);
     }
   };
@@ -1218,11 +1017,9 @@ function App() {
   const toggleAllMatches = () => {
     const newState = !showAllMatches;
     setShowAllMatches(newState);
-    console.log(`📋 All Matches toggle: ${newState ? 'ON' : 'OFF'}`);
     
     if (newState) {
       // Turn ON All Matches - fetch matches from ALL dates and combine them
-      console.log('📋 Loading ALL matches for All Matches view (fetching all dates)');
       
       // Clear current matches and show loading
       setMatches([]);
@@ -1234,7 +1031,6 @@ function App() {
       // Turn OFF All Matches, restore to today's date
       const today = getTodayDate();
       setSelectedDate(today);
-      console.log('📋 Turning off All Matches, restoring to:', today);
       loadData(today, selectedCategory, selectedCompetition);
     }
   };
@@ -1259,7 +1055,7 @@ function App() {
         <DateSelector
           selectedDate={selectedDate} 
           onDateChange={handleDateChange}
-          availableDates={filteredAvailableDates}
+          availableDates={availableDatesWithCounts}
           showAllMatches={showAllMatches}
           onToggleAllMatches={toggleAllMatches}
           totalMatches={totalAllMatchesCount}

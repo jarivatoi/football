@@ -102,43 +102,18 @@ const AlternativeSolutions: React.FC = () => {
     
     switch (solutionId) {
       case 'web-scraping':
-        console.log('🌐 Web Scraping Implementation Plan:');
-        console.log('1. Set up server-side scraping with Puppeteer');
-        console.log('2. Navigate to individual match pages on Totelepep');
-        console.log('3. Extract BTTS/O/U odds from HTML elements');
-        console.log('4. Create API endpoint to serve scraped data');
         break;
         
       case 'browser-extension':
-        console.log('🔧 Browser Extension Implementation Plan:');
-        console.log('1. Create Chrome extension manifest');
-        console.log('2. Inject content script into Totelepep pages');
-        console.log('3. Extract odds data from DOM');
-        console.log('4. Send data to web app via messaging');
         break;
         
       case 'alternative-apis':
-        console.log('📡 Alternative API Implementation Plan:');
-        console.log('1. Research free/paid betting APIs (Odds API, etc.)');
-        console.log('2. Sign up for API access');
-        console.log('3. Map team names between APIs');
-        console.log('4. Integrate additional odds data');
         break;
         
       case 'hybrid-approach':
-        console.log('🔄 Hybrid Implementation Plan:');
-        console.log('1. Keep Totelepep for 1X2 odds and match info');
-        console.log('2. Add secondary API for BTTS/O/U odds');
-        console.log('3. Create team/league matching logic');
-        console.log('4. Merge data from multiple sources');
         break;
         
       case 'mock-realistic':
-        console.log('🎲 Mock Odds Implementation Plan:');
-        console.log('1. Analyze 1X2 odds patterns');
-        console.log('2. Create mathematical models for BTTS/O/U');
-        console.log('3. Generate realistic odds based on match characteristics');
-        console.log('4. Add variance and randomization');
         break;
     }
   };

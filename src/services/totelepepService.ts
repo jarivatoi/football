@@ -5,29 +5,23 @@ class TotelepepService {
   
   async getMatches(targetDate?: string): Promise<TotelepepMatch[]> {
     // Get matches directly from Totelepep API
-    console.log(`🔍 Fetching matches from Totelepep API...`);
     
     // If a specific date is provided, fetch only that date
     if (targetDate) {
-      console.log(`📅 Fetching matches for date: ${targetDate}`);
       const matches = await totelepepExtractor.extractMatches(targetDate);
-      console.log(`✅ Found ${matches.length} matches for ${targetDate}`);
       return matches;
     }
     
     // If no specific date, fetch for today
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    console.log(`📅 Fetching matches for today: ${todayStr}`);
     const matches = await totelepepExtractor.extractMatches(todayStr);
-    console.log(`✅ Found ${matches.length} matches`);
     return matches;
   }
   
   // Method to fetch calendar list data
   public async getCalendarList(): Promise<Array<{entryDate: string, matchCount: number, displayDate: string}>> {
     try {
-      console.log('🔍 Fetching calendar list data...');
       // Clear cache first to ensure we get fresh data
       totelepepExtractor.clearCache();
       
@@ -38,28 +32,19 @@ class TotelepepService {
       
       // Store calendar list data
       const extractorCalendarList = (totelepepExtractor as any).calendarList;
-      console.log('📅 Extractor calendar list:', extractorCalendarList);
-      console.log('📅 Extractor calendar list type:', typeof extractorCalendarList);
       if (extractorCalendarList && Array.isArray(extractorCalendarList)) {
         // Make a deep copy to avoid reference issues
         this.calendarList = JSON.parse(JSON.stringify(extractorCalendarList));
-        console.log('📅 Fetched and stored calendar list:', this.calendarList);
-        console.log('📅 Stored calendar list length:', this.calendarList.length);
       } else {
-        console.log('⚠️ No calendar list data found in extractor after fetch');
-        console.log('⚠️ Extractor calendar list is not an array or is undefined');
         // Try to get calendar list from the extractor directly
         if (totelepepExtractor && (totelepepExtractor as any).calendarList) {
           const directCalendarList = (totelepepExtractor as any).calendarList;
-          console.log('📅 Direct calendar list from extractor:', directCalendarList);
           if (directCalendarList && Array.isArray(directCalendarList)) {
             this.calendarList = JSON.parse(JSON.stringify(directCalendarList));
-            console.log('📅 Using direct calendar list:', this.calendarList);
           }
         }
       }
     } catch (error) {
-      console.warn('⚠️ Error fetching calendar list:', error);
     }
     
     return this.calendarList;
@@ -67,17 +52,13 @@ class TotelepepService {
   
   // Method to get available dates with match counts for DateSelector
   public async getAvailableDatesWithCounts(): Promise<Array<{date: string, matchCount: number, displayName: string}>> {
-    console.log('📅 Getting available dates with counts...');
     
     // Always fetch fresh calendar list data
     await this.getCalendarList();
     
-    console.log('📅 Calendar list data after fetch:', this.calendarList);
-    console.log('📅 Calendar list length:', this.calendarList.length);
     
     // Log all calendar entries to see if Beyond exists
     this.calendarList.forEach((entry, index) => {
-      console.log(`📅 Calendar entry ${index}:`, {
         entryDate: entry.entryDate,
         matchCount: entry.matchCount,
         displayDate: entry.displayDate
@@ -88,15 +69,11 @@ class TotelepepService {
     if (this.calendarList.length > 0) {
       // Validate the structure of the first entry
       const firstEntry = this.calendarList[0];
-      console.log('📅 First calendar entry:', firstEntry);
       
       const result = this.calendarList.map(entry => {
-        console.log('📅 Processing calendar entry:', entry);
-        console.log('📅 Entry.displayDate:', entry.displayDate);
         
         // Handle "Beyond >>" or non-date entries specially
         if (entry.displayDate && (entry.displayDate.includes('Beyond') || entry.displayDate.includes('>>'))) {
-          console.log('📅 Found Beyond date entry, using special handling');
           // Use the actual entryDate from API (might be a future date or special value)
           // Don't try to parse it, just use it as-is for display
           return {
@@ -131,13 +108,10 @@ class TotelepepService {
         
         // If we still don't have a valid date, skip this entry
         if (isNaN(dateObj.getTime())) {
-          console.warn('⚠️ Invalid date in calendar entry:', entry);
           return null;
         }
         
         dateString = dateObj.toISOString().split('T')[0];
-        console.log(`📅 Converting calendar entry date: ${entry.entryDate} -> ${dateString}`);
-        console.log(`📅 API displayDate: "${entry.displayDate}"`);
         
         // ALWAYS use the API's displayDate - it already has "Today", "Beyond >>", etc.
         const displayName = entry.displayDate || dateObj.toLocaleDateString('en-GB', { 
@@ -146,7 +120,6 @@ class TotelepepService {
           month: 'short' 
         });
         
-        console.log(`📅 Final displayName: "${displayName}"`);
         
         return {
           date: dateString,
@@ -155,12 +128,10 @@ class TotelepepService {
         };
       }).filter(entry => entry !== null) as Array<{date: string, matchCount: number, displayName: string}>;
       
-      console.log('📅 Available dates with counts (from calendarList):', result);
       return result;
     }
     
     // Fallback to default dates if no calendar list available
-    console.log('⚠️ Using fallback dates as no calendar list available');
     const dates = [];
     const today = new Date();
     
@@ -181,7 +152,6 @@ class TotelepepService {
       });
     }
     
-    console.log('📅 Available dates with counts (fallback):', dates);
     return dates;
   }
 
@@ -210,13 +180,9 @@ class TotelepepService {
   private scrapingInProgress = false;
 
   private extractCompetitionId(match: TotelepepMatch): string | null {
-    console.log(`🔍 Extracting competition ID for match: ${match.homeTeam} vs ${match.awayTeam}`);
-    console.log(`   Match competitionId: ${match.competitionId}`);
-    console.log(`   Match league: ${match.league}`);
     
     // Try to extract competition ID from the match data
     if (match.competitionId && match.competitionId !== '0' && match.competitionId !== '') {
-      console.log(`   ✅ Using match.competitionId: ${match.competitionId}`);
       return match.competitionId;
     }
     
@@ -258,20 +224,17 @@ class TotelepepService {
     if (match.league) {
       const competitionId = leagueToCompetition[match.league];
       if (competitionId) {
-        console.log(`   ✅ Found competition ID ${competitionId} for league: ${match.league}`);
         return competitionId;
       }
       
       // Try partial matching for league names
       for (const [leaguePattern, competitionId] of Object.entries(leagueToCompetition)) {
         if (match.league.includes(leaguePattern)) {
-          console.log(`   ✅ Found competition ID ${competitionId} for partial match: ${match.league} includes ${leaguePattern}`);
           return competitionId;
         }
       }
     }
     
-    console.log(`   ⚠️ No competition ID found for match: ${match.homeTeam} vs ${match.awayTeam}`);
     return null;
   }
   
@@ -292,7 +255,6 @@ class TotelepepService {
       return matchDateTime > now;
     });
     
-    console.log(` Filtered ${matches.length} total matches to ${upcomingMatches.length} upcoming matches`);
     
     return upcomingMatches.sort((a, b) => {
       // Sort by date first
@@ -333,7 +295,6 @@ class TotelepepService {
   
   // Method to clear cache
   public clearCache(): void {
-    console.log('🧹 Clearing Totelepep service cache');
     this.calendarList = [];
     // Clear extractor caches
     if ((totelepepExtractor as any).clearCache) {
@@ -346,21 +307,16 @@ class TotelepepService {
   
   // Method to log competition mappings
   public logCompetitionMappings(): void {
-    console.log('📋 Current competition mappings:');
     // This would require access to the internal mappings, which we don't have direct access to
-    console.log('⚠️ Cannot access internal competition mappings directly');
   }
   
   // Method to clear dynamic mappings
   public clearDynamicMappings(): void {
-    console.log('🧹 Clearing dynamic mappings');
     // This would require access to the internal mappings, which we don't have direct access to
-    console.log('⚠️ Cannot clear dynamic mappings directly');
   }
   
   // New method to fetch and store all matches for all available dates
   public async fetchAndStoreAllMatches(): Promise<void> {
-    console.log('🔄 Fetching and storing all matches for all available dates...');
     
     try {
       // Clear cache first to ensure fresh data
@@ -369,21 +325,17 @@ class TotelepepService {
       // Get all matches for all dates
       const allMatches = await this.getMatches();
       
-      console.log(`📊 Total matches fetched: ${allMatches.length}`);
       
       // Remove duplicates by ID to prevent issues when storing in Supabase
       const uniqueMatches = allMatches.filter((match, index, self) => 
         index === self.findIndex(m => m.id === match.id)
       );
       
-      console.log(`📊 After deduplication: ${uniqueMatches.length} unique matches`);
       
       if (uniqueMatches.length > 0 && supabaseService) {
         // Store all matches in Supabase
-        console.log(`🔄 Storing ${uniqueMatches.length} matches in Supabase...`);
         
         // Log some sample matches for debugging
-        console.log('📅 Sample matches by date before storing:');
         const matchesByDate: Record<string, number> = {};
         uniqueMatches.slice(0, 10).forEach(match => {
           const date = match.date || 'unknown';
@@ -393,23 +345,17 @@ class TotelepepService {
           matchesByDate[date]++;
         });
         Object.entries(matchesByDate).forEach(([date, count]) => {
-          console.log(`   ${date}: ${count} matches`);
         });
         
         const success = await supabaseService.storeMatches(uniqueMatches);
         
         if (success) {
-          console.log(`✅ Successfully stored ${uniqueMatches.length} matches in Supabase`);
         } else {
-          console.error('❌ Failed to store matches in Supabase');
         }
       } else if (!supabaseService) {
-        console.log('⚠️ Supabase service not available, skipping storage');
       } else {
-        console.log('ℹ️ No matches to store');
       }
     } catch (error) {
-      console.error('❌ Error fetching and storing all matches:', error);
     }
   }
 }

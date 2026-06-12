@@ -83,7 +83,6 @@ const EndpointDiscovery: React.FC = () => {
   ];
 
   const testEndpoint = async (url: string): Promise<EndpointResult> => {
-    console.log(`🔍 Testing endpoint: ${url}`);
     
     try {
       const response = await fetch(url, {
@@ -105,7 +104,6 @@ const EndpointDiscovery: React.FC = () => {
       }
 
       const data = await response.json();
-      console.log(`✅ Success for ${url}:`, data);
 
       // Analyze the response for odds data
       const analysis = analyzeResponseForOdds(data);
@@ -119,7 +117,6 @@ const EndpointDiscovery: React.FC = () => {
       };
 
     } catch (error) {
-      console.error(`❌ Error for ${url}:`, error);
       return {
         url,
         status: 'error',

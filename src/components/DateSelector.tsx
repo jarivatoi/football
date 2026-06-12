@@ -20,8 +20,6 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   // Use API data directly - show exact names from totelepep
   const datesToShow = availableDates.length > 0 ? availableDates.slice(0, 8) : [];
   
-  console.log('📅 DateSelector - availableDates:', availableDates);
-  console.log('📅 DateSelector - datesToShow:', datesToShow);
 
   return (
     <div className="bg-white shadow-sm border-b border-gray-200">

@@ -219,11 +219,9 @@ const generateBookingNumber = async () => {
     const data = await response.json();
     
     if (data.success && data.bookingNumber) {
-      console.log('Booking Number:', data.bookingNumber);
       alert(\`Booking created: \${data.bookingNumber}\`);
     }
   } catch (error) {
-    console.error('Booking failed:', error);
   }
 };`}
             </pre>

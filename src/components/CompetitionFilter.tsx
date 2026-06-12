@@ -79,7 +79,6 @@ const CompetitionFilter: React.FC<CompetitionFilterProps> = ({
                     // Fetch competitions for this category using the NAME
                     if (onFetchCompetitions) {
                       const competitions = await onFetchCompetitions(category.name);
-                      console.log('🏆 Fetched competitions:', competitions);
                     }
                     
                     setShowCategoryDropdown(false);
