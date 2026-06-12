@@ -7,7 +7,7 @@ interface MatchCardProps {
   match: TotelepepMatch;
   onPriceClick: (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => void;
   selectedPrices: string[];
-  searchMode?: 'matches' | 'eq' | 'gte' | 'lte'; // Search filter mode
+  searchMode?: 'matches' | 'eq' | 'gte' | 'lte' | 'between'; // Search filter mode
   searchTerm?: string; // Search term for odds highlighting
 }
 

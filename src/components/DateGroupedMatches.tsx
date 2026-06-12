@@ -9,7 +9,7 @@ interface DateGroupedMatchesProps {
   onPriceClick: (matchId: string, priceType: string, odds: number | string) => void;
   selectedPrices: string[];
   apiSourceName?: string; // API source display name for loading message
-  searchMode?: 'matches' | 'eq' | 'gte' | 'lte'; // Search filter mode
+  searchMode?: 'matches' | 'eq' | 'gte' | 'lte' | 'between'; // Search filter mode
   searchTerm?: string; // Search term for odds highlighting
 }
 

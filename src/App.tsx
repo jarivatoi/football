@@ -39,7 +39,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchMode, setSearchMode] = useState<'matches' | 'eq' | 'gte' | 'lte'>('matches'); // matches, = (eq), >= (gte), <= (lte)
+  const [searchMode, setSearchMode] = useState<'matches' | 'eq' | 'gte' | 'lte' | 'between'>('matches'); // matches, = (eq), >= (gte), <= (lte), between
   const [searchOddsValue, setSearchOddsValue] = useState<string>('');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
@@ -624,7 +624,39 @@ function App() {
           targetOdds = targetOdds / 100;
         }
         
-        if (isNaN(targetOdds)) {
+        // Parse range for "between" mode (e.g., "100-200", "100-200H1", "100-200H1H")
+        let targetOddsMin = targetOdds;
+        let targetOddsMax = targetOdds;
+        if (searchMode === 'between' && searchTerm.includes('-')) {
+          const rangeParts = searchTerm.split('-');
+          if (rangeParts.length === 2) {
+            let minStr = rangeParts[0].trim();
+            let maxStr = rangeParts[1].trim();
+            
+            // Remove period/position suffixes from max value
+            if (maxStr.toUpperCase().endsWith('H1H') || maxStr.toUpperCase().endsWith('H1D') || maxStr.toUpperCase().endsWith('H1A') ||
+                maxStr.toUpperCase().endsWith('H2H') || maxStr.toUpperCase().endsWith('H2D') || maxStr.toUpperCase().endsWith('H2A')) {
+              maxStr = maxStr.slice(0, -3);
+            } else if (maxStr.toUpperCase().endsWith('H1') || maxStr.toUpperCase().endsWith('H2')) {
+              maxStr = maxStr.slice(0, -2);
+            } else if (maxStr.toUpperCase().endsWith('H') || maxStr.toUpperCase().endsWith('D') || maxStr.toUpperCase().endsWith('A')) {
+              maxStr = maxStr.slice(0, -1);
+            }
+            
+            targetOddsMin = parseFloat(minStr);
+            targetOddsMax = parseFloat(maxStr);
+            
+            // Handle input like "100" as "1.00" for decimal odds
+            if (!isNaN(targetOddsMin) && targetOddsMin > 10) {
+              targetOddsMin = targetOddsMin / 100;
+            }
+            if (!isNaN(targetOddsMax) && targetOddsMax > 10) {
+              targetOddsMax = targetOddsMax / 100;
+            }
+          }
+        }
+        
+        if (isNaN(targetOdds) && searchMode !== 'between') {
           filteredDateMatches = [];
         } else {
           filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
@@ -649,6 +681,9 @@ function App() {
                   for (const market of periodMarkets) {
                     const hasMatchingOdds = market.selections.some((sel: any) => {
                       const selOdds = parseFloat(String(sel.odds));
+                      if (searchMode === 'between') {
+                        return selOdds >= targetOddsMin && selOdds <= targetOddsMax;
+                      }
                       return selOdds === targetOdds;
                     });
                     
@@ -689,6 +724,7 @@ function App() {
                     if (searchMode === 'eq') return selOdds === targetOdds;
                     if (searchMode === 'gte') return selOdds >= targetOdds;
                     if (searchMode === 'lte') return selOdds <= targetOdds;
+                    if (searchMode === 'between') return selOdds >= targetOddsMin && selOdds <= targetOddsMax;
                   }
                 }
               }
@@ -706,10 +742,14 @@ function App() {
                 if (positionFilter === 'home') return homeOdds >= targetOdds;
                 if (positionFilter === 'draw') return drawOdds >= targetOdds;
                 if (positionFilter === 'away') return awayOdds >= targetOdds;
-              } else {
+              } else if (searchMode === 'lte') {
                 if (positionFilter === 'home') return homeOdds <= targetOdds;
                 if (positionFilter === 'draw') return drawOdds <= targetOdds;
                 if (positionFilter === 'away') return awayOdds <= targetOdds;
+              } else if (searchMode === 'between') {
+                if (positionFilter === 'home') return homeOdds >= targetOddsMin && homeOdds <= targetOddsMax;
+                if (positionFilter === 'draw') return drawOdds >= targetOddsMin && drawOdds <= targetOddsMax;
+                if (positionFilter === 'away') return awayOdds >= targetOddsMin && awayOdds <= targetOddsMax;
               }
             } else {
               // Filter any position (no suffix)
@@ -719,9 +759,14 @@ function App() {
               } else if (searchMode === 'gte') {
                 // >= (greater than or equal)
                 return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
-              } else {
+              } else if (searchMode === 'lte') {
                 // <= (less than or equal)
                 return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
+              } else if (searchMode === 'between') {
+                // In between range
+                return (homeOdds >= targetOddsMin && homeOdds <= targetOddsMax) ||
+                       (drawOdds >= targetOddsMin && drawOdds <= targetOddsMax) ||
+                       (awayOdds >= targetOddsMin && awayOdds <= targetOddsMax);
               }
             }
           });
@@ -1180,6 +1225,7 @@ function App() {
               <option value="eq">= Equal to</option>
               <option value="gte">≥ Greater or Equal</option>
               <option value="lte">≤ Less or Equal</option>
+              <option value="between">↔ In Between</option>
             </select>
           </div>
         </div>
