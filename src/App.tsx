@@ -807,7 +807,7 @@ function App() {
     }
     
     return result;
-  }, [groupedMatches, searchTerm, selectedDate, calendarList, selectedCategory, selectedCompetition, showAllMatches]) : groupedMatches;
+  }, [groupedMatches, searchTerm, searchMode, selectedDate, calendarList, selectedCategory, selectedCompetition, showAllMatches]) : groupedMatches;
 
   const totalAllMatchesCount = React.useMemo(() => {
     // Calculate total from filtered matches (respects category/competition filters)
