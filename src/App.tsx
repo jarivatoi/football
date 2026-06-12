@@ -579,29 +579,29 @@ function App() {
         // Check for period + position suffix FIRST (H1H, H1D, H1A, H2H, H2D, H2A)
         if (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A')) {
           periodFilter = 'H1';
-          const withoutPeriod = upperSearch.slice(0, -2);
-          if (withoutPeriod.endsWith('H')) {
+          const withoutPeriodAndPosition = upperSearch.slice(0, -3); // Remove H1H, H1D, or H1A (3 chars)
+          if (upperSearch.endsWith('H1H')) {
             positionFilter = 'home';
-            targetOdds = parseFloat(withoutPeriod.slice(0, -1));
-          } else if (withoutPeriod.endsWith('D')) {
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          } else if (upperSearch.endsWith('H1D')) {
             positionFilter = 'draw';
-            targetOdds = parseFloat(withoutPeriod.slice(0, -1));
-          } else if (withoutPeriod.endsWith('A')) {
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          } else if (upperSearch.endsWith('H1A')) {
             positionFilter = 'away';
-            targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+            targetOdds = parseFloat(withoutPeriodAndPosition);
           }
         } else if (upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A')) {
           periodFilter = 'H2';
-          const withoutPeriod = upperSearch.slice(0, -2);
-          if (withoutPeriod.endsWith('H')) {
+          const withoutPeriodAndPosition = upperSearch.slice(0, -3); // Remove H2H, H2D, or H2A (3 chars)
+          if (upperSearch.endsWith('H2H')) {
             positionFilter = 'home';
-            targetOdds = parseFloat(withoutPeriod.slice(0, -1));
-          } else if (withoutPeriod.endsWith('D')) {
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          } else if (upperSearch.endsWith('H2D')) {
             positionFilter = 'draw';
-            targetOdds = parseFloat(withoutPeriod.slice(0, -1));
-          } else if (withoutPeriod.endsWith('A')) {
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          } else if (upperSearch.endsWith('H2A')) {
             positionFilter = 'away';
-            targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+            targetOdds = parseFloat(withoutPeriodAndPosition);
           }
         } else if (upperSearch.endsWith('H1') || upperSearch.endsWith('H2')) {
           // Incomplete period filter (e.g., "190H1" without H/D/A) - mark as invalid

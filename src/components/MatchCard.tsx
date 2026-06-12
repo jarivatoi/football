@@ -191,33 +191,37 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     // Check for position suffix (H=Home, D=Draw, A=Away) and period (H1=1st Half, H2=2nd Half)
     const upperSearch = searchTerm.toUpperCase().trim();
     
-    // Check for period suffix first (H1 or H2)
-    if (upperSearch.endsWith('H1')) {
+    // Check for period + position suffix FIRST (H1H, H1D, H1A, H2H, H2D, H2A)
+    if (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A')) {
       periodFilter = 'H1';
-      const withoutPeriod = upperSearch.slice(0, -2);
-      if (withoutPeriod.endsWith('H')) {
+      const withoutPeriodAndPosition = upperSearch.slice(0, -3);
+      if (upperSearch.endsWith('H1H')) {
         positionFilter = 'home';
-        targetOdds = parseFloat(withoutPeriod.slice(0, -1));
-      } else if (withoutPeriod.endsWith('D')) {
+        targetOdds = parseFloat(withoutPeriodAndPosition);
+      } else if (upperSearch.endsWith('H1D')) {
         positionFilter = 'draw';
-        targetOdds = parseFloat(withoutPeriod.slice(0, -1));
-      } else if (withoutPeriod.endsWith('A')) {
+        targetOdds = parseFloat(withoutPeriodAndPosition);
+      } else if (upperSearch.endsWith('H1A')) {
         positionFilter = 'away';
-        targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+        targetOdds = parseFloat(withoutPeriodAndPosition);
       }
-    } else if (upperSearch.endsWith('H2')) {
+    } else if (upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A')) {
       periodFilter = 'H2';
-      const withoutPeriod = upperSearch.slice(0, -2);
-      if (withoutPeriod.endsWith('H')) {
+      const withoutPeriodAndPosition = upperSearch.slice(0, -3);
+      if (upperSearch.endsWith('H2H')) {
         positionFilter = 'home';
-        targetOdds = parseFloat(withoutPeriod.slice(0, -1));
-      } else if (withoutPeriod.endsWith('D')) {
+        targetOdds = parseFloat(withoutPeriodAndPosition);
+      } else if (upperSearch.endsWith('H2D')) {
         positionFilter = 'draw';
-        targetOdds = parseFloat(withoutPeriod.slice(0, -1));
-      } else if (withoutPeriod.endsWith('A')) {
+        targetOdds = parseFloat(withoutPeriodAndPosition);
+      } else if (upperSearch.endsWith('H2A')) {
         positionFilter = 'away';
-        targetOdds = parseFloat(withoutPeriod.slice(0, -1));
+        targetOdds = parseFloat(withoutPeriodAndPosition);
       }
+    } else if (upperSearch.endsWith('H1') || upperSearch.endsWith('H2')) {
+      // Period only (e.g., 190H1)
+      periodFilter = upperSearch.endsWith('H1') ? 'H1' : 'H2';
+      targetOdds = parseFloat(upperSearch.slice(0, -2));
     } else if (upperSearch.endsWith('H')) {
       positionFilter = 'home';
       targetOdds = parseFloat(upperSearch.slice(0, -1));
