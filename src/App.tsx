@@ -570,6 +570,20 @@ function App() {
       } else {
         // Filter by odds value
         let targetOdds = parseFloat(searchTerm);
+        let positionFilter: 'home' | 'draw' | 'away' | null = null;
+        
+        // Check for position suffix (H=Home, D=Draw, A=Away)
+        const upperSearch = searchTerm.toUpperCase().trim();
+        if (upperSearch.endsWith('H')) {
+          positionFilter = 'home';
+          targetOdds = parseFloat(upperSearch.slice(0, -1));
+        } else if (upperSearch.endsWith('D')) {
+          positionFilter = 'draw';
+          targetOdds = parseFloat(upperSearch.slice(0, -1));
+        } else if (upperSearch.endsWith('A')) {
+          positionFilter = 'away';
+          targetOdds = parseFloat(upperSearch.slice(0, -1));
+        }
         
         // Handle input like "130" as "1.30" for decimal odds
         if (!isNaN(targetOdds) && targetOdds > 10) {
@@ -585,15 +599,33 @@ function App() {
             const drawOdds = parseFloat(String(match.drawOdds));
             const awayOdds = parseFloat(String(match.awayOdds));
             
-            if (searchMode === 'eq') {
-              // = (equal to)
-              return homeOdds === targetOdds || drawOdds === targetOdds || awayOdds === targetOdds;
-            } else if (searchMode === 'gte') {
-              // >= (greater than or equal)
-              return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
+            if (positionFilter) {
+              // Filter by specific position (H, D, or A)
+              if (searchMode === 'eq') {
+                if (positionFilter === 'home') return homeOdds === targetOdds;
+                if (positionFilter === 'draw') return drawOdds === targetOdds;
+                if (positionFilter === 'away') return awayOdds === targetOdds;
+              } else if (searchMode === 'gte') {
+                if (positionFilter === 'home') return homeOdds >= targetOdds;
+                if (positionFilter === 'draw') return drawOdds >= targetOdds;
+                if (positionFilter === 'away') return awayOdds >= targetOdds;
+              } else {
+                if (positionFilter === 'home') return homeOdds <= targetOdds;
+                if (positionFilter === 'draw') return drawOdds <= targetOdds;
+                if (positionFilter === 'away') return awayOdds <= targetOdds;
+              }
             } else {
-              // <= (less than or equal)
-              return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
+              // Filter any position (no suffix)
+              if (searchMode === 'eq') {
+                // = (equal to)
+                return homeOdds === targetOdds || drawOdds === targetOdds || awayOdds === targetOdds;
+              } else if (searchMode === 'gte') {
+                // >= (greater than or equal)
+                return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
+              } else {
+                // <= (less than or equal)
+                return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
+              }
             }
           });
         }
@@ -1005,7 +1037,7 @@ function App() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder={searchMode === 'matches' ? 'Search matches...' : 'Enter odds value...'}
+                placeholder={searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A' : 'Enter odds (e.g., 130H, 150A)...'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
