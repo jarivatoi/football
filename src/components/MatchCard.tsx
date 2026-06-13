@@ -9,9 +9,10 @@ interface MatchCardProps {
   selectedPrices: string[];
   searchMode?: 'matches' | 'eq' | 'gte' | 'lte' | 'between'; // Search filter mode
   searchTerm?: string; // Search term for odds highlighting
+  collapseTrigger?: number; // Increment to force collapse all markets
 }
 
-const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '' }) => {
+const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '', collapseTrigger = 0 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoadingMarkets, setIsLoadingMarkets] = useState(false);
   const [expandedMarkets, setExpandedMarkets] = useState<Record<string, boolean>>({});
@@ -185,6 +186,11 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         setIsExpanded(false);
         setExpandedMarkets({});
       }
+    } else if (!searchTerm && isExpanded && searchMode === 'matches') {
+      // Search completely cleared - collapse all markets and show only quick 1X2
+      setIsExpanded(false);
+      setExpandedMarkets({});
+      setActiveMarketTab('ALL');
     }
   }, [searchTerm, isExpanded, searchMode]);
 
