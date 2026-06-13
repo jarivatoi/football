@@ -332,9 +332,15 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       if (periodFilter === 'H2' && marketPeriod !== '2H' && marketPeriod !== 'H2') return false;
     }
     
-    // If position filter is specified, only match that position
-    if (positionFilter && position) {
-      if (positionFilter !== position) return false;
+    // If position filter is specified, check if it matches
+    // For All Markets (position=undefined), we need to check the period+position context
+    if (positionFilter) {
+      // If position is provided, check directly
+      if (position) {
+        if (positionFilter !== position) return false;
+      }
+      // If position is undefined (All Markets), the caller should ensure only the correct position is being checked
+      // For now, we allow it to match if odds value matches (the period check above should filter correctly)
     }
     
     if (searchMode === 'eq') {
@@ -615,12 +621,26 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                           className={`flex-1 min-w-[80px] py-2 px-2 rounded text-sm font-medium transition-all ${
                             isSelectedMarket
                               ? 'bg-blue-600 text-white'
-                              : oddsMatchFilter(selection.odds, undefined, market.periodCode)
+                              : oddsMatchFilter(
+                                  selection.odds,
+                                  selection.name === '1' || selection.name === 'Home' || selection.name === '1 (Home)' || selection.name === match.homeTeam ? 'home' :
+                                  selection.name === 'X' || selection.name === 'Draw' || selection.name === 'X (Draw)' ? 'draw' :
+                                  selection.name === '2' || selection.name === 'Away' || selection.name === '2 (Away)' || selection.name === match.awayTeam ? 'away' :
+                                  undefined,
+                                  market.periodCode
+                                )
                               ? 'bg-orange-500 text-white'
                               : 'bg-gray-100 hover:bg-gray-200'
                           }`}
                         >
-                          <div className={`text-xs ${isSelectedMarket ? 'text-white' : oddsMatchFilter(selection.odds, undefined, market.periodCode) ? 'text-white' : 'text-gray-600'}`}>{selection.name}</div>
+                          <div className={`text-xs ${isSelectedMarket ? 'text-white' : oddsMatchFilter(
+                              selection.odds,
+                              selection.name === '1' || selection.name === 'Home' || selection.name === '1 (Home)' || selection.name === match.homeTeam ? 'home' :
+                              selection.name === 'X' || selection.name === 'Draw' || selection.name === 'X (Draw)' ? 'draw' :
+                              selection.name === '2' || selection.name === 'Away' || selection.name === '2 (Away)' || selection.name === match.awayTeam ? 'away' :
+                              undefined,
+                              market.periodCode
+                            ) ? 'text-white' : 'text-gray-600'}`}>{selection.name}</div>
                           <div className="font-bold">{formatOdds(selection.odds)}</div>
                         </button>
                       );
