@@ -75,6 +75,12 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         targetOdds = targetOdds / 100;
       }
       
+      // Auto-switch market tab to the filtered period (only if not on ALL tab)
+      if (periodFilter && searchMode !== 'matches' && activeMarketTab === 'ALL') {
+        const targetTab = periodFilter === 'H1' ? 'HT' : '2H';
+        setActiveMarketTab(targetTab);
+      }
+      
       if (periodFilter && !isNaN(targetOdds)) {
         // Try both '2H' and 'H2' for second half
         const possiblePeriodCodes = periodFilter === 'H1' ? ['H1'] : ['2H', 'H2'];
@@ -151,7 +157,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         }
       }
     }
-  }, [isExpanded, match.allMarkets, searchTerm]);
+  }, [isExpanded, match.allMarkets, searchTerm, searchMode, activeMarketTab]);
 
   // Auto-expand match card when period filter is active
   React.useEffect(() => {
