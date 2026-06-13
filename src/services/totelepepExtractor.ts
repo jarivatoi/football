@@ -48,9 +48,47 @@ interface TotelepepMatch {
 }
 
 class TotelepepExtractor {
-  // Use CORS proxy for all API requests (required for GitHub Pages)
-  private corsProxy = 'https://corsproxy.io/?';
+  // CORS Proxy fallback list (tries each one in order)
+  private corsProxies = [
+    'https://corsproxy.io/?',                    // Primary
+    'https://api.allorigins.win/raw?url=',       // Fallback 1
+    'https://api.codetabs.com/v1/proxy?quest=',  // Fallback 2
+  ];
+  private currentProxyIndex = 0;
   private baseUrl = 'https://www.totelepep.mu/webapi/GetSport';
+  
+  // Get current proxy URL with fallback support
+  private getProxyUrl(): string {
+    return this.corsProxies[this.currentProxyIndex];
+  }
+  
+  // Fetch with automatic proxy fallback
+  private async fetchWithFallback(url: string, options?: RequestInit): Promise<Response> {
+    const encodedUrl = encodeURIComponent(url);
+    
+    // Try each proxy in order
+    for (let i = 0; i < this.corsProxies.length; i++) {
+      const proxyIndex = (this.currentProxyIndex + i) % this.corsProxies.length;
+      const proxy = this.corsProxies[proxyIndex];
+      
+      try {
+        const fetchUrl = `${proxy}${encodedUrl}`;
+        const response = await fetch(fetchUrl, options);
+        
+        if (response.ok) {
+          // Update current proxy to the working one
+          this.currentProxyIndex = proxyIndex;
+          return response;
+        }
+      } catch (error) {
+        console.warn(`Proxy ${proxy} failed, trying next...`);
+        continue;
+      }
+    }
+    
+    // All proxies failed
+    throw new Error('All CORS proxies failed');
+  }
   private cache: Map<string, { data: TotelepepMatch[]; timestamp: number }> = new Map();
   private cacheTimeout = 1 * 60 * 1000; // 1 minute instead of 5 minutes
   private rateLimitDelay = 2000; // 2 seconds between requests
@@ -194,9 +232,7 @@ class TotelepepExtractor {
       const apiUrl = `${baseUrl}/webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
       
       // Use CORS proxy for GetMatch request
-      const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
-      
-      const response = await fetch(fetchUrl, {
+      const response = await this.fetchWithFallback(apiUrl, {
         headers: {
           'Accept': 'application/json',
         }
@@ -248,9 +284,7 @@ class TotelepepExtractor {
           const apiUrl = `${baseUrl}/webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
           
           // Use CORS proxy
-          const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
-          
-          const response = await fetch(fetchUrl, {
+          const response = await this.fetchWithFallback(apiUrl, {
             headers: {
               'Accept': 'application/json',
             }
@@ -475,10 +509,7 @@ class TotelepepExtractor {
     }
     
     // Use CORS proxy for browser requests
-    const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
-    
-    
-    const response = await fetch(fetchUrl, {
+    const response = await this.fetchWithFallback(apiUrl, {
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'en-US,en;q=0.5',
@@ -2703,9 +2734,7 @@ class TotelepepExtractor {
       
       
       // Use CORS proxy
-      const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
-      
-      const response = await fetch(fetchUrl, {
+      const response = await this.fetchWithFallback(apiUrl, {
         headers: {
           'Accept': 'application/json, text/plain, */*',
         }
@@ -2750,9 +2779,7 @@ class TotelepepExtractor {
       
       
       // Use CORS proxy
-      const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
-      
-      const response = await fetch(fetchUrl, {
+      const response = await this.fetchWithFallback(apiUrl, {
         headers: {
           'Accept': 'application/json, text/plain, */*',
         }
