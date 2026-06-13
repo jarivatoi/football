@@ -137,14 +137,6 @@ class MatchSpecificExtractor {
         };
       }
 
-      // Log all found odds
-        bttsYes: oddsData.bttsYes,
-        bttsNo: oddsData.bttsNo,
-        over25: oddsData.over25,
-        under25: oddsData.under25,
-        additionalOdds: oddsData.additionalOdds
-      });
-
       // Only return odds data if we found at least one relevant odds value
       const hasRelevantOdds = oddsData.bttsYes !== undefined || 
                              oddsData.bttsNo !== undefined || 
@@ -322,14 +314,6 @@ class MatchSpecificExtractor {
         
         this.parseMarketsArray(fullTimeMarkets, oddsData);
       }
-
-      // Log all found odds
-        bttsYes: oddsData.bttsYes,
-        bttsNo: oddsData.bttsNo,
-        over25: oddsData.over25,
-        under25: oddsData.under25,
-        additionalOdds: oddsData.additionalOdds
-      });
 
       return Object.keys(oddsData).length > 1 ? oddsData : null;
 
