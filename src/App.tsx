@@ -932,25 +932,24 @@ function App() {
       return availableDatesWithCounts;
     }
     
-    // When search filter is active:
-    // - In "All Matches" mode: show filtered counts (we have all dates)
-    // - In single date mode: show original counts (can't filter unloaded dates)
-    if (showAllMatches) {
-      const filteredCounts: Record<string, number> = {};
-      
-      Object.entries(filteredGroupedMatches).forEach(([date, dateMatches]) => {
-        filteredCounts[date] = dateMatches?.length || 0;
-      });
-      
-      return availableDatesWithCounts.map(dateEntry => ({
-        ...dateEntry,
-        matchCount: filteredCounts[dateEntry.date] || 0
-      }));
-    }
+    // When search filter is active, calculate filtered counts
+    const filteredCounts: Record<string, number> = {};
     
-    // For single date mode, just show the original unfiltered counts
-    // (We can't filter dates that aren't loaded yet)
-    return availableDatesWithCounts;
+    // Get filtered counts from filteredGroupedMatches (contains the filtered matches)
+    Object.entries(filteredGroupedMatches).forEach(([date, dateMatches]) => {
+      filteredCounts[date] = dateMatches?.length || 0;
+    });
+    
+    // Merge with availableDatesWithCounts
+    // - For loaded dates (selected date or All Matches): shows filtered count
+    // - For unloaded dates: shows original count (can't filter unloaded data)
+    return availableDatesWithCounts.map(dateEntry => ({
+      ...dateEntry,
+      // Use filtered count if available (loaded date), otherwise show original count
+      matchCount: filteredCounts[dateEntry.date] !== undefined 
+        ? filteredCounts[dateEntry.date] 
+        : dateEntry.matchCount
+    }));
   }, [filteredGroupedMatches, availableDatesWithCounts, searchMode, searchTerm, showAllMatches]);
 
   // Debug: Log grouped matches to see what dates we have
