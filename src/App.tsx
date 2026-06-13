@@ -853,6 +853,8 @@ function App() {
       { code: 'HTFT', displayName: 'Half Time/Full Time' },
       { code: 'GGNG', displayName: 'Goal/No Goal' },
       { code: 'HT', displayName: 'Half Time Result' },
+      { code: 'H1', displayName: '1st Half' },
+      { code: 'H2', displayName: '2nd Half' },
     ];
   }, []);
 
