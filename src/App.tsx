@@ -1278,54 +1278,57 @@ function App() {
         {/* Search Bar */}
         <div className="bg-white shadow-sm border-b border-gray-200">
           <div className="px-3 py-2 flex items-center gap-2">
-            {/* Search Input - Half Width */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder={searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A, 130H1H' : 'Enter odds (e.g., 130H, 150H2A)...'}
-                value={searchTerm}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setSearchTerm(value);
-                  
-                  // If search is cleared (backspace to empty), reset to matches mode
-                  if (value === '' && searchMode !== 'matches') {
-                    setSearchMode('matches');
-                    setSearchOddsValue('');
-                  }
-                }}
-                className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => {
-                    setSearchTerm('');
-                    setSearchMode('matches');
-                    setSearchOddsValue('');
+            {/* Search Input Container - Contains search + market dropdown */}
+            <div className="flex-1 flex items-center gap-2">
+              {/* Search Input */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder={searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A, 130H1H' : 'Enter odds (e.g., 130H, 150H2A)...'}
+                  value={searchTerm}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSearchTerm(value);
+                    
+                    // If search is cleared (backspace to empty), reset to matches mode
+                    if (value === '' && searchMode !== 'matches') {
+                      setSearchMode('matches');
+                      setSearchOddsValue('');
+                    }
                   }}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setSearchMode('matches');
+                      setSearchOddsValue('');
+                    }}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              
+              {/* Market Code Dropdown - Inside search bar */}
+              {availableMarketCodes.length > 0 && (
+                <select
+                  value={selectedMarketCode}
+                  onChange={(e) => setSelectedMarketCode(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm whitespace-nowrap max-w-[200px]"
                 >
-                  ×
-                </button>
+                  <option value="">All Markets</option>
+                  {availableMarketCodes.map(({ code, displayName }) => (
+                    <option key={code} value={code}>
+                      {displayName}
+                    </option>
+                  ))}
+                </select>
               )}
             </div>
-            
-            {/* Market Code Dropdown */}
-            {availableMarketCodes.length > 0 && (
-              <select
-                value={selectedMarketCode}
-                onChange={(e) => setSelectedMarketCode(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm max-w-[180px]"
-              >
-                <option value="">All Markets</option>
-                {availableMarketCodes.map(({ code, displayName }) => (
-                  <option key={code} value={code}>
-                    {displayName}
-                  </option>
-                ))}
-              </select>
-            )}
             
             {/* Filter Mode Dropdown */}
             <select
