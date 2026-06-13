@@ -179,53 +179,6 @@ class TotelepepExtractor {
     }
   }
 
-  // Public method to get available market codes from initial API response
-  public async getAvailableMarketCodes(targetDate?: string): Promise<Array<{code: string, name: string}>> {
-    try {
-      const jsonData = await this.fetchTotelepepAPI(targetDate);
-      
-      // Try to extract market codes from different possible locations
-      const marketCodes = new Map<string, string>();
-      
-      // Check for marketList at root level
-      if (jsonData && jsonData.marketList && Array.isArray(jsonData.marketList)) {
-        jsonData.marketList.forEach((market: any) => {
-          if (market.marketCode && market.marketDisplayName) {
-            marketCodes.set(market.marketCode, market.marketDisplayName);
-          }
-        });
-      }
-      
-      // Check for markets at root level
-      if (jsonData && jsonData.markets && Array.isArray(jsonData.markets)) {
-        jsonData.markets.forEach((market: any) => {
-          if (market.code && market.name) {
-            marketCodes.set(market.code, market.name);
-          }
-        });
-      }
-      
-      // If still empty, extract from first match's marketList
-      if (marketCodes.size === 0 && jsonData && jsonData.matchList && Array.isArray(jsonData.matchList)) {
-        const firstMatch = jsonData.matchList[0];
-        if (firstMatch && firstMatch.marketList && Array.isArray(firstMatch.marketList)) {
-          firstMatch.marketList.forEach((market: any) => {
-            if (market.marketCode && market.marketDisplayName) {
-              marketCodes.set(market.marketCode, market.marketDisplayName);
-            }
-          });
-        }
-      }
-      
-      return Array.from(marketCodes.entries())
-        .map(([code, name]) => ({ code, name }))
-        .sort((a, b) => a.name.localeCompare(b.name));
-    } catch (error) {
-      console.error('Error fetching market codes:', error);
-      return [];
-    }
-  }
-
   // Public method to fetch markets for a single match (for lazy loading)
   async fetchMarketsForMatch(match: TotelepepMatch): Promise<void> {
     // Don't fetch if already loaded

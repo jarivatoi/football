@@ -42,7 +42,6 @@ function App() {
   const [searchMode, setSearchMode] = useState<'matches' | 'eq' | 'gte' | 'lte' | 'between'>('matches'); // matches, = (eq), >= (gte), <= (lte), between
   const [searchOddsValue, setSearchOddsValue] = useState<string>('');
   const [selectedMarketCode, setSelectedMarketCode] = useState<string>(''); // Market code filter
-  const [availableMarketCodes, setAvailableMarketCodes] = useState<Array<{code: string, displayName: string}>>([]); // Market codes from API
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
   const [showExtractor, setShowExtractor] = useState(false);
@@ -841,23 +840,27 @@ function App() {
     return result;
   }, [groupedMatches, searchTerm, searchMode, selectedDate, calendarList, selectedCategory, selectedCompetition, showAllMatches]) : groupedMatches;
 
-  // Fetch market codes from API when date or source changes
-  React.useEffect(() => {
-    const fetchMarketCodes = async () => {
-      try {
-        const dateToFetch = showAllMatches ? undefined : (selectedDate || undefined);
-        const marketCodes = await totelepepExtractor.getAvailableMarketCodes(dateToFetch);
-        
-        setAvailableMarketCodes(
-          marketCodes.map(m => ({ code: m.code, displayName: m.name }))
-        );
-      } catch (error) {
-        console.error('Error fetching market codes:', error);
-      }
-    };
+  // Extract unique market codes from loaded matches (like the old working version)
+  const availableMarketCodes = React.useMemo(() => {
+    const codes = new Map<string, string>(); // marketCode -> marketName
     
-    fetchMarketCodes();
-  }, [selectedDate, showAllMatches, selectedSource]);
+    // Get all matches from groupedMatches
+    const allMatchesArray = Object.values(groupedMatches).flat();
+    
+    allMatchesArray.forEach((match: any) => {
+      if (match.allMarkets && match.allMarkets.length > 0) {
+        match.allMarkets.forEach((market: any) => {
+          if (market.marketCode && !codes.has(market.marketCode)) {
+            codes.set(market.marketCode, market.name);
+          }
+        });
+      }
+    });
+    
+    return Array.from(codes.entries())
+      .map(([code, displayName]) => ({ code, displayName }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }, [groupedMatches]);
 
   const totalAllMatchesCount = React.useMemo(() => {
     // Calculate total from filtered matches (respects category/competition filters)
@@ -1312,18 +1315,13 @@ function App() {
                 value={selectedMarketCode}
                 onChange={(e) => setSelectedMarketCode(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm whitespace-nowrap min-w-[160px] max-w-[240px]"
-                disabled={availableMarketCodes.length === 0}
               >
                 <option value="">All Markets</option>
-                {availableMarketCodes.length === 0 ? (
-                  <option disabled>Loading markets...</option>
-                ) : (
-                  availableMarketCodes.map(({ code, displayName }) => (
-                    <option key={code} value={code}>
-                      {displayName}
-                    </option>
-                  ))
-                )}
+                {availableMarketCodes.map(({ code, displayName }) => (
+                  <option key={code} value={code}>
+                    {displayName}
+                  </option>
+                ))}
               </select>
             </div>
             
