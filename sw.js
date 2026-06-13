@@ -11,15 +11,12 @@ const STATIC_FILES = [
 
 // Install event - cache static files
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
-        console.log('Service Worker: Caching static files');
         return cache.addAll(STATIC_FILES);
       })
       .then(() => {
-        console.log('Service Worker: Static files cached');
         return self.skipWaiting();
       })
   );
@@ -27,19 +24,16 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== STATIC_CACHE && cacheName !== DATA_CACHE) {
-            console.log('Service Worker: Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     }).then(() => {
-      console.log('Service Worker: Activated');
       return self.clients.claim();
     })
   );
@@ -64,7 +58,6 @@ self.addEventListener('fetch', (event) => {
           })
           .catch(() => {
             // Return cached data if network fails
-            console.log('Service Worker: Network failed, serving cached data');
             return cache.match(request);
           });
       })
@@ -91,7 +84,6 @@ self.addEventListener('fetch', (event) => {
 // Background sync for data updates
 self.addEventListener('sync', (event) => {
   if (event.tag === 'background-sync-matches') {
-    console.log('Service Worker: Background sync triggered');
     event.waitUntil(updateMatchData());
   }
 });
@@ -103,10 +95,9 @@ async function updateMatchData() {
     if (response.ok) {
       const cache = await caches.open(DATA_CACHE);
       await cache.put('/api', response);
-      console.log('Service Worker: Match data updated in background');
     }
   } catch (error) {
-    console.log('Service Worker: Background sync failed:', error);
+    // Background sync failed silently
   }
 }
 
