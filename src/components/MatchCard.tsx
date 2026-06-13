@@ -16,7 +16,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   const [isLoadingMarkets, setIsLoadingMarkets] = useState(false);
   const [expandedMarkets, setExpandedMarkets] = useState<Record<string, boolean>>({});
   const [activeMarketTab, setActiveMarketTab] = useState<string>('ALL'); // ALL, FT, HT, 2H
-  const prevSearchTermRef = React.useRef<string>('');
+  const hasClearedRef = React.useRef(false); // Track if we've already handled the clear
 
   // Sync selection state when expanding markets
   React.useEffect(() => {
@@ -179,13 +179,10 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
 
   // Auto-expand/collapse match card when period filter changes
   React.useEffect(() => {
-    const hadSearchTerm = !!prevSearchTermRef.current;
-    const hasSearchTerm = !!searchTerm;
-    
-    // Update ref for next render
-    prevSearchTermRef.current = searchTerm;
-    
     if (searchTerm) {
+      // Reset the flag when there's a search term
+      hasClearedRef.current = false;
+      
       const upperSearch = searchTerm.toUpperCase().trim();
       const hasPeriodFilter = upperSearch.endsWith('H1') || upperSearch.endsWith('H2') || 
                               upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A') ||
@@ -199,12 +196,13 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         setIsExpanded(false);
         setExpandedMarkets({});
       }
-    } else if (!hasSearchTerm && hadSearchTerm && isExpanded) {
-      // Only collapse when search term transitions from having a value to empty
+    } else if (!searchTerm && !hasClearedRef.current) {
+      // Only collapse ONCE when search is cleared
+      hasClearedRef.current = true;
       setIsExpanded(false);
       setExpandedMarkets({});
     }
-  }, [searchTerm, isExpanded, searchMode]);
+  }, [searchTerm, searchMode]); // Removed isExpanded from dependencies
 
   const toggleExpand = async () => {
     const newState = !isExpanded;
