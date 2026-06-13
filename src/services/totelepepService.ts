@@ -6,22 +6,28 @@ class TotelepepService {
   async getMatches(targetDate?: string): Promise<TotelepepMatch[]> {
     // Get matches directly from Totelepep API
     
+    
     // If a specific date is provided, fetch only that date
     if (targetDate) {
+      
       const matches = await totelepepExtractor.extractMatches(targetDate);
+      
       return matches;
     }
     
     // If no specific date, fetch for today
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
     const matches = await totelepepExtractor.extractMatches(todayStr);
+    
     return matches;
   }
   
   // Method to fetch calendar list data
   public async getCalendarList(): Promise<Array<{entryDate: string, matchCount: number, displayDate: string}>> {
     try {
+      
       // Clear cache first to ensure we get fresh data
       totelepepExtractor.clearCache();
       
@@ -32,19 +38,28 @@ class TotelepepService {
       
       // Store calendar list data
       const extractorCalendarList = (totelepepExtractor as any).calendarList;
+      
+      
       if (extractorCalendarList && Array.isArray(extractorCalendarList)) {
         // Make a deep copy to avoid reference issues
         this.calendarList = JSON.parse(JSON.stringify(extractorCalendarList));
+        
+        
       } else {
+        
+        
         // Try to get calendar list from the extractor directly
         if (totelepepExtractor && (totelepepExtractor as any).calendarList) {
           const directCalendarList = (totelepepExtractor as any).calendarList;
+          
           if (directCalendarList && Array.isArray(directCalendarList)) {
             this.calendarList = JSON.parse(JSON.stringify(directCalendarList));
+            
           }
         }
       }
     } catch (error) {
+      
     }
     
     return this.calendarList;
@@ -53,16 +68,16 @@ class TotelepepService {
   // Method to get available dates with match counts for DateSelector
   public async getAvailableDatesWithCounts(): Promise<Array<{date: string, matchCount: number, displayName: string}>> {
     
+    
     // Always fetch fresh calendar list data
     await this.getCalendarList();
     
     
+    
+    
     // Log all calendar entries to see if Beyond exists
     this.calendarList.forEach((entry, index) => {
-        entryDate: entry.entryDate,
-        matchCount: entry.matchCount,
-        displayDate: entry.displayDate
-      });
+      
     });
     
     // Check if calendarList has the expected structure
@@ -70,10 +85,14 @@ class TotelepepService {
       // Validate the structure of the first entry
       const firstEntry = this.calendarList[0];
       
+      
       const result = this.calendarList.map(entry => {
+        
+        
         
         // Handle "Beyond >>" or non-date entries specially
         if (entry.displayDate && (entry.displayDate.includes('Beyond') || entry.displayDate.includes('>>'))) {
+          
           // Use the actual entryDate from API (might be a future date or special value)
           // Don't try to parse it, just use it as-is for display
           return {
@@ -108,10 +127,13 @@ class TotelepepService {
         
         // If we still don't have a valid date, skip this entry
         if (isNaN(dateObj.getTime())) {
+          
           return null;
         }
         
         dateString = dateObj.toISOString().split('T')[0];
+        
+        
         
         // ALWAYS use the API's displayDate - it already has "Today", "Beyond >>", etc.
         const displayName = entry.displayDate || dateObj.toLocaleDateString('en-GB', { 
@@ -121,6 +143,7 @@ class TotelepepService {
         });
         
         
+        
         return {
           date: dateString,
           matchCount: entry.matchCount || 0,
@@ -128,10 +151,12 @@ class TotelepepService {
         };
       }).filter(entry => entry !== null) as Array<{date: string, matchCount: number, displayName: string}>;
       
+      
       return result;
     }
     
     // Fallback to default dates if no calendar list available
+    
     const dates = [];
     const today = new Date();
     
@@ -151,6 +176,7 @@ class TotelepepService {
         displayName
       });
     }
+    
     
     return dates;
   }
@@ -181,8 +207,12 @@ class TotelepepService {
 
   private extractCompetitionId(match: TotelepepMatch): string | null {
     
+    
+    
+    
     // Try to extract competition ID from the match data
     if (match.competitionId && match.competitionId !== '0' && match.competitionId !== '') {
+      
       return match.competitionId;
     }
     
@@ -224,16 +254,19 @@ class TotelepepService {
     if (match.league) {
       const competitionId = leagueToCompetition[match.league];
       if (competitionId) {
+        
         return competitionId;
       }
       
       // Try partial matching for league names
       for (const [leaguePattern, competitionId] of Object.entries(leagueToCompetition)) {
         if (match.league.includes(leaguePattern)) {
+          
           return competitionId;
         }
       }
     }
+    
     
     return null;
   }
@@ -254,6 +287,7 @@ class TotelepepService {
       // Only include if match hasn't started yet
       return matchDateTime > now;
     });
+    
     
     
     return upcomingMatches.sort((a, b) => {
@@ -295,6 +329,7 @@ class TotelepepService {
   
   // Method to clear cache
   public clearCache(): void {
+    
     this.calendarList = [];
     // Clear extractor caches
     if ((totelepepExtractor as any).clearCache) {
@@ -307,16 +342,21 @@ class TotelepepService {
   
   // Method to log competition mappings
   public logCompetitionMappings(): void {
+    
     // This would require access to the internal mappings, which we don't have direct access to
+    
   }
   
   // Method to clear dynamic mappings
   public clearDynamicMappings(): void {
+    
     // This would require access to the internal mappings, which we don't have direct access to
+    
   }
   
   // New method to fetch and store all matches for all available dates
   public async fetchAndStoreAllMatches(): Promise<void> {
+    
     
     try {
       // Clear cache first to ensure fresh data
@@ -326,16 +366,20 @@ class TotelepepService {
       const allMatches = await this.getMatches();
       
       
+      
       // Remove duplicates by ID to prevent issues when storing in Supabase
       const uniqueMatches = allMatches.filter((match, index, self) => 
         index === self.findIndex(m => m.id === match.id)
       );
       
       
+      
       if (uniqueMatches.length > 0 && supabaseService) {
         // Store all matches in Supabase
         
+        
         // Log some sample matches for debugging
+        
         const matchesByDate: Record<string, number> = {};
         uniqueMatches.slice(0, 10).forEach(match => {
           const date = match.date || 'unknown';
@@ -345,17 +389,23 @@ class TotelepepService {
           matchesByDate[date]++;
         });
         Object.entries(matchesByDate).forEach(([date, count]) => {
+          
         });
         
         const success = await supabaseService.storeMatches(uniqueMatches);
         
         if (success) {
+          
         } else {
+          
         }
       } else if (!supabaseService) {
+        
       } else {
+        
       }
     } catch (error) {
+      
     }
   }
 }
