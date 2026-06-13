@@ -11,7 +11,6 @@ interface DateGroupedMatchesProps {
   apiSourceName?: string; // API source display name for loading message
   searchMode?: 'matches' | 'eq' | 'gte' | 'lte' | 'between'; // Search filter mode
   searchTerm?: string; // Search term for odds highlighting
-  selectedMarketCode?: string; // Market code filter
 }
 
 const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({ 
@@ -21,8 +20,7 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
   selectedPrices,
   apiSourceName = 'Totelepep', // Default to Totelepep if not provided
   searchMode = 'matches',
-  searchTerm = '',
-  selectedMarketCode = ''
+  searchTerm = ''
 }) => {
   const formatDateHeader = (dateString: string): string => {
     const date = new Date(dateString);
@@ -84,7 +82,6 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
                   selectedPrices={selectedPrices}
                   searchMode={searchMode}
                   searchTerm={searchTerm}
-                  selectedMarketCode={selectedMarketCode}
                 />
               ))}
             </div>

@@ -41,7 +41,6 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchMode, setSearchMode] = useState<'matches' | 'eq' | 'gte' | 'lte' | 'between'>('matches'); // matches, = (eq), >= (gte), <= (lte), between
   const [searchOddsValue, setSearchOddsValue] = useState<string>('');
-  const [selectedMarketCode, setSelectedMarketCode] = useState<string>(''); // Market code filter
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
   const [showExtractor, setShowExtractor] = useState(false);
@@ -840,24 +839,6 @@ function App() {
     return result;
   }, [groupedMatches, searchTerm, searchMode, selectedDate, calendarList, selectedCategory, selectedCompetition, showAllMatches]) : groupedMatches;
 
-  // Common market codes from the API (static to avoid 429 rate limits from fetching all markets)
-  const availableMarketCodes = React.useMemo(() => {
-    return [
-      { code: '1', displayName: '1 X 2' },
-      { code: 'OU', displayName: 'Over/Under' },
-      { code: 'BTTS', displayName: 'Both Teams to Score' },
-      { code: 'DC', displayName: 'Double Chance' },
-      { code: 'AH', displayName: 'Asian Handicap' },
-      { code: 'EH', displayName: 'European Handicap' },
-      { code: 'CS', displayName: 'Correct Score' },
-      { code: 'HTFT', displayName: 'Half Time/Full Time' },
-      { code: 'GGNG', displayName: 'Goal/No Goal' },
-      { code: 'HT', displayName: 'Half Time Result' },
-      { code: 'H1', displayName: '1st Half' },
-      { code: 'H2', displayName: '2nd Half' },
-    ];
-  }, []);
-
   const totalAllMatchesCount = React.useMemo(() => {
     // Calculate total from filtered matches (respects category/competition filters)
     if (showAllMatches) {
@@ -1271,54 +1252,37 @@ function App() {
         {/* Search Bar */}
         <div className="bg-white shadow-sm border-b border-gray-200">
           <div className="px-3 py-2 flex items-center gap-2">
-            {/* Search Input Container - Contains search + market dropdown */}
-            <div className="flex-1 flex items-center gap-2">
-              {/* Search Input */}
-              <div className="relative flex-1 min-w-0 max-w-[calc(100%-240px)]">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder={searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A, 130H1H' : 'Enter odds (e.g., 130H, 150H2A)...'}
-                  value={searchTerm}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setSearchTerm(value);
-                    
-                    // If search is cleared (backspace to empty), reset to matches mode
-                    if (value === '' && searchMode !== 'matches') {
-                      setSearchMode('matches');
-                      setSearchOddsValue('');
-                    }
+            {/* Search Input - Half Width */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder={searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A, 130H1H' : 'Enter odds (e.g., 130H, 150H2A)...'}
+                value={searchTerm}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearchTerm(value);
+                  
+                  // If search is cleared (backspace to empty), reset to matches mode
+                  if (value === '' && searchMode !== 'matches') {
+                    setSearchMode('matches');
+                    setSearchOddsValue('');
+                  }
+                }}
+                className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSearchMode('matches');
+                    setSearchOddsValue('');
                   }}
-                  className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => {
-                      setSearchTerm('');
-                      setSearchMode('matches');
-                      setSearchOddsValue('');
-                    }}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-              
-              {/* Market Code Dropdown - Inside search bar */}
-              <select
-                value={selectedMarketCode}
-                onChange={(e) => setSelectedMarketCode(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm whitespace-nowrap min-w-[160px] max-w-[240px]"
-              >
-                <option value="">All Markets</option>
-                {availableMarketCodes.map(({ code, displayName }) => (
-                  <option key={code} value={code}>
-                    {displayName}
-                  </option>
-                ))}
-              </select>
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              )}
             </div>
             
             {/* Filter Mode Dropdown */}
@@ -1378,7 +1342,6 @@ function App() {
           apiSourceName={selectedSource.displayName}
           searchMode={searchMode}
           searchTerm={searchTerm}
-          selectedMarketCode={selectedMarketCode}
         />
       </div>
       
