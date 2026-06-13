@@ -16,6 +16,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   const [isLoadingMarkets, setIsLoadingMarkets] = useState(false);
   const [expandedMarkets, setExpandedMarkets] = useState<Record<string, boolean>>({});
   const [activeMarketTab, setActiveMarketTab] = useState<string>('ALL'); // ALL, FT, HT, 2H
+  const prevSearchTermRef = React.useRef<string>('');
 
   // Sync selection state when expanding markets
   React.useEffect(() => {
@@ -178,6 +179,12 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
 
   // Auto-expand/collapse match card when period filter changes
   React.useEffect(() => {
+    const hadSearchTerm = !!prevSearchTermRef.current;
+    const hasSearchTerm = !!searchTerm;
+    
+    // Update ref for next render
+    prevSearchTermRef.current = searchTerm;
+    
     if (searchTerm) {
       const upperSearch = searchTerm.toUpperCase().trim();
       const hasPeriodFilter = upperSearch.endsWith('H1') || upperSearch.endsWith('H2') || 
@@ -192,8 +199,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         setIsExpanded(false);
         setExpandedMarkets({});
       }
-    } else if (!searchTerm && isExpanded) {
-      // When search is cleared, collapse the match card and all markets
+    } else if (!hasSearchTerm && hadSearchTerm && isExpanded) {
+      // Only collapse when search term transitions from having a value to empty
       setIsExpanded(false);
       setExpandedMarkets({});
     }
