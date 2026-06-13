@@ -9,23 +9,13 @@ interface MatchCardProps {
   selectedPrices: string[];
   searchMode?: 'matches' | 'eq' | 'gte' | 'lte' | 'between'; // Search filter mode
   searchTerm?: string; // Search term for odds highlighting
-  collapseTrigger?: number; // Increment to force collapse all markets
 }
 
-const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '', collapseTrigger = 0 }) => {
+const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoadingMarkets, setIsLoadingMarkets] = useState(false);
   const [expandedMarkets, setExpandedMarkets] = useState<Record<string, boolean>>({});
   const [activeMarketTab, setActiveMarketTab] = useState<string>('ALL'); // ALL, FT, HT, 2H
-
-  // Reset/collapse all markets when collapseTrigger changes (e.g., when X button is clicked)
-  React.useEffect(() => {
-    if (collapseTrigger > 0) {
-      setIsExpanded(false);
-      setExpandedMarkets({});
-      setActiveMarketTab('ALL');
-    }
-  }, [collapseTrigger]);
 
   // Sync selection state when expanding markets
   React.useEffect(() => {
@@ -53,8 +43,15 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
 
   // Auto-expand period-specific markets when filtering by H1/H2
   React.useEffect(() => {
-    if (isExpanded && match.allMarkets && match.allMarkets.length > 0 && searchTerm) {
+    if (isExpanded && match.allMarkets && match.allMarkets.length > 0) {
       const upperSearch = searchTerm.toUpperCase().trim();
+      
+      // If no search term, collapse all auto-expanded markets
+      if (!searchTerm || !upperSearch) {
+        setExpandedMarkets({});
+        return;
+      }
+      
       let periodFilter: 'H1' | 'H2' | null = null;
       let positionFilter: 'home' | 'draw' | 'away' | null = null;
       let targetOdds = parseFloat(searchTerm);
@@ -195,8 +192,11 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         setIsExpanded(false);
         setExpandedMarkets({});
       }
+    } else if (!searchTerm && isExpanded) {
+      // When search is cleared, collapse the match card and all markets
+      setIsExpanded(false);
+      setExpandedMarkets({});
     }
-    // Removed the auto-collapse on empty search - let user manually control expansion
   }, [searchTerm, isExpanded, searchMode]);
 
   const toggleExpand = async () => {

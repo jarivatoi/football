@@ -41,7 +41,6 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchMode, setSearchMode] = useState<'matches' | 'eq' | 'gte' | 'lte' | 'between'>('matches'); // matches, = (eq), >= (gte), <= (lte), between
   const [searchOddsValue, setSearchOddsValue] = useState<string>('');
-  const [collapseTrigger, setCollapseTrigger] = useState(0); // Increment to force collapse all markets
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
   const [showExtractor, setShowExtractor] = useState(false);
@@ -1210,7 +1209,6 @@ function App() {
                     setSearchTerm('');
                     setSearchMode('matches');
                     setSearchOddsValue('');
-                    setCollapseTrigger(prev => prev + 1); // Force collapse all markets
                   }}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
@@ -1311,7 +1309,6 @@ function App() {
           apiSourceName={selectedSource.displayName}
           searchMode={searchMode}
           searchTerm={searchTerm}
-          collapseTrigger={collapseTrigger}
         />
       </div>
       
