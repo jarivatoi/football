@@ -116,8 +116,8 @@ self.addEventListener('push', (event) => {
     const data = event.data.json();
     const options = {
       body: data.body || 'New match updates available',
-      icon: '/icon.png',
-      badge: '/icon.png',
+      icon: '/football/icon.png',
+      badge: '/football/icon.png',
       vibrate: [100, 50, 100],
       data: {
         dateOfArrival: Date.now(),
@@ -127,12 +127,12 @@ self.addEventListener('push', (event) => {
         {
           action: 'explore',
           title: 'View Matches',
-          icon: '/icon.png'
+          icon: '/football/icon.png'
         },
         {
           action: 'close',
           title: 'Close',
-          icon: '/icon.png'
+          icon: '/football/icon.png'
         }
       ]
     };
