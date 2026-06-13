@@ -18,6 +18,15 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   const [expandedMarkets, setExpandedMarkets] = useState<Record<string, boolean>>({});
   const [activeMarketTab, setActiveMarketTab] = useState<string>('ALL'); // ALL, FT, HT, 2H
 
+  // Reset/collapse all markets when collapseTrigger changes (e.g., when X button is clicked)
+  React.useEffect(() => {
+    if (collapseTrigger > 0) {
+      setIsExpanded(false);
+      setExpandedMarkets({});
+      setActiveMarketTab('ALL');
+    }
+  }, [collapseTrigger]);
+
   // Sync selection state when expanding markets
   React.useEffect(() => {
     if (isExpanded && match.allMarkets && match.allMarkets.length > 0) {
@@ -186,12 +195,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         setIsExpanded(false);
         setExpandedMarkets({});
       }
-    } else if (!searchTerm && isExpanded && searchMode === 'matches') {
-      // Search completely cleared - collapse all markets and show only quick 1X2
-      setIsExpanded(false);
-      setExpandedMarkets({});
-      setActiveMarketTab('ALL');
     }
+    // Removed the auto-collapse on empty search - let user manually control expansion
   }, [searchTerm, isExpanded, searchMode]);
 
   const toggleExpand = async () => {
