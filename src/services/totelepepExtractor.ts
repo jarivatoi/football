@@ -447,13 +447,6 @@ class TotelepepExtractor {
       // Store calendar list data for date selector
       if (jsonData && jsonData.calendarList && Array.isArray(jsonData.calendarList)) {
         
-        // Log each entry's keys and values to see what fields exist
-        jsonData.calendarList.forEach((entry: any, index: number) => {
-            keys: Object.keys(entry),
-            entry: entry
-          });
-        });
-        
         // Validate and normalize calendarList entries
         const normalizedCalendarList = jsonData.calendarList.map((entry: any) => {
           // Handle different possible structures
