@@ -85,8 +85,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         // Try both '2H' and 'H2' for second half
         const possiblePeriodCodes = periodFilter === 'H1' ? ['H1'] : ['2H', 'H2'];
         
-        // Find and expand only markets that have matching odds
-        const newExpandedMarkets = { ...expandedMarkets };
+        // Start fresh - only expand markets that match the current filter
+        const newExpandedMarkets = {};
         
         for (const periodCode of possiblePeriodCodes) {
           const periodMarkets = match.allMarkets.filter(m => 
@@ -160,10 +160,11 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           }
         }
         
-        // Update all at once
-        if (Object.keys(newExpandedMarkets).length > 0) {
-          setExpandedMarkets(newExpandedMarkets);
-        }
+        // Always update - even if empty (to collapse markets when filter becomes less specific)
+        setExpandedMarkets(newExpandedMarkets);
+      } else {
+        // No period filter or invalid odds - collapse all auto-expanded markets
+        setExpandedMarkets({});
       }
     }
   }, [isExpanded, match.allMarkets, searchTerm, searchMode, activeMarketTab]);
