@@ -4,9 +4,7 @@ interface TotelepepMatch {
   awayTeam: string;
   league: string;
   competitionId: string;
-  categoryId?: string; // Category ID for filtering
   marketBookNo?: string;
-  marketId?: string;  // Actual market ID from API (different from marketBookNo!)
   marketCode?: string;
   kickoff: string;
   date: string;
@@ -26,43 +24,19 @@ interface TotelepepMatch {
   homeScore?: number;
   awayScore?: number;
   minute?: number;
-  marketCount?: number; // Total number of available markets
-  availableMarkets?: string[]; // List of all available market names
-  isOutright?: boolean; // Flag for outright markets (tournament winners, etc.)
-  allMarkets?: Array<{ // Detailed market information
-    id?: string;  // Actual market ID from API
-    name: string;
-    marketDisplayName?: string;  // Full market display name from API
-    marketBookNo: string;
-    marketCode: string;
-    marketLine?: string;  // Market line for handicap/over-under
-    periodCode?: string;
-    selections: Array<{
-      name: string;
-      odds: number | string;
-      optionCode?: string;
-      optionNo?: string;
-      selectionId?: string;
-    }>;
-  }>;
 }
 
 class TotelepepExtractor {
-  // Use CORS proxy for all API requests (required for GitHub Pages)
-  private corsProxy = 'https://corsproxy.io/?';
-  private baseUrl = 'https://www.totelepep.mu/webapi/GetSport';
+  private baseUrl = '/api/webapi/GetSport';
   private cache: Map<string, { data: TotelepepMatch[]; timestamp: number }> = new Map();
-  private cacheTimeout = 1 * 60 * 1000; // 1 minute instead of 5 minutes
+  private cacheTimeout = 5 * 60 * 1000; // 5 minutes
   private rateLimitDelay = 2000; // 2 seconds between requests
   private lastRequestTime = 0;
-  private calendarList: Array<{entryDate: string, matchCount: number, displayDate: string}> = [];
-  private categoryList: Array<{id: string, name: string}> = [];
-  private competitionList: Array<{id: string, name: string, categoryId?: string, matchCount?: number}> = [];
-  private competitionToCategoryMap: Map<string, string> = new Map(); // competitionId -> categoryId
   // Dynamic competition mapping that can be updated based on actual data
   private dynamicCompetitionMap: Record<string, string> = {};
   // Fallback competition mapping based on team names
   private teamBasedCompetitionMap: Record<string, string> = {};
+  
   // Method to update the dynamic competition mapping
   public updateCompetitionMapping(competitionId: string, leagueName: string): void {
     if (competitionId && leagueName && competitionId !== '0') {
@@ -85,14 +59,10 @@ class TotelepepExtractor {
     return this.teamBasedCompetitionMap[teamKey] || null;
   }
   
-  async extractMatches(targetDate?: string, categoryId?: string, competitionId?: string): Promise<TotelepepMatch[]> {
+  async extractMatches(targetDate?: string): Promise<TotelepepMatch[]> {
     try {
       // Check cache first
-      // Include baseUrl in cache key to prevent mixing data from different sources
-      const sourceId = this.baseUrl.includes('superscore') ? 'superscore' : 
-                       this.baseUrl.includes('stevenhills') ? 'stevenhills' : 
-                       this.baseUrl.includes('valueplus') ? 'valueplus' : 'totelepep';
-      const cacheKey = targetDate ? `date_${targetDate}_${categoryId || 'all'}_${competitionId || 'all'}_${sourceId}` : `all_dates_${new Date().toISOString().split('T')[0]}_${sourceId}`;
+      const cacheKey = targetDate || 'default';
       const cached = this.getCachedData(cacheKey);
       if (cached) {
         return cached;
@@ -102,46 +72,17 @@ class TotelepepExtractor {
       await this.enforceRateLimit();
 
       
-      // Fetch JSON from totelepep.mu API with category and competition filters
-      const jsonData = await this.fetchTotelepepAPI(targetDate, categoryId, competitionId);
+      // Fetch JSON from totelepep.mu API
+      const jsonData = await this.fetchTotelepepAPI(targetDate);
       
       // Parse JSON data (same as Power Query Json.Document)
-      let matches = this.parseJSONForMatches(jsonData);
-      
-      // Handle pagination - fetch all pages if there are more
-      const totalPages = jsonData.totalPages || 1;
-      if (totalPages > 1) {
-        
-        // Fetch remaining pages
-        const allMatchesPromises = [];
-        for (let page = 2; page <= totalPages; page++) {
-          allMatchesPromises.push(this.fetchTotelepepAPI(targetDate, categoryId, competitionId, page));
-        }
-        
-        const additionalResponses = await Promise.all(allMatchesPromises);
-        
-        // Parse matches from additional pages
-        for (const response of additionalResponses) {
-          const pageMatches = this.parseJSONForMatches(response);
-          matches = matches.concat(pageMatches);
-        }
-        
-      }
-      
-      // DON'T fetch detailed markets yet - they will be loaded on-demand when user clicks
+      const matches = this.parseJSONForMatches(jsonData);
       
       // Ensure all matches have the correct date
       const dateToUse = targetDate || this.getTodayDate();
       matches.forEach(match => {
-        // Only override the date if it wasn't set from the API
-        // When fetching "Beyond" or all dates, keep the API's actual date
-        if (!match.date) {
+        if (!match.date || match.date === dateToUse) {
           match.date = dateToUse;
-        }
-        // Set initial market count from the API response if available
-        if (!match.marketCount) {
-          match.marketCount = 1; // Will be updated when markets are fetched
-          match.availableMarkets = ['1X2'];
         }
       });
       
@@ -155,10 +96,7 @@ class TotelepepExtractor {
     } catch (error) {
       
       // Try to return cached data even if expired
-      const sourceId = this.baseUrl.includes('superscore') ? 'superscore' : 
-                       this.baseUrl.includes('stevenhills') ? 'stevenhills' : 
-                       this.baseUrl.includes('valueplus') ? 'valueplus' : 'totelepep';
-      const cacheKey = targetDate ? `date_${targetDate}_${sourceId}` : `all_dates_${new Date().toISOString().split('T')[0]}_${sourceId}`;
+      const cacheKey = targetDate || 'default';
       const cached = this.getCachedData(cacheKey, true);
       if (cached) {
         return cached;
@@ -168,259 +106,13 @@ class TotelepepExtractor {
     }
   }
 
-  // Public method to fetch markets for a single match (for lazy loading)
-  async fetchMarketsForMatch(match: TotelepepMatch): Promise<void> {
-    // Don't fetch if already loaded
-    if (match.allMarkets && match.allMarkets.length > 0) {
-      return;
-    }
-    
-    try {
-      
-      // Extract domain from baseUrl (e.g., https://www.totelepep.mu/webapi/GetSport -> https://www.totelepep.mu)
-      const baseUrl = this.baseUrl.replace('/webapi/GetSport', '');
-      const apiUrl = `${baseUrl}/webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
-      
-      // Use CORS proxy for GetMatch request
-      const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
-      
-      const response = await fetch(fetchUrl, {
-        headers: {
-          'Accept': 'application/json',
-        }
-      });
-      
-      if (!response.ok) {
-        return;
-      }
-      
-      const data = await response.json();
-      const allMarkets = this.parseAllMarkets(data, match.id);
-      
-      if (allMarkets && allMarkets.length > 0) {
-        match.allMarkets = allMarkets;
-        match.marketCount = allMarkets.length;
-        match.availableMarkets = allMarkets.map(m => m.name);
-        
-      }
-    } catch (error) {
-    }
-  }
-
-  // Fetch all markets for all matches - OPTIMIZED WITH PARALLEL REQUESTS
-  private async fetchAllMarketsForMatches(matches: TotelepepMatch[]): Promise<void> {
-    
-    // Process matches in batches of 5 to avoid overwhelming the server
-    const batchSize = 5;
-    const batches: TotelepepMatch[][] = [];
-    
-    for (let i = 0; i < matches.length; i += batchSize) {
-      batches.push(matches.slice(i, i + batchSize));
-    }
-    
-    
-    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-      const batch = batches[batchIndex];
-      
-      // Fetch all matches in this batch IN PARALLEL
-      const fetchPromises = batch.map(async (match) => {
-        try {
-          // Extract domain from baseUrl (e.g., https://www.totelepep.mu/webapi/GetSport -> https://www.totelepep.mu)
-          const baseUrl = this.baseUrl.replace('/webapi/GetSport', '');
-          const apiUrl = `${baseUrl}/webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
-          
-          // Use CORS proxy
-          const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
-          
-          const response = await fetch(fetchUrl, {
-            headers: {
-              'Accept': 'application/json',
-            }
-          });
-          
-          if (!response.ok) {
-            match.marketCount = 1;
-            match.availableMarkets = ['1X2'];
-            return;
-          }
-          
-          const data = await response.json();
-          const allMarkets = this.parseAllMarkets(data, match.id);
-          
-          if (allMarkets && allMarkets.length > 0) {
-            match.allMarkets = allMarkets;
-            match.marketCount = allMarkets.length;
-            match.availableMarkets = allMarkets.map(m => m.name);
-          } else {
-            match.marketCount = 1;
-            match.availableMarkets = ['1X2'];
-          }
-        } catch (error) {
-          match.marketCount = 1;
-          match.availableMarkets = ['1X2'];
-        }
-      });
-      
-      // Wait for all requests in this batch to complete
-      await Promise.all(fetchPromises);
-      
-      
-      // Small delay between batches (500ms instead of 1000ms)
-      if (batchIndex < batches.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-    }
-    
-  }
-
-  // Parse all markets from GetMatch response
-  private parseAllMarkets(data: any, matchId: string): Array<{
-    id?: string;  // Actual market ID from API (different from marketBookNo!)
-    name: string;
-    marketBookNo: string;
-    marketCode: string;
-    periodCode?: string;
-    selections: Array<{
-      name: string;
-      odds: number | string;
-      optionCode?: string;
-    }>;
-  }> | null {
-    try {
-      
-      // Find the match in the response - try multiple strategies
-      let targetMatch = null;
-      
-      // Strategy 1: Look in competitions array
-      if (data.competitions && Array.isArray(data.competitions)) {
-        for (const competition of data.competitions) {
-          if (competition.matches && Array.isArray(competition.matches)) {
-            targetMatch = competition.matches.find((m: any) => {
-              const matchIdStr = m.id?.toString();
-              const searchId = matchId.toString();
-              return matchIdStr === searchId;
-            });
-            if (targetMatch) {
-              break;
-            }
-          }
-        }
-      }
-      
-      // Strategy 2: Look in root matches array
-      if (!targetMatch && data.matches && Array.isArray(data.matches)) {
-        targetMatch = data.matches.find((m: any) => m.id?.toString() === matchId.toString());
-        if (targetMatch) {
-        }
-      }
-      
-      // Strategy 3: Check if data itself is the match
-      if (!targetMatch && data.id?.toString() === matchId.toString()) {
-        targetMatch = data;
-      }
-      
-      if (!targetMatch) {
-        return null;
-      }
-      
-      // Try to find markets in different locations
-      let marketsArray = null;
-      
-      if (targetMatch.markets && Array.isArray(targetMatch.markets)) {
-        marketsArray = targetMatch.markets;
-      } else if (targetMatch.marketList && Array.isArray(targetMatch.marketList)) {
-        marketsArray = targetMatch.marketList;
-      } else if (targetMatch.odds && Array.isArray(targetMatch.odds)) {
-        marketsArray = targetMatch.odds;
-      }
-      
-      if (!marketsArray || marketsArray.length === 0) {
-        return null;
-      }
-      
-      
-      const markets: any[] = [];
-      
-      marketsArray.forEach((market: any, index: number) => {
-        const marketName = market.marketDisplayName || market.name || 'Unknown';
-        const marketBookNo = String(market.marketBookNo || market.id || market.marketId || index);
-        const marketCode = market.marketCode || '';
-        const periodCode = market.periodCode || '';
-        
-        
-        // Parse selections - extract ALL data from API
-        const selections: any[] = [];
-        if (market.selectionList && Array.isArray(market.selectionList)) {
-          market.selectionList.forEach((selection: any, selIndex: number) => {
-            selections.push({
-              name: selection.name || selection.optionCode || 'Unknown',
-              odds: selection.companyOdds || selection.odds || 'N/A',
-              optionCode: selection.optionCode || '',
-              optionNo: selection.optionNo || String(selIndex + 1),  // Store optionNo from API
-              selectionId: selection.id || selection.selectionId || ''  // Store selection ID if available
-            });
-          });
-        } else if (market.selections && Array.isArray(market.selections)) {
-          market.selections.forEach((selection: any, selIndex: number) => {
-            selections.push({
-              name: selection.name || selection.optionCode || 'Unknown',
-              odds: selection.companyOdds || selection.odds || 'N/A',
-              optionCode: selection.optionCode || '',
-              optionNo: selection.optionNo || String(selIndex + 1),  // Store optionNo from API
-              selectionId: selection.id || selection.selectionId || ''  // Store selection ID if available
-            });
-          });
-        }
-        
-        
-        markets.push({
-          id: market.marketId || market.id || marketBookNo,  // Store actual marketId (e.g., 565968)
-          name: marketName,
-          marketDisplayName: market.marketDisplayName || marketName,  // Store full display name from API
-          marketBookNo,
-          marketCode,
-          marketLine: market.marketLine || market.line || '',  // Extract market line
-          periodCode,
-          selections
-        });
-      });
-      
-      return markets;
-      
-    } catch (error) {
-      return null;
-    }
-  }
-
-  private async fetchTotelepepAPI(targetDate?: string, categoryId?: string, competitionId?: string, pageNo?: number): Promise<any> {
+  private async fetchTotelepepAPI(targetDate?: string): Promise<any> {
     // Build API URL with current date (same as Power Query)
-    const dateToFetch = targetDate !== undefined ? targetDate : this.getTodayDate(); // YYYY-MM-DD format or null for all dates
+    const dateToFetch = targetDate || this.getTodayDate(); // YYYY-MM-DD format
+    const apiUrl = `${this.baseUrl}?sportId=soccer&date=${dateToFetch}&category=&competitionId=0&pageNo=200&inclusive=1&matchid=0&periodCode=all`;
     
-    // Build API URL with filters
-    const compId = competitionId || 0;
-    const inclusive = competitionId ? 1 : 1; // Always 1 for now
-    const categoryParam = categoryId || '';
-    const page = pageNo || 1;
     
-    let apiUrl;
-    if (targetDate) {
-      // Has a date: use it with inclusive=0 to get only that date's matches
-      const dateObj = new Date(targetDate);
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const day = String(dateObj.getDate()).padStart(2, '0');
-      const month = months[dateObj.getMonth()];
-      const year = dateObj.getFullYear();
-      const formattedDate = `${day} ${month} ${year}`;
-      apiUrl = `${this.baseUrl}?sportId=soccer&date=${encodeURIComponent(formattedDate)}&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=${page}&inclusive=0&matchid=0&periodCode=all`;
-    } else {
-      // No date: get all matches with inclusive=1
-      apiUrl = `${this.baseUrl}?sportId=soccer&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=${page}&inclusive=1&matchid=0&periodCode=all`;
-    }
-    
-    // Use CORS proxy for browser requests
-    const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
-    
-    const response = await fetch(fetchUrl, {
+    const response = await fetch(apiUrl, {
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Accept-Language': 'en-US,en;q=0.5',
@@ -444,139 +136,6 @@ class TotelepepExtractor {
     
     try {
       
-      // Store calendar list data for date selector
-      if (jsonData && jsonData.calendarList && Array.isArray(jsonData.calendarList)) {
-        
-        // Log each entry's keys and values to see what fields exist
-        jsonData.calendarList.forEach((entry: any, index: number) => {
-            keys: Object.keys(entry),
-            entry: entry
-          });
-        });
-        
-        // Validate and normalize calendarList entries
-        const normalizedCalendarList = jsonData.calendarList.map((entry: any) => {
-          // Handle different possible structures
-          if (entry && typeof entry === 'object') {
-            // Check if it has date/matchCount properties with different names
-            let entryDate = entry.entryDate || entry.date || entry.matchDate || entry.gameDate;
-            let matchCount = entry.matchCount || entry.count || entry.matches || entry.totalMatches || 0;
-            let displayDate = entry.displayDate || entry.displayName || entry.name || '';
-            
-            
-            // If we don't have entryDate, try to find it in other properties
-            if (!entryDate) {
-              // Look for any property that looks like a date
-              for (const key in entry) {
-                if (key.toLowerCase().includes('date') && typeof entry[key] === 'string') {
-                  entryDate = entry[key];
-                  break;
-                }
-              }
-            }
-            
-            // If we don't have matchCount, try to find it in other properties
-            if (!matchCount) {
-              // Look for any property that looks like a count
-              for (const key in entry) {
-                if ((key.toLowerCase().includes('count') || key.toLowerCase().includes('match')) && 
-                    typeof entry[key] === 'number') {
-                  matchCount = entry[key];
-                  break;
-                }
-              }
-            }
-            
-            // Convert date to YYYY-MM-DD format if it's not already
-            if (entryDate && typeof entryDate === 'string') {
-              // Try to parse the date
-              const dateObj = new Date(entryDate);
-              if (!isNaN(dateObj.getTime())) {
-                // Format as YYYY-MM-DD
-                const year = dateObj.getFullYear();
-                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                const day = String(dateObj.getDate()).padStart(2, '0');
-                entryDate = `${year}-${month}-${day}`;
-              } else {
-                // Try parsing with different formats
-                const formats = [
-                  entryDate, // Original
-                  entryDate.replace(/\//g, '-'), // Replace / with -
-                  entryDate.replace(/\./g, '-')  // Replace . with -
-                ];
-                
-                for (const format of formats) {
-                  const parsedDate = new Date(format);
-                  if (!isNaN(parsedDate.getTime())) {
-                    const year = parsedDate.getFullYear();
-                    const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
-                    const day = String(parsedDate.getDate()).padStart(2, '0');
-                    entryDate = `${year}-${month}-${day}`;
-                    break;
-                  }
-                }
-              }
-            }
-            
-            return {
-              entryDate: entryDate || new Date().toISOString().split('T')[0],
-              matchCount: matchCount || 0,
-              displayDate: displayDate || ''
-            };
-          }
-          return null;
-        }).filter((entry: any) => entry !== null);
-        
-        // Store this for use in the DateSelector
-        (this as any).calendarList = normalizedCalendarList;
-      } else {
-        if (jsonData) {
-        }
-      }
-      
-      // Debug: Log all top-level keys in the API response
-      
-      // Extract categoryList if available
-      if (jsonData && jsonData.categoryList && Array.isArray(jsonData.categoryList)) {
-        this.categoryList = jsonData.categoryList.map((cat: any) => ({
-          id: cat.id || cat.categoryId || '',
-          name: cat.name || cat.categoryName || cat.displayName || ''
-        }));
-      } else if (jsonData && jsonData.categories && Array.isArray(jsonData.categories)) {
-        // Fallback: try 'categories' key
-        this.categoryList = jsonData.categories.map((cat: any) => ({
-          id: cat.id || cat.categoryId || '',
-          name: cat.name || cat.categoryName || cat.displayName || ''
-        }));
-      } else if (jsonData && jsonData.category && Array.isArray(jsonData.category)) {
-        // Fallback: try 'category' key
-        this.categoryList = jsonData.category.map((cat: any) => ({
-          id: cat.id || cat.categoryId || '',
-          name: cat.name || cat.categoryName || cat.displayName || ''
-        }));
-      } else {
-      }
-      
-      // Extract competitionList if available
-      if (jsonData && jsonData.competitionList && Array.isArray(jsonData.competitionList)) {
-        this.competitionList = jsonData.competitionList.map((comp: any) => {
-          const compId = comp.id || comp.competitionId || '';
-          const catId = comp.categoryId || comp.catId || '';
-          
-          // Build mapping from competitionId to categoryId
-          if (compId && catId) {
-            this.competitionToCategoryMap.set(compId, catId);
-          }
-          
-          return {
-            id: compId,
-            name: comp.name || comp.competitionName || comp.displayName || '',
-            categoryId: catId,
-            matchCount: comp.matchCount || comp.count || 0
-          };
-        });
-      }
-      
       // Check if there's competition data in the response
       if (jsonData && jsonData.competitions && Array.isArray(jsonData.competitions)) {
         // Log competition data for analysis
@@ -594,38 +153,6 @@ class TotelepepExtractor {
         
         // Store this map for use in match parsing
         (this as any).apiCompetitionMap = competitionMap;
-      }
-      
-      // ALSO parse competitionData field (pipe-delimited format) if available
-      if (jsonData && jsonData.competitionData && typeof jsonData.competitionData === 'string') {
-        
-        // Parse the pipe-delimited competition data
-        const competitionEntries = jsonData.competitionData.split('|').filter((entry: string) => entry.trim());
-        
-        // Initialize or update the competition map
-        if (!(this as any).apiCompetitionMap) {
-          (this as any).apiCompetitionMap = {};
-        }
-        
-        for (const entry of competitionEntries) {
-          const fields = entry.split(';');
-          if (fields.length >= 2) {
-            const competitionId = fields[0]?.trim();
-            const competitionName = fields[1]?.trim();
-            const categoryId = fields[2]?.trim().toLowerCase(); // Field 2 is the category ID
-            
-            if (competitionId && competitionName) {
-              (this as any).apiCompetitionMap[competitionId] = competitionName;
-              
-              // Also populate competitionToCategoryMap
-              if (categoryId) {
-                this.competitionToCategoryMap.set(competitionId, categoryId);
-              } else {
-              }
-            }
-          }
-        }
-        
       } else {
         if (jsonData) {
         }
@@ -773,36 +300,17 @@ class TotelepepExtractor {
       const { date, time } = this.parseTotelepepDateTime(datetime);
       
       // Get competition name from competitionData if available
-      // Extract marketId from field 12 (the actual market ID from API)
-      let marketId = undefined;
-      if (fields.length > 12) {
-        const potentialMarketId = fields[12];
-        if (potentialMarketId && typeof potentialMarketId === 'string' && 
-            potentialMarketId.trim() !== '' && !isNaN(Number(potentialMarketId)) && Number(potentialMarketId) > 0) {
-          marketId = potentialMarketId;
-        }
-      }
-      
-      // Extract marketBookNo from field 13
+      // Try to extract marketBookNo and marketCode from later fields if they exist
       let marketBookNo = undefined;
-      if (fields.length > 13) {
-        const potentialMarketBookNo = fields[13];
-        if (potentialMarketBookNo && typeof potentialMarketBookNo === 'string' && 
-            potentialMarketBookNo.trim() !== '' && !isNaN(Number(potentialMarketBookNo)) && Number(potentialMarketBookNo) > 0) {
-          marketBookNo = potentialMarketBookNo;
-        }
-      }
-      
-      // Extract marketCode from field 15
       let marketCode = undefined;
-      if (fields.length > 15) {
-        marketCode = fields[15];
-        if (marketCode && typeof marketCode === 'string' && marketCode.trim() !== '') {
-        } else {
-          marketCode = undefined;
-        }
-      }
       
+      // Look for marketBookNo and marketCode in later fields (typically 15 and 16)
+      if (fields.length > 15) {
+        marketBookNo = fields[15];
+      }
+      if (fields.length > 16) {
+        marketCode = fields[16];
+      }
       
       // Get the league name directly from the API competition data
       let league = 'Football League';
@@ -852,28 +360,12 @@ class TotelepepExtractor {
       }
       
       
-      // Extract market count from field 14 (actual market count from API)
-      let marketCount = 1; // Default value
-      if (fields.length > 14) {
-        const potentialMarketCount = fields[14];
-        if (potentialMarketCount && typeof potentialMarketCount === 'string' && 
-            potentialMarketCount.trim() !== '' && !isNaN(Number(potentialMarketCount))) {
-          marketCount = parseInt(potentialMarketCount);
-        }
-      }
-      
-      let availableMarkets: string[] = ['1X2', 'Over/Under 2.5', 'Both Teams To Score']; // Default markets
-      
       const match: TotelepepMatch = {
         id: matchId,
         homeTeam: teamNames.home,
         awayTeam: teamNames.away,
         league,
         competitionId,
-        categoryId: this.competitionToCategoryMap.get(competitionId), // Map competition to category
-        marketId,  // Actual market ID from API (field 12)
-        marketBookNo,  // Market book number from API (field 13)
-        marketCode,  // Market code from API (field 15)
         kickoff: time,
         date,
         status: 'upcoming' as const,
@@ -889,59 +381,16 @@ class TotelepepExtractor {
           yes: allOdds.bttsYes || this.generateRealisticOdds(),
           no: allOdds.bttsNo || this.generateRealisticOdds(),
         },
-        marketCount, // Add market count
-        availableMarkets, // Add available markets
-        isOutright: marketCode === 'OT', // Detect outright markets by OT marketCode
       };
       
-      // Debug specific matches like PSV Eindhoven vs ZFK Minsk
-      if (teamNames.home && teamNames.away) {
-      }
-      
-      // Only add marketBookNo and marketCode if they exist and are valid
-        value: marketBookNo, 
-        type: typeof marketBookNo,
-        isUndefined: marketBookNo === undefined,
-        isNull: marketBookNo === null,
-        isEmpty: typeof marketBookNo === 'string' ? marketBookNo.trim() === '' : false,
-        isStringUndefined: typeof marketBookNo === 'string' ? marketBookNo === 'undefined' : false,
-        isStringNull: typeof marketBookNo === 'string' ? marketBookNo === 'null' : false
-      });
-      
-        value: marketCode, 
-        type: typeof marketCode,
-        isUndefined: marketCode === undefined,
-        isNull: marketCode === null,
-        isEmpty: typeof marketCode === 'string' ? marketCode.trim() === '' : false,
-        isStringUndefined: typeof marketCode === 'string' ? marketCode === 'undefined' : false,
-        isStringNull: typeof marketCode === 'string' ? marketCode === 'null' : false
-      });
-      
-      if (marketBookNo !== undefined && marketBookNo !== null && 
-          typeof marketBookNo === 'string' && marketBookNo.trim() !== '' && 
-          marketBookNo !== 'undefined' && marketBookNo !== 'null') {
+      // Only add marketBookNo and marketCode if they exist
+      if (marketBookNo !== undefined) {
         match.marketBookNo = marketBookNo;
-      } else {
       }
-      
-      if (marketCode !== undefined && marketCode !== null && 
-          typeof marketCode === 'string' && marketCode.trim() !== '' && 
-          marketCode !== 'undefined' && marketCode !== 'null') {
+      if (marketCode !== undefined) {
         match.marketCode = marketCode;
-      } else {
       }
       
-        id: match.id,
-        marketBookNo: match.marketBookNo,
-        marketCode: match.marketCode,
-        competitionId: match.competitionId,
-        league: match.league,
-        homeOdds: match.homeOdds,
-        drawOdds: match.drawOdds,
-        awayOdds: match.awayOdds,
-        overUnder: match.overUnder,
-        bothTeamsScore: match.bothTeamsScore
-      });
       
       return this.isValidMatch(match) ? match : null;
       
@@ -972,10 +421,7 @@ class TotelepepExtractor {
         /^\d{1,3}$/, // 150, 225 (to be converted)
         /^\d{4}$/, // 1500, 2250 (to be converted)
         /^\d{1,2}\.\d{1}$/, // 1.5, 2.2
-        /^\d{1,3}\.\d{4}$/, // 1.5000, 2.2500
-        // Additional patterns for better odds detection
-        /^\d+\.\d+$/, // General decimal pattern
-        /^\d{3,4}$/ // 3-4 digit integers (to be converted to decimals)
+        /^\d{1,3}\.\d{4}$/ // 1.5000, 2.2500
       ];
       
       const oddsMatch = oddsPatterns.some(pattern => pattern.test(trimmedField));
@@ -983,27 +429,12 @@ class TotelepepExtractor {
       if (oddsMatch) {
         let oddsValue = parseFloat(trimmedField);
         
-        // Convert formats: 150 -> 1.50, 1500 -> 1.500, 225 -> 2.25
-        // Only convert values that are likely to be in the "multiplied" format
-        // Be more conservative to avoid converting legitimate high odds
-        if (oddsValue >= 100 && oddsValue <= 9999 && !trimmedField.includes('.')) {
-          // Only convert 3-digit numbers that are likely to be multiplied format
-          // e.g., 150 -> 1.50, 225 -> 2.25, 375 -> 3.75
-          if (oddsValue >= 100 && oddsValue <= 999) {
-            oddsValue = oddsValue / 100;  // 150 -> 1.50, 225 -> 2.25
-          }
-          // For 4-digit numbers, be more conservative
-          // Only convert if they're in the typical range for multiplied odds (1000-2000)
-          else if (oddsValue >= 1000 && oddsValue <= 2000) {
-            oddsValue = oddsValue / 1000; // 1500 -> 1.500
-          }
-          // Values above 2000 are likely actual high odds and should remain as-is
-          // e.g., 270 should remain 270, not become 2.70
+          // Convert 15 -> 1.5, 22 -> 2.2
+        if (oddsValue >= 1.10 && oddsValue <= 15.0) {
         }
         
         // Only consider realistic betting odds
-        // Increase the upper limit to accommodate high odds
-        if (oddsValue >= 1.01 && oddsValue <= 1000.0) {
+        if (oddsValue >= 1.01 && oddsValue <= 100.0) {
           odds.allFoundOdds.push({
             index,
             field: trimmedField,
@@ -1058,134 +489,51 @@ class TotelepepExtractor {
     });
     
     // Look for additional odds beyond 1X2 in the remaining fields
+    // We need to analyze more data to find the correct BTTS and O/U positions
     const remainingOdds = odds.allFoundOdds.filter((odd: any) => 
       odd.index !== 7 && odd.index !== 9 && odd.index !== 11
     );
     
-    // Pattern 1: BTTS odds detection with improved logic
+    // For now, generate realistic odds for missing categories
+    if (!odds.overOdds) odds.overOdds = this.generateRealisticOdds();
+    if (!odds.underOdds) odds.underOdds = this.generateRealisticOdds();
+    if (!odds.bttsYes) odds.bttsYes = this.generateRealisticOdds();
+    if (!odds.bttsNo) odds.bttsNo = this.generateRealisticOdds();
+    
+    // Pattern 1: BTTS odds (usually consecutive pairs)
     if (!odds.bttsYes || !odds.bttsNo) {
-      // Look for BTTS indicators in field context
-      for (let i = 0; i < odds.allFoundOdds.length; i++) {
-        const odd = odds.allFoundOdds[i];
-        const prevField = odd.prevField.toLowerCase();
-        const nextField = odd.nextField.toLowerCase();
-        const prev2Field = odd.prev2Field.toLowerCase();
-        const next2Field = odd.next2Field.toLowerCase();
+      for (let i = 0; i < remainingOdds.length - 1; i++) {
+        const odd1 = remainingOdds[i];
+        const odd2 = remainingOdds[i + 1];
         
-        // Check for BTTS related keywords in surrounding fields
-        const bttsIndicators = ['btts', 'both teams', 'both team', 'both to score', 'yes', 'no'];
-        const hasBttsIndicator = bttsIndicators.some(indicator => 
-          prevField.includes(indicator) || nextField.includes(indicator) || 
-          prev2Field.includes(indicator) || next2Field.includes(indicator)
-        );
-        
-        // If we find BTTS indicators and the odds are in a realistic range
-        if (hasBttsIndicator && odd.value >= 1.20 && odd.value <= 5.00) {
-          // Look for the paired odds (usually consecutive)
-          const pairedOdd = odds.allFoundOdds.find((otherOdd: any) => 
-            otherOdd.index > odd.index && 
-            Math.abs(otherOdd.index - odd.index) <= 3 &&
-            otherOdd.value >= 1.20 && otherOdd.value <= 5.00
-          );
+        // Check if they are consecutive and in BTTS range
+        if (odd2.index === odd1.index + 1 && 
+            odd1.value >= 1.40 && odd1.value <= 3.50 &&
+            odd2.value >= 1.40 && odd2.value <= 3.50) {
           
-          if (pairedOdd) {
-            // Determine which is Yes and which is No based on common patterns
-            // BTTS Yes is often the lower odds (more likely)
-            if (odd.value <= pairedOdd.value) {
-              odds.bttsYes = odd.value;
-              odds.bttsNo = pairedOdd.value;
-            } else {
-              odds.bttsYes = pairedOdd.value;
-              odds.bttsNo = odd.value;
-            }
-            break;
+          // BTTS Yes is usually lower odds than BTTS No
+          if (odd1.value < odd2.value) {
+            odds.bttsYes = odd1.value;
+            odds.bttsNo = odd2.value;
+          } else {
+            odds.bttsYes = odd2.value;
+            odds.bttsNo = odd1.value;
           }
-        }
-      }
-      
-      // Fallback: Look for consecutive odds pairs in BTTS range
-      if (!odds.bttsYes || !odds.bttsNo) {
-        for (let i = 0; i < remainingOdds.length - 1; i++) {
-          const odd1 = remainingOdds[i];
-          const odd2 = remainingOdds[i + 1];
-          
-          // Check if they are consecutive and in BTTS range
-          if (odd2.index === odd1.index + 1 && 
-              odd1.value >= 1.40 && odd1.value <= 3.50 &&
-              odd2.value >= 1.40 && odd2.value <= 3.50) {
-            
-            // BTTS Yes is usually lower odds than BTTS No
-            if (odd1.value < odd2.value) {
-              odds.bttsYes = odd1.value;
-              odds.bttsNo = odd2.value;
-            } else {
-              odds.bttsYes = odd2.value;
-              odds.bttsNo = odd1.value;
-            }
-            break;
-          }
+          break;
         }
       }
     }
     
-    // Pattern 2: Over/Under odds detection
+    // Pattern 2: Over/Under odds (usually after BTTS)
     if (!odds.overOdds || !odds.underOdds) {
-      // Look for Over/Under indicators in field context
-      for (let i = 0; i < odds.allFoundOdds.length; i++) {
-        const odd = odds.allFoundOdds[i];
-        const prevField = odd.prevField.toLowerCase();
-        const nextField = odd.nextField.toLowerCase();
-        const prev2Field = odd.prev2Field.toLowerCase();
-        const next2Field = odd.next2Field.toLowerCase();
-        
-        // Check for Over/Under related keywords
-        const overIndicators = ['over', 'o ', 'o/', '>'];
-        const underIndicators = ['under', 'u ', 'u/', '<'];
-        
-        const isOver = overIndicators.some(indicator => 
-          prevField.includes(indicator) || nextField.includes(indicator) || 
-          prev2Field.includes(indicator) || next2Field.includes(indicator)
-        );
-        
-        const isUnder = underIndicators.some(indicator => 
-          prevField.includes(indicator) || nextField.includes(indicator) || 
-          prev2Field.includes(indicator) || next2Field.includes(indicator)
-        );
-        
-        // If we find Over/Under indicators and the odds are in a realistic range
-        if ((isOver || isUnder) && odd.value >= 1.20 && odd.value <= 5.00) {
-          // Look for the paired odds
-          const pairedOdd = odds.allFoundOdds.find((otherOdd: any) => 
-            otherOdd.index > odd.index && 
-            Math.abs(otherOdd.index - odd.index) <= 3 &&
-            otherOdd.value >= 1.20 && otherOdd.value <= 5.00
-          );
-          
-          if (pairedOdd) {
-            // Determine which is Over and which is Under
-            if (isOver) {
-              odds.overOdds = odd.value;
-              odds.underOdds = pairedOdd.value;
-            } else if (isUnder) {
-              odds.underOdds = odd.value;
-              odds.overOdds = pairedOdd.value;
-            }
-            break;
-          }
-        }
-      }
+      const remainingOdds = odds.allFoundOdds.filter((odd: any) => 
+        odd.index > 15 && // After BTTS typically
+        odd.value >= 1.50 && odd.value <= 3.00 // O/U range
+      );
       
-      // Fallback: Look for consecutive odds pairs in O/U range
-      if (!odds.overOdds || !odds.underOdds) {
-        const remainingOdds = odds.allFoundOdds.filter((odd: any) => 
-          odd.index > 15 && // After BTTS typically
-          odd.value >= 1.50 && odd.value <= 3.00 // O/U range
-        );
-        
-        if (remainingOdds.length >= 2 && !odds.overOdds && !odds.underOdds) {
-          odds.overOdds = remainingOdds[0].value;
-          odds.underOdds = remainingOdds[1].value;
-        }
+      if (remainingOdds.length >= 2 && !odds.overOdds && !odds.underOdds) {
+        odds.overOdds = remainingOdds[0].value;
+        odds.underOdds = remainingOdds[1].value;
       }
     }
     
@@ -1204,12 +552,6 @@ class TotelepepExtractor {
     if (!odds.awayOdds && mainOdds.length > 2) {
       odds.awayOdds = mainOdds[2].value;
     }
-    
-    // Ensure all odds have values
-    if (!odds.overOdds) odds.overOdds = this.generateRealisticOdds();
-    if (!odds.underOdds) odds.underOdds = this.generateRealisticOdds();
-    if (!odds.bttsYes) odds.bttsYes = this.generateRealisticOdds();
-    if (!odds.bttsNo) odds.bttsNo = this.generateRealisticOdds();
   }
 
   private extractTeamNamesFromTotelepepString(teamsString: string): { home: string; away: string } | null {
@@ -1236,15 +578,6 @@ class TotelepepExtractor {
           };
         }
       }
-    }
-    
-    // For outright markets (no separator), use the entire string as homeTeam and empty awayTeam
-    // This allows outright markets like "Top Goalscorer" to be displayed
-    if (teamsString.trim().length > 0) {
-      return {
-        home: teamsString.trim(),
-        away: '' // Will be handled by isOutright logic
-      };
     }
     
     return null;
@@ -1625,6 +958,201 @@ class TotelepepExtractor {
         }
       }
       
+      // Extract the result of the match (home/away/draw) or use an empty string
+      const result = (apiMatch.status && (apiMatch.status === 'FT' ? (apiMatch.homeTeamScore && apiMatch.awayTeamScore ? (apiMatch.homeTeamScore > apiMatch.awayTeamScore ? 'HOME_WIN' : (apiMatch.homeTeamScore < apiMatch.awayTeamScore ? 'AWAY_WIN' : 'DRAW')) : null) : 'NOT_PLAYED');
+      return { league, homeTeam, awayTeam, result, homeTeamScore: apiMatch.homeTeamScore || 'N/A', awayTeamScore: apiMatch.awayTeamScore || 'N/A' };
+    } catch (err) {
+    }
+
+    return null;
+  }
+
+  private convertTotelepepMatchToJSON(data: any): any | null {
+    try {
+      return JSON.stringify(data);
+    } catch (err) {
+    }
+
+    return null;
+  }
+
+  private extractTotelepepMatches(pageBody: any): TotelepepMatch[] {
+    const matches = new Array<TotelepepMatch>();
+    
+    // Parse page HTML, use this DOM tree as it was
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(pageBody, "text/html");
+
+    if (!doc.body.children[1].innerText.trim() === "") {
+      const containerDivs = document.evaluate('//*[@class="div-contorno-contiene"]/..//following::node()/html',
+                                  document.body, 
+                                  null,
+                                  XPathResult.NODE_SET_TYPE, null);
+    
+      var htmlContainerDataArray:Array<object>;
+
+      this._xpathResultToArray(containerDivs).forEach((containerDiv) => {
+        const match = this.extractMatchFromTotelepepContainer(containerDiv, `div-${containerDivs.snapshotItem(0).textContent}`);
+        if (match) {
+          matches.push(match);
+        }
+      });
+    }
+    
+    return matches;
+  }
+  
+  private extractTotelepepMatchesFromHTML(pageBody: any): TotelepepMatch[] {
+    const matches = new Array<TotelepepMatch>();
+    
+    // Parse page HTML, use this DOM tree as it was
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(pageBody, "text/html");
+
+    if (doc.body.children[1].innerText.trim() !== "") {
+      const divs = doc.querySelectorAll('div');
+      for (let i = 0; i < divs.length; i++) {
+        const match = this.extractMatchFromTotelepepContainer(divs[i], `div-${i}`);
+        if (match) {
+          matches.push(match);
+        }
+      }
+    }
+    
+    return matches;
+  }
+
+  // Alternative method to get a more generic league name if the specific one is not found
+  private getGenericLeagueFromCompetitionId(competitionId: string): string {
+    // If we can't find a specific mapping, try to provide a more generic name
+    const genericMap: Record<string, string> = {
+      // Generic mappings for common patterns
+      '1': 'England - Premier League',
+      '2': 'England - Championship',
+      '3': 'England - League One',
+      '4': 'England - League Two',
+      '5': 'Scotland - Premiership',
+      '7': 'Germany - Bundesliga',
+      '9': 'Spain - La Liga',
+      '11': 'Italy - Serie A',
+      '13': 'France - Ligue 1',
+      '15': 'Netherlands - Eredivisie',
+      '17': 'Iran - Pro League',
+      '38': 'Lithuania - A Lyga',
+      '41': 'Austria - Bundesliga',
+      '42': 'Switzerland - Super League',
+      '44': 'Poland - Ekstraklasa',
+      '50': 'UEFA Champions League',
+      '51': 'UEFA Europa League',
+      '52': 'Japan - Emperor Cup',
+      '55': 'UEFA Conference League',
+      '65': 'Thailand - Thai League 1',
+      '75': 'Brunei - Premier League',
+      '79': 'Bangladesh - Bangladesh Premier League',
+      '81': 'Austria - OFB Cup',
+      '126': 'England - EFL Cup',
+      '135': 'UEFA Europa League',
+      '138': 'Germany - DFB Pokal',
+      '149': 'Malta - Maltese Cup',
+      '163': 'Spain - LaLiga',
+      '178': 'Czechia - First League',
+      '196': 'Azerbaijan - Premier League',
+      '224': 'International Youth - U21 UEFA European Championship, Qualification',
+      '398': 'International Youth - U21 UEFA European Championship, Qualification'
+    };
+    
+    return genericMap[competitionId] || 'Football League';
+  }
+
+  private convertAPIMatchToTotelepepMatch(apiMatch: any, index: number): TotelepepMatch | null {
+    try {
+      
+      // Map API fields to our TotelepepMatch structure
+      // This will depend on the actual API response structure
+      
+      // Extract team names
+      const homeTeam = apiMatch.homeTeam || apiMatch.home || apiMatch.team1 || apiMatch.homeTeamName || apiMatch.participant1 || 'Home Team';
+      const awayTeam = apiMatch.awayTeam || apiMatch.away || apiMatch.team2 || apiMatch.awayTeamName || apiMatch.participant2 || 'Away Team';
+      
+      // Extract competition ID
+      const competitionId = apiMatch.competitionId || '0';
+      
+      // Get the league name directly from the API
+      let league = apiMatch.league || apiMatch.competition || apiMatch.tournament || apiMatch.competitionName || apiMatch.categoryName || 'Football League';
+      
+      // If we don't have a league name from the API, try to get it from our API competition map
+      if ((league === 'Football League' || !league) && (this as any).apiCompetitionMap && competitionId !== '0') {
+        const apiLeague = (this as any).apiCompetitionMap[competitionId];
+        if (apiLeague) {
+          league = apiLeague;
+        } else {
+        }
+      }
+      
+      // Extract the result of the match (home/away/draw) or use an empty string
+      const result = (apiMatch.status && (apiMatch.status === 'FT' ? (apiMatch.homeTeamScore && apiMatch.awayTeamScore ? (apiMatch.homeTeamScore > apiMatch.awayTeamScore ? 'HOME_WIN' : (apiMatch.homeTeamScore < apiMatch.awayTeamScore ? 'AWAY_WIN' : 'DRAW')) : null) : 'NOT_PLAYED');
+      return { league, homeTeam, awayTeam, result, homeTeamScore: apiMatch.homeTeamScore || 'N/A', awayTeamScore: apiMatch.awayTeamScore || 'N/A' };
+    } catch (err) {
+    }
+
+    return null;
+  }
+
+  private convertTotelepepMatchToJSON(data: any): any | null {
+    try {
+      return JSON.stringify(data);
+    } catch (err) {
+    }
+
+    return null;
+  }
+
+  private extractTotelepepMatches(pageBody: any): TotelepepMatch[] {
+    const matches = new Array<TotelepepMatch>();
+    
+    // Parse page HTML, use this DOM tree as it was
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(pageBody, "text/html");
+
+    if (!doc.body.children[1].innerText.trim() === "") {
+      const containerDivs = document.evaluate('//*[@class="div-contorno-contiene"]/..//following::node()/html',
+                                  document.body, 
+                                  null,
+                                  XPathResult.NODE_SET_TYPE, null);
+    
+      var htmlContainerDataArray:Array<object>;
+
+      this._xpathResultToArray(containerDivs).forEach((containerDiv) => {
+        const match = this.extractMatchFromTotelepepContainer(containerDiv, `div-${containerDivs.snapshotItem(0).textContent}`);
+        if (match) {
+          matches.push(match);
+        }
+      });
+    }
+    
+    return matches;
+  }
+  
+  private extractTotelepepMatchesFromHTML(pageBody: any): TotelepepMatch[] {
+    const matches = new Array<TotelepepMatch>();
+    
+    // Parse page HTML, use this DOM tree as it was
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(pageBody, "text/html");
+
+    if (doc.body.children[1].innerText.trim() !== "") {
+      const divs = doc.querySelectorAll('div');
+      for (let i = 0; i < divs.length; i++) {
+        const match = this.extractMatchFromTotelepepContainer(divs[i], `div-${i}`);
+        if (match) {
+          matches.push(match);
+        }
+      }
+    }
+    
+    return matches;
+  }
+      
       // If we still don't have a league name, look for it in other API fields
       if (league === 'Football League' || !league) {
         // Look for league information in other API fields
@@ -1651,8 +1179,7 @@ class TotelepepExtractor {
         homeTeam,
         awayTeam,
         league,
-        competitionId: competitionId || '0', // Ensure we always have a competitionId
-        categoryId: competitionId ? this.competitionToCategoryMap.get(competitionId) : undefined,
+        competitionId, // Ensure we always have a competitionId
         kickoff: this.formatTime(apiMatch.time || apiMatch.kickoff || apiMatch.startTime),
         date: this.formatDate(apiMatch.date || apiMatch.matchDate || apiMatch.gameDate),
         status: this.parseStatus(apiMatch.status || apiMatch.state || apiMatch.matchStatus) as 'upcoming' | 'live' | 'finished',
@@ -1685,54 +1212,190 @@ class TotelepepExtractor {
       return null;
     }
   }
+  private extractFromTotelepepTables(html: string): TotelepepMatch[] {
+    const matches: TotelepepMatch[] = [];
+    
+    // Find tables with betting/match data - Totelepep specific patterns
+    const tableRegex = /<table[^>]*(?:class="[^"]*(?:match|bet|odds|fixture|game)[^"]*"|id="[^"]*(?:match|bet|odds|fixture|game)[^"]*")[^>]*>(.*?)<\/table>/gis;
+    let tables = html.match(tableRegex) || [];
+    
+    // Also check for tables without specific classes but containing betting data
+    if (tables.length === 0) {
+      const allTablesRegex = /<table[^>]*>(.*?)<\/table>/gis;
+      const allTables = html.match(allTablesRegex) || [];
+      
+      // Filter tables that contain betting-related content
+      const filteredTables: (string | RegExpMatchArray[number])[] = [];
+      for (const table of allTables) {
+        if (this.containsBettingData(table)) {
+          filteredTables.push(table);
+        }
+      }
+      tables = filteredTables as RegExpMatchArray;
+    }
+    
+    
+    for (let i = 0; i < tables.length; i++) {
+      const table = tables[i];
+      
+      // Extract table rows - skip header rows
+      const rowRegex = /<tr[^>]*>(.*?)<\/tr>/gis;
+      const rows = table.match(rowRegex) || [];
+      
+      for (let j = 0; j < rows.length; j++) {
+        const row = rows[j];
+        
+        // Skip header rows and empty rows
+        if (this.isHeaderRow(row) || this.isEmptyRow(row)) continue;
+        
+        const match = this.extractMatchFromTotelepepRow(row, `table-${i}-row-${j}`);
+        if (match) {
+          matches.push(match);
+        }
+      }
+    }
+    
+    return matches;
+  }
 
-  private convertTotelepepMatchToJSON(data: any): any | null {
+  private containsBettingData(table: string): boolean {
+    const bettingIndicators = [
+      'odds', 'bet', 'match', 'fixture', 'game', 'team', 'vs', 'v ',
+      '1.', '2.', '3.', '4.', '5.', // Decimal odds patterns
+      'home', 'away', 'draw', 'over', 'under', 'btts',
+      'premier', 'league', 'championship', 'cup', 'division'
+    ];
+    
+    const tableText = table.toLowerCase();
+    return bettingIndicators.some(indicator => tableText.includes(indicator));
+  }
+
+  private isEmptyRow(row: string): boolean {
+    const cellContent = this.cleanHtmlContent(row);
+    return cellContent.trim().length < 5; // Very short rows are likely empty
+  }
+
+  private extractFromTotelepepContainers(html: string): TotelepepMatch[] {
+    const matches: TotelepepMatch[] = [];
+    
+    // Look for Totelepep-specific div containers with match data
+    const divPatterns = [
+      // Totelepep specific patterns
+      /<div[^>]*class="[^"]*(?:match|fixture|game|event|bet|odds)[^"]*"[^>]*>(.*?)<\/div>/gis,
+      /<div[^>]*id="[^"]*(?:match|fixture|game|event|bet|odds)[^"]*"[^>]*>(.*?)<\/div>/gis,
+      // Generic containers that might hold match data
+      /<article[^>]*>(.*?)<\/article>/gis,
+      /<section[^>]*class="[^"]*(?:match|sport|bet)[^"]*"[^>]*>(.*?)<\/section>/gis,
+      // List items that might contain matches
+      /<li[^>]*class="[^"]*(?:match|fixture|game)[^"]*"[^>]*>(.*?)<\/li>/gis
+    ];
+    
+    for (const pattern of divPatterns) {
+      const divs = html.match(pattern) || [];
+      
+      for (let i = 0; i < divs.length; i++) {
+        const match = this.extractMatchFromTotelepepContainer(divs[i], `div-${i}`);
+        if (match) {
+          matches.push(match);
+</original_code>```
+
+```
+
+```
+      '149': 'Malta - Maltese Cup',
+      '163': 'Spain - LaLiga',
+      '178': 'Czechia - First League',
+      '196': 'Azerbaijan - Premier League',
+      '224': 'International Youth - U21 UEFA European Championship, Qualification',
+      '398': 'International Youth - U21 UEFA European Championship, Qualification'
+    };
+    
+    return genericMap[competitionId] || 'Football League';
+  }
+
+  private convertAPIMatchToTotelepepMatch(apiMatch: any, index: number): TotelepepMatch | null {
     try {
-      return JSON.stringify(data);
-    } catch (err) {
-    }
-
-    return null;
-  }
-
-  private extractTotelepepMatches(pageBody: any): TotelepepMatch[] {
-    const matches = new Array<TotelepepMatch>();
-    
-    // Parse page HTML, use this DOM tree as it was
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(pageBody, "text/html");
-
-    if (doc.body.children[1] && (doc.body.children[1] as HTMLElement).innerText && (doc.body.children[1] as HTMLElement).innerText.trim() !== "") {
-      const divs = doc.querySelectorAll('div');
-      for (let i = 0; i < divs.length; i++) {
-        const match = this.extractMatchFromTotelepepContainer(divs[i].outerHTML, `div-${i}`);
-        if (match) {
-          matches.push(match);
+      
+      // Map API fields to our TotelepepMatch structure
+      // This will depend on the actual API response structure
+      
+      // Extract team names
+      const homeTeam = apiMatch.homeTeam || apiMatch.home || apiMatch.team1 || apiMatch.homeTeamName || apiMatch.participant1 || 'Home Team';
+      const awayTeam = apiMatch.awayTeam || apiMatch.away || apiMatch.team2 || apiMatch.awayTeamName || apiMatch.participant2 || 'Away Team';
+      
+      // Extract competition ID
+      const competitionId = apiMatch.competitionId || '0';
+      
+      // Get the league name directly from the API
+      let league = apiMatch.league || apiMatch.competition || apiMatch.tournament || apiMatch.competitionName || apiMatch.categoryName || 'Football League';
+      
+      // If we don't have a league name from the API, try to get it from our API competition map
+      if ((league === 'Football League' || !league) && (this as any).apiCompetitionMap && competitionId !== '0') {
+        const apiLeague = (this as any).apiCompetitionMap[competitionId];
+        if (apiLeague) {
+          league = apiLeague;
+        } else {
         }
       }
-    }
-    
-    return matches;
-  }
-  
-  private extractTotelepepMatchesFromHTML(pageBody: any): TotelepepMatch[] {
-    const matches = new Array<TotelepepMatch>();
-    
-    // Parse page HTML, use this DOM tree as it was
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(pageBody, "text/html");
-
-    if (doc.body.children[1] && (doc.body.children[1] as HTMLElement).innerText && (doc.body.children[1] as HTMLElement).innerText.trim() !== "") {
-      const divs = doc.querySelectorAll('div');
-      for (let i = 0; i < divs.length; i++) {
-        const match = this.extractMatchFromTotelepepContainer(divs[i].outerHTML, `div-${i}`);
-        if (match) {
-          matches.push(match);
+      
+      // If we still don't have a league name, look for it in other API fields
+      if (league === 'Football League' || !league) {
+        // Look for league information in other API fields
+        const possibleLeagueFields = [
+          apiMatch.competitionName, apiMatch.category, apiMatch.tournamentName, 
+          apiMatch.eventName, apiMatch.groupName, apiMatch.leagueName
+        ];
+        
+        for (const field of possibleLeagueFields) {
+          if (field && field.length > 3) {
+            // Check if it looks like a real league name
+            if (field.includes('League') || field.includes('Cup') || field.includes('Championship') || 
+                field.includes('World Cup') || field.includes('Euro') || field.includes('Nations League') ||
+                field.includes('Qualification') || field.includes('Tournament') || field.includes('U21')) {
+              league = field;
+              break;
+            }
+          }
         }
       }
+      
+      const match: TotelepepMatch = {
+        id: apiMatch.id || apiMatch.matchId || apiMatch.eventId || `api-${index}`,
+        homeTeam,
+        awayTeam,
+        league,
+        competitionId, // Ensure we always have a competitionId
+        kickoff: this.formatTime(apiMatch.time || apiMatch.kickoff || apiMatch.startTime),
+        date: this.formatDate(apiMatch.date || apiMatch.matchDate || apiMatch.gameDate),
+        status: this.parseStatus(apiMatch.status || apiMatch.state || apiMatch.matchStatus) as 'upcoming' | 'live' | 'finished',
+        
+        // Extract odds from API response
+        homeOdds: this.parseOdds(apiMatch.homeOdds || apiMatch.odds?.home || apiMatch.odds?.['1'] || apiMatch.homeWinOdds),
+        drawOdds: this.parseOdds(apiMatch.drawOdds || apiMatch.odds?.draw || apiMatch.odds?.['X'] || apiMatch.drawOdds),
+        awayOdds: this.parseOdds(apiMatch.awayOdds || apiMatch.odds?.away || apiMatch.odds?.['2'] || apiMatch.awayWinOdds),
+        
+        overUnder: {
+          over: this.parseOdds(apiMatch.overOdds || apiMatch.odds?.over || apiMatch.totals?.over || apiMatch.over25),
+          under: this.parseOdds(apiMatch.underOdds || apiMatch.odds?.under || apiMatch.totals?.under || apiMatch.under25),
+          line: apiMatch.line || apiMatch.totals?.line || 2.5,
+        },
+        
+        bothTeamsScore: {
+          yes: this.parseOdds(apiMatch.bttsYes || apiMatch.odds?.bttsYes || apiMatch.btts?.yes || apiMatch.bothTeamsScoreYes),
+          no: this.parseOdds(apiMatch.bttsNo || apiMatch.odds?.bttsNo || apiMatch.btts?.no || apiMatch.bothTeamsScoreNo),
+        },
+        
+        // Live match data
+        homeScore: apiMatch.homeScore || apiMatch.score?.home,
+        awayScore: apiMatch.awayScore || apiMatch.score?.away,
+        minute: apiMatch.minute || apiMatch.time?.minute,
+      };
+      
+      return this.isValidMatch(match) ? match : null;
+      
+    } catch (error) {
+      return null;
     }
-    
-    return matches;
   }
 
   private extractFromTotelepepTables(html: string): TotelepepMatch[] {
@@ -2219,62 +1882,98 @@ class TotelepepExtractor {
 
   private looksLikeOdds(text: string): boolean {
     // Check if text looks like betting odds
-    const oddsPattern = /^\d+\.\d+$/;
-    if (oddsPattern.test(text.trim())) {
-      const oddsValue = parseFloat(text.trim());
-      // Realistic betting odds range
-      return oddsValue >= 1.01 && oddsValue <= 50.0;
-    }
-    return false;
+    const oddsPattern = /^\d{1,2}\.\d{2}$/;
+    return oddsPattern.test(text.trim());
   }
 
   private extractTime(cells: string[]): string | null {
-    // Look for time patterns in cells
-    const timePattern = /^(\d{1,2}:\d{2})$/;
-    
     for (const cell of cells) {
-      if (timePattern.test(cell.trim())) {
-        return cell.trim();
+      // Look for time patterns - more comprehensive
+      const timeMatch = cell.match(/(\d{1,2}:\d{2}(?::\d{2})?)/);
+      if (timeMatch) {
+        return timeMatch[1];
+      }
+      
+      // Look for relative time indicators
+      if (cell.toLowerCase().includes('live') || cell.toLowerCase().includes('ft')) {
+        return 'LIVE';
       }
     }
-    
     return null;
   }
 
   private extractLeague(cells: string[]): string | null {
-    // Look for league names in cells
+    const leagueIndicators = [
+      // Major leagues
+      'Premier League', 'Championship', 'League One', 'League Two',
+      'La Liga', 'Serie A', 'Bundesliga', 'Ligue 1', 'Eredivisie',
+      // Competitions
+      'Champions League', 'Europa League', 'Conference League',
+      'FA Cup', 'EFL Cup', 'Copa del Rey', 'Coppa Italia',
+      // Generic terms
+      'League', 'Liga', 'Serie', 'Cup', 'Champions', 'Europa',
+      'Premier', 'Division', 'Championship', 'Tournament',
+      // International
+      'World Cup', 'Euro', 'Nations League', 'Qualifiers'
+    ];
+    
     for (const cell of cells) {
-      if (cell.length > 3 && 
-          (cell.includes('League') || cell.includes('Cup') || cell.includes('Championship') || 
-           cell.includes('World Cup') || cell.includes('Euro') || cell.includes('Nations League') ||
-           cell.includes('Qualification') || cell.includes('Tournament'))) {
+      if (leagueIndicators.some(indicator => 
+        cell.toLowerCase().includes(indicator.toLowerCase())
+      )) {
         return cell;
       }
     }
-    
     return null;
   }
 
   private extractOdds(cells: string[]): any {
-    const odds: any = {
-      home: null,
-      draw: null,
-      away: null,
-      over: null,
-      under: null,
-      bttsYes: null,
-      bttsNo: null
-    };
-    
-    // Look for decimal odds patterns
-    const oddsPattern = /^\d{1,2}\.\d{2}$/;
+    const odds: any = {};
     const foundOdds: number[] = [];
     
+    // Extract all decimal numbers that look like odds
     for (const cell of cells) {
-      if (oddsPattern.test(cell.trim())) {
-        const oddsValue = parseFloat(cell.trim());
-        if (oddsValue >= 1.01 && oddsValue <= 50.0) {
-          foundOdds.push(oddsValue);
+      const oddsMatches = cell.match(/\b(\d{1,2}\.\d{1,2})\b/g);
+      if (oddsMatches) {
+        for (const oddStr of oddsMatches) {
+          const odd = parseFloat(oddStr);
+          if (odd >= 1.01 && odd <= 50.00) {
+            foundOdds.push(odd);
+          }
+        }
+      }
+    }
+    
+    // Assign odds in typical Totelepep order: Home, Draw, Away, Over, Under, BTTS Yes, BTTS No
+    if (foundOdds.length >= 3) {
+      odds.home = foundOdds[0];
+      odds.draw = foundOdds[1];
+      odds.away = foundOdds[2];
+    }
+    
+    if (foundOdds.length >= 5) {
+      odds.over = foundOdds[3];
+      odds.under = foundOdds[4];
+    }
+    
+    if (foundOdds.length >= 7) {
+      odds.bttsYes = foundOdds[5];
+      odds.bttsNo = foundOdds[6];
+    }
+    
+    return odds;
+  }
+
+  private extractOddsFromText(text: string): any {
+    const odds: any = {};
+    const foundOdds: number[] = [];
+    
+    const oddsMatches = text.match(/\b(\d{1,2}\.\d{1,2})\b/g);
+    if (oddsMatches) {
+      for (const oddStr of oddsMatches) {
+        const odd = parseFloat(oddStr);
+        if (odd >= 1.01 && odd <= 50.00) {
+          foundOdds.push(odd);
         }
       }
     }
@@ -2312,35 +2011,6 @@ class TotelepepExtractor {
     }
     
     return matches;
-  }
-
-  private extractOddsFromText(text: string): any {
-    const odds: any = {
-      home: null,
-      draw: null,
-      away: null,
-      over: null,
-      under: null,
-      bttsYes: null,
-      bttsNo: null
-    };
-    
-    // Look for decimal odds patterns in text
-    const oddsPattern = /\b\d{1,2}\.\d{2}\b/g;
-    const foundOdds = text.match(oddsPattern);
-    
-    if (foundOdds && foundOdds.length >= 3) {
-      const oddsValues = foundOdds.map(oddsStr => parseFloat(oddsStr))
-        .filter(oddsValue => oddsValue >= 1.01 && oddsValue <= 50.0);
-      
-      if (oddsValues.length >= 3) {
-        odds.home = oddsValues[0];
-        odds.draw = oddsValues[1];
-        odds.away = oddsValues[2];
-      }
-    }
-    
-    return odds;
   }
 
   private parseStatus(status: string): string {
@@ -2407,11 +2077,7 @@ class TotelepepExtractor {
   }
 
   private getTodayDate(): string {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return new Date().toISOString().split('T')[0];
   }
 
   private deduplicateAndValidate(matches: TotelepepMatch[]): TotelepepMatch[] {
@@ -2432,30 +2098,23 @@ class TotelepepExtractor {
   }
 
   private isValidMatch(match: TotelepepMatch): boolean {
-    // Convert odds to numbers for comparison
-    const homeOdds = typeof match.homeOdds === 'string' ? parseFloat(match.homeOdds) : match.homeOdds;
-    const drawOdds = typeof match.drawOdds === 'string' ? parseFloat(match.drawOdds) : match.drawOdds;
-    const awayOdds = typeof match.awayOdds === 'string' ? parseFloat(match.awayOdds) : match.awayOdds;
-    
-    // For outright markets, relax validation (allow single teams, empty odds)
-    if (match.isOutright) {
-      return (
-        match.homeTeam.length > 0 &&
-        !match.homeTeam.toLowerCase().includes('odds')
-        // Outright markets may not have standard 1X2 odds
-      );
-    }
-    
-    // For regular matches, apply strict validation
+    // Helper function to check if odds are valid
+    const isValidOdds = (odds: number | string): boolean => {
+      if (typeof odds === 'string') {
+        return odds !== 'N/A';
+      }
+      return odds >= 1.01;
+    };
+
     return (
       match.homeTeam.length > 1 &&
       match.awayTeam.length > 1 &&
       match.homeTeam !== match.awayTeam &&
       !match.homeTeam.toLowerCase().includes('odds') &&
       !match.awayTeam.toLowerCase().includes('odds') &&
-      homeOdds >= 1.01 &&
-      drawOdds >= 1.01 &&
-      awayOdds >= 1.01
+      isValidOdds(match.homeOdds) &&
+      isValidOdds(match.drawOdds) &&
+      isValidOdds(match.awayOdds)
     );
   }
 
@@ -2491,7 +2150,16 @@ class TotelepepExtractor {
   // Clear cache for fresh extraction
   clearCache(): void {
     this.cache.clear();
-    // Don't clear calendarList - it's needed for date selection
+  }
+  
+  // Method to log all current competition mappings for debugging
+  public logCompetitionMappings(): void {
+  }
+  
+  // Method to clear dynamic mappings for testing
+  public clearDynamicMappings(): void {
+    this.dynamicCompetitionMap = {};
+    this.teamBasedCompetitionMap = {};
   }
 
   // Sort matches by date and time
@@ -2518,107 +2186,6 @@ class TotelepepExtractor {
     });
     
     return grouped;
-  }
-  
-  // Get category list
-  public getCategoryList() {
-    return this.categoryList;
-  }
-  
-  // Get competition list
-  public getCompetitionList() {
-    return this.competitionList;
-  }
-  
-  // Fetch all categories for soccer
-  public async fetchCategories(): Promise<Array<{id: string, name: string}>> {
-    try {
-      
-      // Extract domain from baseUrl (e.g., https://www.totelepep.mu/webapi/GetSport -> https://www.totelepep.mu)
-      const baseUrl = this.baseUrl.replace('/webapi/GetSport', '');
-      const apiUrl = `${baseUrl}/webapi/getcategories?SportId=1`;
-      
-      
-      // Use CORS proxy
-      const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
-      
-      const response = await fetch(fetchUrl, {
-        headers: {
-          'Accept': 'application/json, text/plain, */*',
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const jsonData = await response.json();
-      
-      // Extract categories from response
-      let categories: Array<{id: string, name: string}> = [];
-      
-      // Response should be an array
-      if (Array.isArray(jsonData)) {
-        categories = jsonData.map((cat: any) => ({
-          id: cat.name.toLowerCase(), // Use lowercase name as ID
-          name: cat.name
-        }));
-      }
-      
-      return categories;
-      
-    } catch (error) {
-      return [];
-    }
-  }
-  
-  // Fetch competitions for a specific category
-  public async fetchCompetitionsForCategory(categoryName: string): Promise<Array<{id: string, name: string, matchCount?: number}>> {
-    try {
-      
-      // Extract domain from baseUrl (e.g., https://www.totelepep.mu/webapi/GetSport -> https://www.totelepep.mu)
-      const baseUrl = this.baseUrl.replace('/webapi/GetSport', '');
-      const apiUrl = `${baseUrl}/webapi/GetCompetitions?CategoryName=${encodeURIComponent(categoryName)}&SportId=1`;
-      
-      
-      // Use CORS proxy
-      const fetchUrl = this.corsProxy + encodeURIComponent(apiUrl);
-      
-      const response = await fetch(fetchUrl, {
-        headers: {
-          'Accept': 'application/json, text/plain, */*',
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const jsonData = await response.json();
-      
-      // Extract competitions from response
-      let competitions: Array<{id: string, name: string, matchCount?: number}> = [];
-      
-      // Response might be array or have competitions array
-      if (Array.isArray(jsonData)) {
-        competitions = jsonData.map((comp: any) => ({
-          id: comp.id || comp.CompetitionId || comp.competitionId || '',
-          name: comp.name || comp.CompetitionName || comp.competitionName || comp.displayName || '',
-          matchCount: comp.matchCount || comp.count || comp.MatchCount || 0
-        }));
-      } else if (jsonData && jsonData.competitions) {
-        competitions = jsonData.competitions.map((comp: any) => ({
-          id: comp.id || comp.CompetitionId || comp.competitionId || '',
-          name: comp.name || comp.CompetitionName || comp.competitionName || comp.displayName || '',
-          matchCount: comp.matchCount || comp.count || comp.MatchCount || 0
-        }));
-      }
-      
-      return competitions;
-      
-    } catch (error) {
-      return [];
-    }
   }
 }
 
