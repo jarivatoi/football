@@ -1302,10 +1302,45 @@ function App() {
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm font-medium"
             >
               <option value="matches">Matches</option>
-              <option value="eq">= Equal to</option>
-              <option value="gte">≥ Greater or Equal</option>
-              <option value="lte">≤ Less or Equal</option>
-              <option value="between">↔ In Between</option>
+              {/* Show odds filters only if NOT a range pattern */}
+              {(() => {
+                const hasDash = searchTerm.includes('-');
+                // Check if it's a valid range: two numbers (3+ digits each) separated by -
+                const rangeMatch = searchTerm.match(/^(\d{3,})-(\d{3,})/);
+                const isValidRange = rangeMatch !== null;
+                
+                // Auto-switch searchMode based on pattern
+                if (searchMode === 'between' && !isValidRange) {
+                  // Was "In Between" but no longer valid - switch to "Equal to"
+                  if (hasDash) {
+                    // Invalid range like "55-130" - switch to matches mode
+                    setSearchMode('matches');
+                  } else {
+                    // No dash - switch to equal
+                    setSearchMode('eq');
+                  }
+                } else if (searchMode !== 'between' && searchMode !== 'matches' && isValidRange) {
+                  // Is single-value mode but now has valid range - switch to "In Between"
+                  setSearchMode('between');
+                }
+                
+                if (hasDash && !isValidRange) {
+                  // Has dash but invalid range (e.g., "55-130") - show nothing except Matches
+                  return null;
+                } else if (isValidRange) {
+                  // Valid range (e.g., "120-155H") - show only "In Between"
+                  return <option value="between">↔ In Between</option>;
+                } else {
+                  // No dash - show all single-value operators
+                  return (
+                    <>
+                      <option value="eq">= Equal to</option>
+                      <option value="gte">≥ Greater or Equal</option>
+                      <option value="lte">≤ Less or Equal</option>
+                    </>
+                  );
+                }
+              })()}
             </select>
           </div>
         </div>
