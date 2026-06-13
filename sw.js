@@ -1,12 +1,12 @@
-const CACHE_NAME = 'football-v1.0.0';
-const STATIC_CACHE = 'football-static-v1';
-const DATA_CACHE = 'football-data-v1';
+const CACHE_NAME = 'football-v1.0.1';
+const STATIC_CACHE = 'football-static-v2';
+const DATA_CACHE = 'football-data-v2';
 
 // Files to cache for offline functionality
 const STATIC_FILES = [
-  '/football/',
-  '/football/index.html',
-  '/football/manifest.json'
+  '/',
+  '/index.html',
+  '/manifest.json'
 ];
 
 // Install event - cache static files
@@ -51,7 +51,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   // Handle API requests (Totelepep data)
-  if (url.pathname.startsWith('/football/api') || url.pathname.startsWith('/api')) {
+  if (url.pathname.startsWith('/api')) {
     event.respondWith(
       caches.open(DATA_CACHE).then((cache) => {
         return fetch(request)
@@ -82,7 +82,7 @@ self.addEventListener('fetch', (event) => {
       .catch(() => {
         // Fallback for offline
         if (request.destination === 'document') {
-          return caches.match('/football/index.html');
+          return caches.match('/index.html');
         }
       })
   );
@@ -116,8 +116,8 @@ self.addEventListener('push', (event) => {
     const data = event.data.json();
     const options = {
       body: data.body || 'New match updates available',
-      icon: '/football/icon.png',
-      badge: '/football/icon.png',
+      icon: '/icon.png',
+      badge: '/icon.png',
       vibrate: [100, 50, 100],
       data: {
         dateOfArrival: Date.now(),
@@ -127,12 +127,12 @@ self.addEventListener('push', (event) => {
         {
           action: 'explore',
           title: 'View Matches',
-          icon: '/football/icon.png'
+          icon: '/icon.png'
         },
         {
           action: 'close',
           title: 'Close',
-          icon: '/football/icon.png'
+          icon: '/icon.png'
         }
       ]
     };
