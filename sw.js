@@ -1,12 +1,12 @@
-const CACHE_NAME = 'football-v1.0.1';
-const STATIC_CACHE = 'football-static-v2';
-const DATA_CACHE = 'football-data-v2';
+const CACHE_NAME = 'football-v1.0.2';
+const STATIC_CACHE = 'football-static-v3';
+const DATA_CACHE = 'football-data-v3';
 
 // Files to cache for offline functionality
 const STATIC_FILES = [
-  '/',
-  '/index.html',
-  '/manifest.json'
+  '/football/',
+  '/football/index.html',
+  '/football/manifest.json'
 ];
 
 // Install event - cache static files
