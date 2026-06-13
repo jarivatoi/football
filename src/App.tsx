@@ -294,14 +294,6 @@ function App() {
       
       const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId);
       
-      .map((m: TotelepepMatch) => ({
-          id: m.id,
-          marketCount: m.marketCount,
-          hasAllMarkets: !!m.allMarkets,
-          allMarketsLength: m.allMarkets?.length || 0
-        }))
-      );
-      
       // Sort matches by date and time
       const sortedMatches = fetchedMatches.sort((a, b) => {
         // First sort by date
@@ -1032,7 +1024,6 @@ function App() {
   // Debug: Log grouped matches to see what dates we have
   useEffect(() => {
     
-    .map(([date, matches]) => `${date}: ${(matches as TotelepepMatch[]).length}`));
   }, [groupedMatches]);
 
   const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => {
@@ -1106,7 +1097,11 @@ function App() {
           
           // Additional validation debugging
           if (match.marketBookNo) {
-            ),
+            console.log(`🔍 MARKETBOOKNO VALIDATION:`, {
+              value: match.marketBookNo,
+              type: typeof match.marketBookNo,
+              length: match.marketBookNo.length,
+              isNumeric: !isNaN(Number(match.marketBookNo)),
               numericValue: Number(match.marketBookNo),
               isValid: !isNaN(Number(match.marketBookNo)) && Number(match.marketBookNo) > 0,
               // Special check for the correct value
