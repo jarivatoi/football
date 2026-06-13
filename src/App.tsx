@@ -843,11 +843,12 @@ function App() {
   // Extract unique market codes from all matches for the dropdown
   const availableMarketCodes = React.useMemo(() => {
     const codes = new Map<string, string>(); // code -> displayName
-    const allMatchesArray = showAllMatches 
-      ? Object.values(groupedMatches).flat()
-      : selectedDate 
-        ? (groupedMatches[selectedDate] || [])
-        : [];
+    
+    // Get all matches from both groupedMatches and matches array
+    const allMatchesArray = [
+      ...Object.values(groupedMatches).flat(),
+      ...matches
+    ];
     
     allMatchesArray.forEach(match => {
       if (match.allMarkets && match.allMarkets.length > 0) {
@@ -863,7 +864,7 @@ function App() {
     return Array.from(codes.entries())
       .map(([code, displayName]) => ({ code, displayName }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName));
-  }, [groupedMatches, selectedDate, showAllMatches]);
+  }, [groupedMatches, selectedDate, showAllMatches, matches]);
 
   const totalAllMatchesCount = React.useMemo(() => {
     // Calculate total from filtered matches (respects category/competition filters)
@@ -1318,13 +1319,18 @@ function App() {
                 value={selectedMarketCode}
                 onChange={(e) => setSelectedMarketCode(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm whitespace-nowrap min-w-[160px] max-w-[240px]"
+                disabled={availableMarketCodes.length === 0}
               >
                 <option value="">All Markets</option>
-                {availableMarketCodes.map(({ code, displayName }) => (
-                  <option key={code} value={code}>
-                    {displayName}
-                  </option>
-                ))}
+                {availableMarketCodes.length === 0 ? (
+                  <option disabled>Loading markets...</option>
+                ) : (
+                  availableMarketCodes.map(({ code, displayName }) => (
+                    <option key={code} value={code}>
+                      {displayName}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
             
