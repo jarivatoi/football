@@ -1281,7 +1281,7 @@ function App() {
             {/* Search Input Container - Contains search + market dropdown */}
             <div className="flex-1 flex items-center gap-2">
               {/* Search Input */}
-              <div className="relative flex-1 min-w-0 max-w-[calc(100%-220px)]">
+              <div className="relative flex-1 min-w-0 max-w-[calc(100%-240px)]">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
@@ -1314,20 +1314,18 @@ function App() {
               </div>
               
               {/* Market Code Dropdown - Inside search bar */}
-              {availableMarketCodes.length > 0 && (
-                <select
-                  value={selectedMarketCode}
-                  onChange={(e) => setSelectedMarketCode(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm whitespace-nowrap max-w-[200px]"
-                >
-                  <option value="">All Markets</option>
-                  {availableMarketCodes.map(({ code, displayName }) => (
-                    <option key={code} value={code}>
-                      {displayName}
-                    </option>
-                  ))}
-                </select>
-              )}
+              <select
+                value={selectedMarketCode}
+                onChange={(e) => setSelectedMarketCode(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm whitespace-nowrap min-w-[160px] max-w-[240px]"
+              >
+                <option value="">All Markets</option>
+                {availableMarketCodes.map(({ code, displayName }) => (
+                  <option key={code} value={code}>
+                    {displayName}
+                  </option>
+                ))}
+              </select>
             </div>
             
             {/* Filter Mode Dropdown */}
