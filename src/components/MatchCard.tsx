@@ -169,19 +169,24 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     }
   }, [isExpanded, match.allMarkets, searchTerm, searchMode, activeMarketTab]);
 
-  // Auto-expand match card when period filter is active
+  // Auto-expand/collapse match card when period filter changes
   React.useEffect(() => {
-    if (!isExpanded && searchTerm) {
+    if (searchTerm) {
       const upperSearch = searchTerm.toUpperCase().trim();
       const hasPeriodFilter = upperSearch.endsWith('H1') || upperSearch.endsWith('H2') || 
                               upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A') ||
                               upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A');
       
-      if (hasPeriodFilter) {
+      if (hasPeriodFilter && !isExpanded) {
+        // Expand match card when period filter is added
         toggleExpand();
+      } else if (!hasPeriodFilter && isExpanded && searchMode !== 'matches') {
+        // Collapse match card when period filter is removed (but keep expanded for text search)
+        setIsExpanded(false);
+        setExpandedMarkets({});
       }
     }
-  }, [searchTerm, isExpanded]);
+  }, [searchTerm, isExpanded, searchMode]);
 
   const toggleExpand = async () => {
     const newState = !isExpanded;
