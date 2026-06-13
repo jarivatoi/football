@@ -9,9 +9,10 @@ interface MatchCardProps {
   selectedPrices: string[];
   searchMode?: 'matches' | 'eq' | 'gte' | 'lte' | 'between'; // Search filter mode
   searchTerm?: string; // Search term for odds highlighting
+  selectedMarketCode?: string; // Market code filter for auto-expansion
 }
 
-const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '' }) => {
+const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '', selectedMarketCode = '' }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoadingMarkets, setIsLoadingMarkets] = useState(false);
   const [expandedMarkets, setExpandedMarkets] = useState<Record<string, boolean>>({});
@@ -172,6 +173,24 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       }
     }
   }, [searchTerm, isExpanded]);
+
+  // Auto-expand and filter by selected market code
+  React.useEffect(() => {
+    if (isExpanded && match.allMarkets && match.allMarkets.length > 0 && selectedMarketCode) {
+      const newExpandedMarkets: Record<string, boolean> = {};
+      
+      // Expand only markets matching the selected market code
+      match.allMarkets.forEach(market => {
+        if (market.marketCode === selectedMarketCode) {
+          newExpandedMarkets[market.marketBookNo] = true;
+        }
+      });
+      
+      if (Object.keys(newExpandedMarkets).length > 0) {
+        setExpandedMarkets(newExpandedMarkets);
+      }
+    }
+  }, [isExpanded, match.allMarkets, selectedMarketCode]);
 
   const toggleExpand = async () => {
     const newState = !isExpanded;
@@ -553,9 +572,13 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                 </button>
               </div>
 
-              {/* Markets List - Filtered by active tab */}
+              {/* Markets List - Filtered by active tab and selected market code */}
               {match.allMarkets
                 .filter(market => {
+                  // Filter by market code if selected
+                  if (selectedMarketCode && market.marketCode !== selectedMarketCode) return false;
+                  
+                  // Filter by period tab
                   if (activeMarketTab === 'ALL') return true;
                   if (activeMarketTab === 'FT') return market.periodCode === 'FT' || !market.periodCode;
                   if (activeMarketTab === 'HT') return market.periodCode === 'HT' || market.periodCode === 'H1';

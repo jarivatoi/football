@@ -41,6 +41,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchMode, setSearchMode] = useState<'matches' | 'eq' | 'gte' | 'lte' | 'between'>('matches'); // matches, = (eq), >= (gte), <= (lte), between
   const [searchOddsValue, setSearchOddsValue] = useState<string>('');
+  const [selectedMarketCode, setSelectedMarketCode] = useState<string>(''); // Market code filter
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
   const [showExtractor, setShowExtractor] = useState(false);
@@ -839,6 +840,31 @@ function App() {
     return result;
   }, [groupedMatches, searchTerm, searchMode, selectedDate, calendarList, selectedCategory, selectedCompetition, showAllMatches]) : groupedMatches;
 
+  // Extract unique market codes from all matches for the dropdown
+  const availableMarketCodes = React.useMemo(() => {
+    const codes = new Map<string, string>(); // code -> displayName
+    const allMatchesArray = showAllMatches 
+      ? Object.values(groupedMatches).flat()
+      : selectedDate 
+        ? (groupedMatches[selectedDate] || [])
+        : [];
+    
+    allMatchesArray.forEach(match => {
+      if (match.allMarkets && match.allMarkets.length > 0) {
+        match.allMarkets.forEach(market => {
+          if (market.marketCode && market.marketDisplayName && !codes.has(market.marketCode)) {
+            codes.set(market.marketCode, market.marketDisplayName);
+          }
+        });
+      }
+    });
+    
+    // Return array of {code, displayName} sorted by display name
+    return Array.from(codes.entries())
+      .map(([code, displayName]) => ({ code, displayName }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }, [groupedMatches, selectedDate, showAllMatches]);
+
   const totalAllMatchesCount = React.useMemo(() => {
     // Calculate total from filtered matches (respects category/competition filters)
     if (showAllMatches) {
@@ -1285,6 +1311,22 @@ function App() {
               )}
             </div>
             
+            {/* Market Code Dropdown */}
+            {availableMarketCodes.length > 0 && (
+              <select
+                value={selectedMarketCode}
+                onChange={(e) => setSelectedMarketCode(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm max-w-[180px]"
+              >
+                <option value="">All Markets</option>
+                {availableMarketCodes.map(({ code, displayName }) => (
+                  <option key={code} value={code}>
+                    {displayName}
+                  </option>
+                ))}
+              </select>
+            )}
+            
             {/* Filter Mode Dropdown */}
             <select
               value={searchMode}
@@ -1342,6 +1384,7 @@ function App() {
           apiSourceName={selectedSource.displayName}
           searchMode={searchMode}
           searchTerm={searchTerm}
+          selectedMarketCode={selectedMarketCode}
         />
       </div>
       
