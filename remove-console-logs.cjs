@@ -28,7 +28,17 @@ files.forEach(file => {
   const before = code.length;
   
   // Remove console.log/warn/error/info/debug with multi-line support
-  code = code.replace(/console\.(log|warn|error|info|debug)\s*\((?:[^()]|\([^()]*\))*\);/g, '');
+  // More aggressive regex to handle nested parentheses
+  let newCode = code;
+  let previousLength;
+  
+  // Keep removing until no more matches
+  do {
+    previousLength = newCode.length;
+    newCode = newCode.replace(/console\.(log|warn|error|info|debug)\s*\([^)]*(?:\([^)]*\)[^)]*)*\);?/g, '');
+  } while (newCode.length < previousLength);
+  
+  code = newCode;
   
   const removed = before - code.length;
   if (removed > 0) {

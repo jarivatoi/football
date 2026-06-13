@@ -655,7 +655,7 @@ class TotelepepExtractor {
           };
         });
         
-        console.log(`🗺️ Competition to Category map:`, Array.from(this.competitionToCategoryMap.entries()));
+        ));
       }
       
       // Check if there's competition data in the response
@@ -714,7 +714,7 @@ class TotelepepExtractor {
           }
         }
         
-        console.log(`✅ Competition map now has ${(this as any).apiCompetitionMap ? Object.keys((this as any).apiCompetitionMap).length : 0} entries`);
+        .apiCompetitionMap ? Object.keys((this as any).apiCompetitionMap).length : 0} entries`);
       } else {
         
         

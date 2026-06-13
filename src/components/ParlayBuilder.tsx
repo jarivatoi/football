@@ -272,11 +272,7 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       
       
       // Additional validation for the safe values
-      console.log(`🔍 DETAILED MARKETBOOKNO DEBUG for selection ${index}:`, {
-        originalSelectionMarketBookNo: selection.marketBookNo,
-        finalMarketBookNo: finalMarketBookNo,
-        safeMarketBookNo: safeMarketBookNo,
-        isFinalMarketBookNoValid: safeMarketBookNo && !isNaN(Number(safeMarketBookNo)) && Number(safeMarketBookNo) > 0
+      ) && Number(safeMarketBookNo) > 0
       });
       
       // Additional debugging for safe values
@@ -600,12 +596,7 @@ const extractMarketData = (selection: ParlaySelection) => {
   
   
   // Additional validation logging
-  console.log('🔍 Market data validation:', {
-    originalMarketBookNo: selection.marketBookNo,
-    originalMarketCode: selection.marketCode,
-    finalMarketBookNo: marketBookNo,
-    finalMarketCode: marketCode,
-    hasValidMarketBookNo: !(!marketBookNo || marketBookNo === 'undefined' || marketBookNo === 'null' || marketBookNo.trim() === ''),
+   === ''),
     hasValidMarketCode: !(!marketCode || marketCode === 'undefined' || marketCode === 'null' || marketCode.trim() === '')
   });
   
@@ -988,14 +979,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       const hasBetErrors = bookingResult.betList && bookingResult.betList.length > 0 && 
                            bookingResult.betList.some((bet: any) => bet.betErrorCode && bet.betErrorCode !== 0);
             
-      console.log(' FRONTEND SUCCESS DETERMINATION:', {
-        hasTicket: hasTicket,
-        hasErrors: hasErrors,
-        hasBetErrors: hasBetErrors,
-        ticketNo: bookingResult.ticketNo,
-        errorMessage: bookingResult.errorMessage,
-        multiErrorMessage: bookingResult.multiErrorMessage,
-        betListErrors: bookingResult.betList?.map((bet: any) => ({ betErrorCode: bet.betErrorCode, betErrorMessage: bet.betErrorMessage }))
+       => ({ betErrorCode: bet.betErrorCode, betErrorMessage: bet.betErrorMessage }))
       });
       
       // Consider successful ONLY if we have a ticket AND no bet errors
