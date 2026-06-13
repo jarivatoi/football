@@ -840,27 +840,21 @@ function App() {
     return result;
   }, [groupedMatches, searchTerm, searchMode, selectedDate, calendarList, selectedCategory, selectedCompetition, showAllMatches]) : groupedMatches;
 
-  // Extract unique market codes from loaded matches (like the old working version)
+  // Common market codes from the API (static to avoid 429 rate limits from fetching all markets)
   const availableMarketCodes = React.useMemo(() => {
-    const codes = new Map<string, string>(); // marketCode -> marketName
-    
-    // Get all matches from groupedMatches
-    const allMatchesArray = Object.values(groupedMatches).flat();
-    
-    allMatchesArray.forEach((match: any) => {
-      if (match.allMarkets && match.allMarkets.length > 0) {
-        match.allMarkets.forEach((market: any) => {
-          if (market.marketCode && !codes.has(market.marketCode)) {
-            codes.set(market.marketCode, market.name);
-          }
-        });
-      }
-    });
-    
-    return Array.from(codes.entries())
-      .map(([code, displayName]) => ({ code, displayName }))
-      .sort((a, b) => a.displayName.localeCompare(b.displayName));
-  }, [groupedMatches]);
+    return [
+      { code: '1', displayName: '1 X 2' },
+      { code: 'OU', displayName: 'Over/Under' },
+      { code: 'BTTS', displayName: 'Both Teams to Score' },
+      { code: 'DC', displayName: 'Double Chance' },
+      { code: 'AH', displayName: 'Asian Handicap' },
+      { code: 'EH', displayName: 'European Handicap' },
+      { code: 'CS', displayName: 'Correct Score' },
+      { code: 'HTFT', displayName: 'Half Time/Full Time' },
+      { code: 'GGNG', displayName: 'Goal/No Goal' },
+      { code: 'HT', displayName: 'Half Time Result' },
+    ];
+  }, []);
 
   const totalAllMatchesCount = React.useMemo(() => {
     // Calculate total from filtered matches (respects category/competition filters)

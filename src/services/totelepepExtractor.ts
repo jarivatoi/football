@@ -134,8 +134,8 @@ class TotelepepExtractor {
         
       }
       
-      // Fetch detailed markets for all matches so dropdown can populate
-      await this.fetchAllMarketsForMatches(matches);
+      // DON'T fetch detailed markets yet - they will be loaded on-demand when user clicks
+      // This prevents 429 rate limit errors from too many GetMatch requests
       
       
       // Ensure all matches have the correct date
