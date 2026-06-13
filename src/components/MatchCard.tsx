@@ -85,12 +85,12 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         // Try both '2H' and 'H2' for second half
         const possiblePeriodCodes = periodFilter === 'H1' ? ['H1'] : ['2H', 'H2'];
         
-        // Find and expand only markets that have matching odds
+        // Find and expand only markets with exactly 3 selections (1X2-type)
         const newExpandedMarkets = { ...expandedMarkets };
         
         for (const periodCode of possiblePeriodCodes) {
           const periodMarkets = match.allMarkets.filter(m => 
-            m.periodCode === periodCode && m.selections && m.selections.length > 0
+            m.periodCode === periodCode && m.selections && m.selections.length === 3
           );
           
           for (const market of periodMarkets) {
