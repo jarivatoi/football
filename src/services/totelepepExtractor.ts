@@ -50,9 +50,10 @@ interface TotelepepMatch {
 class TotelepepExtractor {
   // CORS Proxy fallback list (tries each one in order)
   private corsProxies = [
-    'https://corsproxy.io/?',                    // Primary
-    'https://api.allorigins.win/raw?url=',       // Fallback 1
-    'https://api.codetabs.com/v1/proxy?quest=',  // Fallback 2
+    'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=',  // YOUR Supabase proxy (primary)
+    'https://corsproxy.io/?',                    // Fallback 1
+    'https://api.allorigins.win/raw?url=',       // Fallback 2
+    'https://api.codetabs.com/v1/proxy?quest=',  // Fallback 3
   ];
   private currentProxyIndex = 0;
   private baseUrl = 'https://www.totelepep.mu/webapi/GetSport';
