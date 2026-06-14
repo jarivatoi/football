@@ -13,7 +13,7 @@ serve(async (req) => {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control, X-Requested-With, Cookie',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control, Pragma, X-Requested-With, Cookie',
       },
     })
   }
@@ -72,7 +72,7 @@ serve(async (req) => {
     const responseHeaders: Record<string, string> = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control, X-Requested-With, Cookie',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control, Pragma, X-Requested-With, Cookie',
       'Access-Control-Allow-Credentials': 'true',
       'Content-Type': response.headers.get('Content-Type') || 'application/json',
     }
