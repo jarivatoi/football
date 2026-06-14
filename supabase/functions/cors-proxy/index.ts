@@ -35,28 +35,58 @@ serve(async (req) => {
       )
     }
 
+    // Extract cookies from the request to forward to target API
+    const cookies = req.headers.get('cookie') || ''
+    const referer = req.headers.get('referer') || ''
+    const origin = req.headers.get('origin') || ''
+
+    // Build headers to forward - only include necessary ones
+    const forwardHeaders: Record<string, string> = {
+      'User-Agent': 'Football-PWA/1.0',
+      'Accept': '*/*',
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      'X-Requested-With': 'XMLHttpRequest',
+    }
+
+    // Forward cookies if present (critical for authentication)
+    if (cookies) {
+      forwardHeaders['Cookie'] = cookies
+    }
+
+    // Forward referer for security checks
+    if (referer) {
+      forwardHeaders['Referer'] = referer
+    }
+
     // Fetch from target API (server-to-server, no CORS)
     const response = await fetch(targetUrl, {
       method: req.method,
-      headers: {
-        'User-Agent': 'Football-PWA/1.0',
-        ...Object.fromEntries(req.headers),
-      },
+      headers: forwardHeaders,
       body: req.method !== 'GET' && req.method !== 'HEAD' ? req.body : undefined,
     })
 
     // Get response data
     const data = await response.text()
 
+    // Extract Set-Cookie headers from response to forward back to client
+    const responseHeaders: Record<string, string> = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cookie',
+      'Access-Control-Allow-Credentials': 'true',
+      'Content-Type': response.headers.get('Content-Type') || 'application/json',
+    }
+
+    // Forward Set-Cookie headers back to client
+    const setCookie = response.headers.get('set-cookie')
+    if (setCookie) {
+      responseHeaders['Set-Cookie'] = setCookie
+    }
+
     // Return with CORS headers
     return new Response(data, {
       status: response.status,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Content-Type': response.headers.get('Content-Type') || 'application/json',
-      },
+      headers: responseHeaders,
     })
 
   } catch (error) {

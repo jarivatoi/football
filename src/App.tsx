@@ -1125,6 +1125,7 @@ function App() {
           odds,
           league: match.league,
           kickoff: match.kickoff,
+          matchDate: match.date, // Add match date
           competitionId: match.competitionId,
           // CRITICAL: Use the ACTUAL marketId from GetMatch API (e.g., 565968)
           // Priority: 1. marketId from click param, 2. match.marketId, 3. marketBookNo, 4. match.id

@@ -2,6 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Trash2, Calculator, DollarSign, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { ApiSource } from './Header';
 
+// Helper function to format currency - remove .00 for whole numbers
+const formatCurrency = (amount: number): string => {
+  if (Number.isInteger(amount)) {
+    return amount.toString();
+  }
+  return amount.toFixed(2);
+};
+
 // Totelepep betting API integration
 const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, selectedSource?: ApiSource) => {
   try {
@@ -434,7 +442,7 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
     // Place bet on API (with CORS proxy for GitHub Pages)
     // Use selected source or default to Totelepep
     const baseUrl = selectedSource?.baseUrl.replace('/webapi/GetSport', '') || 'https://www.totelepep.mu';
-    const betUrl = 'https://corsproxy.io/?' + encodeURIComponent(`${baseUrl}/webapi/placebet`);
+    const betUrl = 'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=' + encodeURIComponent(`${baseUrl}/webapi/placebet`);
     
     console.log('📡 Sending bet request to API (via CORS proxy):', baseUrl);
     console.log('📝 Form data:', formData.toString());
@@ -868,6 +876,7 @@ export interface ParlaySelection {
   odds: number | string;
   league?: string;
   kickoff?: string;
+  matchDate?: string; // Match date (e.g., "Sun 14 Jun 2026")
   marketBookNo?: string;
   marketCode?: string;
   marketId?: string;  // Actual market ID from GetMatch API
@@ -1236,6 +1245,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                <div className="text-xs text-gray-600 font-medium">
                  {selection.homeTeam} v {selection.awayTeam}
                </div>
+               {selection.matchDate && (
+                 <div className="text-xs text-gray-500 font-medium">
+                   {selection.matchDate}
+                 </div>
+               )}
                <div className="text-xs text-gray-500">
                  {(() => {
                    // Use marketDisplayName from API if available, otherwise build it
@@ -1329,11 +1343,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium text-gray-700">Potential Return (new stake):</span>
                 <span className="text-2xl font-bold text-blue-600">
-                  MUR {(betAmount * totalOdds).toFixed(2)}
+                  MUR {formatCurrency(betAmount * totalOdds)}
                 </span>
               </div>
               <div className="text-sm text-gray-600">
-                Stake: MUR {betAmount.toFixed(2)} × Odds: {totalOdds.toFixed(2)}
+                Stake: MUR {formatCurrency(betAmount)} × Odds: {totalOdds.toFixed(2)}
               </div>
               {/* Show previous bet breakdown */}
               <div className="mt-3 pt-3 border-t border-blue-200">
@@ -1355,13 +1369,13 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     return (
                       <div className="flex justify-between text-green-600">
                         <span>Bonus ({bonusPercentage}%):</span>
-                        <span className="font-medium">+MUR {apiBreakdown.bonus.toFixed(2)}</span>
+                        <span className="font-medium">+MUR {formatCurrency(apiBreakdown.bonus)}</span>
                       </div>
                     );
                   })()}
                   <div className="flex justify-between border-t border-blue-200 pt-1 font-bold text-lg">
                     <span className="text-gray-700">Net Payout:</span>
-                    <span className="text-green-600">MUR {apiBreakdown.netPayout.toFixed(2)}</span>
+                    <span className="text-green-600">MUR {formatCurrency(apiBreakdown.netPayout)}</span>
                   </div>
                 </div>
               </div>
@@ -1373,11 +1387,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-700">Potential Return:</span>
                 <span className="text-2xl font-bold text-blue-600">
-                  MUR {potentialReturn.toFixed(2)}
+                  MUR {formatCurrency(potentialReturn)}
                 </span>
               </div>
               <div className="text-sm text-gray-600 mt-1">
-                Stake: MUR {betAmount.toFixed(2)} × Odds: {totalOdds.toFixed(2)}
+                Stake: MUR {formatCurrency(betAmount)} × Odds: {totalOdds.toFixed(2)}
               </div>
             </>
           ) : (
@@ -1400,13 +1414,13 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   return (
                     <div className="flex justify-between text-green-600">
                       <span>Bonus ({bonusPercentage}%):</span>
-                      <span className="font-medium">+MUR {apiBreakdown.bonus.toFixed(2)}</span>
+                      <span className="font-medium">+MUR {formatCurrency(apiBreakdown.bonus)}</span>
                     </div>
                   );
                 })()}
                 <div className="flex justify-between border-t border-blue-200 pt-1 font-bold text-xl mt-2">
                   <span className="text-gray-700">Net Payout:</span>
-                  <span className="text-green-600">MUR {apiBreakdown.netPayout.toFixed(2)}</span>
+                  <span className="text-green-600">MUR {formatCurrency(apiBreakdown.netPayout)}</span>
                 </div>
               </div>
             </>
@@ -1460,6 +1474,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                         <div className="text-xs text-gray-600 font-medium mt-1">
                           {selection?.homeTeam} v {selection?.awayTeam}
                         </div>
+                        {/* Date */}
+                        {selection?.matchDate && (
+                          <div className="text-xs text-gray-500 font-medium">
+                            {selection.matchDate}
+                          </div>
+                        )}
                         {/* Time and market */}
                         <div className="text-xs text-gray-500 mt-1">
                           {(() => {
