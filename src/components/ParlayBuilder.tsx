@@ -1365,10 +1365,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     // Calculate bonus percentage: bonus / (netPayout - bonus) * 100
                     // netPayout includes bonus, so we need to subtract it to get the base payout
                     const payoutWithoutBonus = apiBreakdown.netPayout - apiBreakdown.bonus;
-                    const bonusPercentage = payoutWithoutBonus > 0 ? Math.round((apiBreakdown.bonus / payoutWithoutBonus) * 100) : 0;
+                    const rawPercentage = payoutWithoutBonus > 0 ? (apiBreakdown.bonus / payoutWithoutBonus) * 100 : 0;
+                    // Round to nearest 5
+                    const bonusPercentage = Math.round(rawPercentage / 5) * 5;
                     return (
                       <div className="flex justify-between text-green-600">
-                        <span>Bonus ({bonusPercentage}%):</span>
+                        <span>Bonus:</span>
                         <span className="font-medium">+MUR {formatCurrency(apiBreakdown.bonus)}</span>
                       </div>
                     );
@@ -1410,10 +1412,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   // Calculate bonus percentage: bonus / (netPayout - bonus) * 100
                   // netPayout includes bonus, so we need to subtract it to get the base payout
                   const payoutWithoutBonus = apiBreakdown.netPayout - apiBreakdown.bonus;
-                  const bonusPercentage = payoutWithoutBonus > 0 ? Math.round((apiBreakdown.bonus / payoutWithoutBonus) * 100) : 0;
+                  const rawPercentage = payoutWithoutBonus > 0 ? (apiBreakdown.bonus / payoutWithoutBonus) * 100 : 0;
+                  // Round to nearest 5
+                  const bonusPercentage = Math.round(rawPercentage / 5) * 5;
                   return (
                     <div className="flex justify-between text-green-600">
-                      <span>Bonus ({bonusPercentage}%):</span>
+                      <span>Bonus:</span>
                       <span className="font-medium">+MUR {formatCurrency(apiBreakdown.bonus)}</span>
                     </div>
                   );
