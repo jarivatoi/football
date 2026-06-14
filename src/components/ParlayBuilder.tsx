@@ -1279,6 +1279,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                    return `${selection.kickoff}     ${marketName}`;
                  })()}
                </div>
+               {selection.hasError && (
+                 <div className="text-xs text-red-600 font-semibold mt-1">
+                   ⚠️ Invalid selection
+                 </div>
+               )}
               </div>
             </div>
             <div className="flex items-center gap-3">

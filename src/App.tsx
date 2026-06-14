@@ -1098,11 +1098,38 @@ function App() {
         // Remove existing selection (toggle off)
         setParlaySelections(prev => prev.filter((_, index) => index !== existingIndex));
       } else {
-        // Log match data for debugging
-        
-        
-        
-        
+        // Validate the selection
+        let hasError = false;
+        let errorMessage = '';
+
+        // Check 1: Match has already started
+        if (match.kickoff) {
+          const now = new Date();
+          const [hours, minutes] = match.kickoff.split(':').map(Number);
+          const matchTime = new Date();
+          matchTime.setHours(hours, minutes, 0, 0);
+          
+          // If match time is more than 5 minutes in the past, consider it started
+          if (matchTime < new Date(now.getTime() - 5 * 60000)) {
+            hasError = true;
+            errorMessage = 'Match has already started';
+          }
+        }
+
+        // Check 2: Duplicate market (same match + same market type)
+        if (!hasError) {
+          const isDuplicate = parlaySelections.some(s => 
+            s.matchId === matchId && 
+            s.marketId === marketId &&
+            s.priceType !== priceType // Different selection on same market
+          );
+          
+          if (isDuplicate) {
+            hasError = true;
+            errorMessage = 'Duplicate market detected';
+          }
+        }
+
         // Use the marketBookNo and marketCode passed from the click event
         const finalMarketBookNo = (marketBookNo && marketBookNo !== 'undefined' && marketBookNo !== 'null') 
           ? marketBookNo 
@@ -1111,12 +1138,8 @@ function App() {
         const finalMarketCode = (marketCode && marketCode !== 'undefined' && marketCode !== 'null') 
           ? marketCode 
           : (match.marketCode || 'CP');
-        
-        // Debug the final values
-        
-        
       
-        // Add new selection
+        // Add new selection with error flag
         const newSelection: ParlaySelection = {
           matchId,
           homeTeam: match.homeTeam,
@@ -1125,41 +1148,18 @@ function App() {
           odds,
           league: match.league,
           kickoff: match.kickoff,
-          matchDate: match.date, // Add match date
+          matchDate: match.date,
           competitionId: match.competitionId,
-          // CRITICAL: Use the ACTUAL marketId from GetMatch API (e.g., 565968)
-          // Priority: 1. marketId from click param, 2. match.marketId, 3. marketBookNo, 4. match.id
           marketId: marketId || (match.marketId && match.marketId !== '0' && match.marketId !== 'undefined' && match.marketId !== 'null' ? match.marketId : (marketBookNo || match.id)),
           marketBookNo: finalMarketBookNo,
           marketCode: finalMarketCode,
-          marketLine: marketLine || '',  // Store market line for handicap/over-under markets
-          periodCode: periodCode || 'FT',  // Store period code (FT, H1, 2H, etc.)
-          marketDisplayName: marketDisplayName || '',  // Store full market display name from API
-          optionCode: optionCode || '',  // Store option code from API
-          optionNo: optionNo || '',  // Store option number from API
+          marketLine: marketLine || '',
+          periodCode: periodCode || 'FT',
+          marketDisplayName: marketDisplayName || '',
+          optionCode: optionCode || '',
+          optionNo: optionNo || '',
+          hasError: hasError, // Mark if this selection has an error
         };
-        
-        
-        
-        
-        
-        
-        
-        // Debug specific match data
-        if (match.homeTeam && match.awayTeam) {
-          
-          
-          
-          
-          
-          
-          
-          // Additional validation debugging
-          if (match.marketBookNo) {
-            // Validation check removed
-          }
-        }
-      
         
         setParlaySelections(prev => [...prev, newSelection]);
       }
