@@ -154,8 +154,111 @@ type UserLoginProps = {
 
 const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
   const headerRef = useRef<HTMLHeadingElement>(null);
+  const ballRef = useRef<HTMLSpanElement>(null);
+  const lettersRef = useRef<HTMLSpanElement[]>([]);
+  const letters2Ref = useRef<HTMLSpanElement[]>([]);
 
   const [idNumber, setIdNumber] = useState('');
+  
+  // Track ball position and reveal letters based on actual position
+  useEffect(() => {
+    let isResetting = false;
+    let revealedLetters = new Set<number>();
+    let lastBallX = 0;
+    let cycleCount = 0;
+    
+    const animate = () => {
+      if (!ballRef.current || lettersRef.current.length === 0 || letters2Ref.current.length === 0) {
+        requestAnimationFrame(animate);
+        return;
+      }
+
+      const ballRect = ballRef.current.getBoundingClientRect();
+      const ballCenterX = ballRect.left + ballRect.width / 2;
+      const parentRect = ballRef.current.parentElement?.getBoundingClientRect();
+
+      // Detect when ball loops back to start (moving from right to left)
+      if (lastBallX > 200 && ballCenterX < 50 && revealedLetters.size > 0 && !isResetting) {
+        isResetting = true;
+        cycleCount++;
+        
+        // Determine which set of letters to hide based on cycle
+        const lettersToHide = cycleCount % 2 === 1 ? lettersRef.current : letters2Ref.current;
+        const lettersToShow = cycleCount % 2 === 1 ? letters2Ref.current : lettersRef.current;
+        
+        // Use GSAP to animate letters disappearing in sequence
+        const letters = lettersToHide.filter((el): el is HTMLSpanElement => el !== null);
+        
+        letters.forEach((letterEl, index) => {
+          gsap.to(letterEl, {
+            opacity: 0,
+            scale: 0.5,
+            filter: 'blur(4px)',
+            duration: 0.3,
+            delay: index * 0.05,
+            onComplete: () => {
+              // After last letter animation completes, reset for next cycle
+              if (index === letters.length - 1) {
+                isResetting = false;
+                revealedLetters.clear();
+                
+                // Pre-show the other text letters
+                lettersToShow.forEach((el) => {
+                  if (el) {
+                    gsap.set(el, {
+                      opacity: 0,
+                      scale: 0.5,
+                      filter: 'blur(4px)'
+                    });
+                  }
+                });
+              }
+            }
+          });
+        });
+      }
+      
+      lastBallX = ballCenterX;
+
+      // Check each letter's position and reveal if ball has passed
+      const activeLetters = cycleCount % 2 === 0 ? lettersRef.current : letters2Ref.current;
+      
+      activeLetters.forEach((letterEl, index) => {
+        if (!letterEl || revealedLetters.has(index)) return;
+        
+        const letterRect = letterEl.getBoundingClientRect();
+        const letterCenterX = letterRect.left + letterRect.width / 2;
+
+        // Reveal letter when ball center passes the letter center
+        if (ballCenterX >= letterCenterX) {
+          revealedLetters.add(index);
+          gsap.to(letterEl, {
+            opacity: 1,
+            scale: 1,
+            filter: 'blur(0px)',
+            duration: 0.2,
+            ease: 'back.out(1.7)'
+          });
+        }
+      });
+
+      requestAnimationFrame(animate);
+    };
+
+    // Initialize all letters to hidden state
+    [...lettersRef.current, ...letters2Ref.current].forEach((letterEl) => {
+      if (letterEl) {
+        gsap.set(letterEl, {
+          opacity: 0,
+          scale: 0.5,
+          filter: 'blur(4px)'
+        });
+      }
+    });
+
+    const animationId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationId);
+  }, []);
   
   useEffect(() => {
     const loadLastId = async () => {
@@ -585,10 +688,10 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             transform: translateX(-40px) translateY(-50%) rotate(0deg);
             opacity: 0;
           }
-          10% {
+          5% {
             opacity: 1;
           }
-          90% {
+          95% {
             opacity: 1;
           }
           100% {
@@ -597,15 +700,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           }
         }
         
-        @keyframes distort {
-          0%, 100% {
-            transform: scaleY(1) scaleX(1);
-          }
-          50% {
-            transform: scaleY(1.3) scaleX(0.8);
-          }
-        }
-        
+        /* Reveal letters based on ball position using clip-path */
         .rolling-ball {
           position: absolute;
           top: 50%;
@@ -613,22 +708,24 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           animation: roll 2.5s linear infinite;
           font-size: 48px;
           line-height: 1;
-          z-index: 0;
+          z-index: 2;
+        }
+        
+        .football-text {
+          position: relative;
+          display: inline-block;
         }
         
         .football-letter {
           display: inline-block;
-          animation: distort 2s ease-in-out infinite;
+          opacity: 0;
+          transition: opacity 0.1s ease;
         }
         
-        .football-letter:nth-child(1) { animation-delay: 0.0s; }
-        .football-letter:nth-child(2) { animation-delay: 0.15s; }
-        .football-letter:nth-child(3) { animation-delay: 0.3s; }
-        .football-letter:nth-child(4) { animation-delay: 0.45s; }
-        .football-letter:nth-child(5) { animation-delay: 0.6s; }
-        .football-letter:nth-child(6) { animation-delay: 0.75s; }
-        .football-letter:nth-child(7) { animation-delay: 0.9s; }
-        .football-letter:nth-child(8) { animation-delay: 1.05s; }
+        /* Use CSS to reveal letters based on position */
+        .football-letter.revealed {
+          opacity: 1;
+        }
       `}</style>
       <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 420, display: 'grid', gap: '12px' }}>
         {/* FOOTBALL Header */}
@@ -646,15 +743,25 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
               zIndex: 1
             }}
           >
-            <span className="football-letter">F</span>
-            <span className="football-letter">O</span>
-            <span className="football-letter">O</span>
-            <span className="football-letter">T</span>
-            <span className="football-letter">B</span>
-            <span className="football-letter">A</span>
-            <span className="football-letter">L</span>
-            <span className="football-letter">L</span>
-            <span className="rolling-ball">⚽</span>
+            <span className="football-text">
+              <span className="football-letter" ref={(el) => { if (el) lettersRef.current[0] = el }}>F</span>
+              <span className="football-letter" ref={(el) => { if (el) lettersRef.current[1] = el }}>O</span>
+              <span className="football-letter" ref={(el) => { if (el) lettersRef.current[2] = el }}>O</span>
+              <span className="football-letter" ref={(el) => { if (el) lettersRef.current[3] = el }}>T</span>
+              <span className="football-letter" ref={(el) => { if (el) lettersRef.current[4] = el }}>B</span>
+              <span className="football-letter" ref={(el) => { if (el) lettersRef.current[5] = el }}>A</span>
+              <span className="football-letter" ref={(el) => { if (el) lettersRef.current[6] = el }}>L</span>
+              <span className="football-letter" ref={(el) => { if (el) lettersRef.current[7] = el }}>L</span>
+              <span className="football-letter" ref={(el) => { if (el) letters2Ref.current[0] = el }} style={{ display: 'none' }}>B</span>
+              <span className="football-letter" ref={(el) => { if (el) letters2Ref.current[1] = el }} style={{ display: 'none' }}>Y</span>
+              <span className="football-letter" ref={(el) => { if (el) letters2Ref.current[2] = el }} style={{ display: 'none' }}>&nbsp;</span>
+              <span className="football-letter" ref={(el) => { if (el) letters2Ref.current[3] = el }} style={{ display: 'none' }}>V</span>
+              <span className="football-letter" ref={(el) => { if (el) letters2Ref.current[4] = el }} style={{ display: 'none' }}>I</span>
+              <span className="football-letter" ref={(el) => { if (el) letters2Ref.current[5] = el }} style={{ display: 'none' }}>R</span>
+              <span className="football-letter" ref={(el) => { if (el) letters2Ref.current[6] = el }} style={{ display: 'none' }}>A</span>
+              <span className="football-letter" ref={(el) => { if (el) letters2Ref.current[7] = el }} style={{ display: 'none' }}>J</span>
+            </span>
+            <span className="rolling-ball" ref={ballRef}>⚽</span>
           </h1>
         </div>
         
