@@ -20,7 +20,9 @@ const isBackgroundSyncSupported = (): boolean => {
 export const registerServiceWorker = async (): Promise<void> => {
   if (isServiceWorkerSupported()) {
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
+      // Use the correct base path for both development and production
+      const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+      const registration = await navigator.serviceWorker.register(swUrl);
       
       // Check for updates
       registration.addEventListener('updatefound', () => {
