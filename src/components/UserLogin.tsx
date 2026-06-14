@@ -180,14 +180,10 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
   
       const ballRect = ballRef.current.getBoundingClientRect();
       const ballCenterX = ballRect.left + ballRect.width / 2;
-      const containerWidth = ballRef.current.parentElement?.getBoundingClientRect().width || 400;
       
-      // Detect when ball loops back to start (jumping from right side back to left)
-      // Use relative position: trigger when ball goes from >75% to <50% of container
-      const thresholdX = containerWidth * 0.75;
-      const resetX = containerWidth * 0.5;
-            
-      if (lastBallX > thresholdX && ballCenterX < resetX && revealedLetters.size > 0 && !isResetting) {
+      // Detect when ball loops back (position suddenly decreases)
+      // Ball moves left to right, so when X decreases, it means it looped
+      if (revealedLetters.size > 0 && !isResetting && lastBallX > 0 && ballCenterX < lastBallX - 50) {
         isResetting = true;
         cycleCount++;
         
