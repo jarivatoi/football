@@ -106,17 +106,6 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, onSlipClick, selectedSo
               )}
             </div>
             
-            {/* Settings Button */}
-            {onSettingsClick && (
-              <button
-                onClick={onSettingsClick}
-                className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg transition-colors"
-              >
-                <Settings className="w-5 h-5" />
-                <span className="text-sm">Settings</span>
-              </button>
-            )}
-            
             <div>
               <h1 className="text-xl font-bold text-gray-900">{selectedSource.displayName} Soccer</h1>
               <p className="text-sm text-gray-600">Global Football Odds & Data</p>
@@ -124,6 +113,16 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, onSlipClick, selectedSo
           </div>
           
           <div className="flex items-center gap-3">
+            {/* Settings Button */}
+            {onSettingsClick && (
+              <button
+                onClick={onSettingsClick}
+                className="flex items-center justify-center bg-gray-600 hover:bg-gray-700 text-white p-2 rounded-lg transition-colors"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            )}
+            
             {/* Slip Counter Button */}
             {selectionCount > 0 && (
               <button

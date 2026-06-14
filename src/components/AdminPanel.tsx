@@ -453,8 +453,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
           </div>
         )}
       </div>
-      
-      {/* User Directory */}
+            
+      {/* User Directory - Hidden when Quick Actions is open */}
+      {!showQuickActions && (
       <div style={{ backgroundColor: 'white', borderRadius: 8, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
         <h3 style={{ marginBottom: 12 }}>
           <strong>User Directory</strong> ({sortedUsers.length} users)
@@ -501,18 +502,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600 }}>
                       {user.surname} {user.name}
-                      {user.is_admin && (
-                        <span style={{
-                          marginLeft: 8,
-                          padding: '2px 8px',
-                          backgroundColor: '#dbeafe',
-                          color: '#1e40af',
-                          borderRadius: 4,
-                          fontSize: 11
-                        }}>
-                          ADMIN
-                        </span>
-                      )}
                     </div>
                     <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
                       ID: {user.id_number} | Last Login: {formatDate(user.last_login)}
@@ -556,6 +545,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
           </div>
         )}
       </div>
+      )}
       
       {/* Modals */}
       {showUserManagement && (

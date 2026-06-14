@@ -331,10 +331,12 @@ export const RegistrationApprovalModal: React.FC<RegistrationApprovalModalProps>
                     borderRadius: '8px',
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'center'
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '12px'
                   }}
                 >
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: '16px' }}>
                       {user.surname} {user.name}
                     </div>
@@ -343,7 +345,7 @@ export const RegistrationApprovalModal: React.FC<RegistrationApprovalModalProps>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                     <button
                       onClick={() => handleApprove(user.id, `${user.name} ${user.surname}`)}
                       disabled={processingId === user.id}
@@ -357,7 +359,8 @@ export const RegistrationApprovalModal: React.FC<RegistrationApprovalModalProps>
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
-                        opacity: processingId === user.id ? 0.5 : 1
+                        opacity: processingId === user.id ? 0.5 : 1,
+                        whiteSpace: 'nowrap'
                       }}
                     >
                       <CheckCircle className="w-4 h-4" />
@@ -383,7 +386,8 @@ export const RegistrationApprovalModal: React.FC<RegistrationApprovalModalProps>
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
-                        opacity: processingId === user.id ? 0.5 : 1
+                        opacity: processingId === user.id ? 0.5 : 1,
+                        whiteSpace: 'nowrap'
                       }}
                     >
                       <XCircle className="w-4 h-4" />

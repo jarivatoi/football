@@ -651,7 +651,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
 }
 
 const inputStyle: React.CSSProperties = {
-  padding: '12px 14px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, textAlign: 'center'
+  padding: '12px 14px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 16, textAlign: 'center'
 }
 const buttonStyle: React.CSSProperties = {
   padding: '12px 14px', borderRadius: 8, border: 'none', background: '#2563eb', color: 'white', fontWeight: 600, cursor: 'pointer'

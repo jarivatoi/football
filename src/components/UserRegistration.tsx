@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { Eye, EyeOff } from 'lucide-react'
 
 type UserRegistrationProps = {
   onBack: () => void
@@ -241,11 +242,12 @@ const UserRegistration: React.FC<UserRegistrationProps> = ({ onBack }) => {
               border: 'none',
               cursor: 'pointer',
               padding: '8px',
-              fontSize: '18px',
-              color: '#6b7280'
+              color: '#6b7280',
+              userSelect: 'none',
+              WebkitUserSelect: 'none'
             }}
           >
-            {showPasscode ? '🙈' : '👁️'}
+            {showPasscode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
           </button>
         </div>
         {error && <div style={{ color: 'red', textAlign: 'center' }}>{error}</div>}

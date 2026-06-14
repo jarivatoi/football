@@ -69,7 +69,9 @@ export const StaffManagementModal: React.FC<UserManagementModalProps> = ({
         .order('surname', { ascending: true });
 
       if (error) throw error;
-      setUsers(data || []);
+      // Filter out admin users from the list
+      const filteredUsers = (data || []).filter(user => !user.is_admin);
+      setUsers(filteredUsers);
     } catch (err: any) {
       console.error('Failed to load users:', err);
     } finally {
@@ -547,24 +549,10 @@ export const StaffManagementModal: React.FC<UserManagementModalProps> = ({
                     borderRadius: '8px'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                    <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '12px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: '16px' }}>
                         {user.surname} {user.name}
-                        {user.is_admin && (
-                          <span
-                            style={{
-                              marginLeft: '8px',
-                              padding: '2px 8px',
-                              backgroundColor: '#dbeafe',
-                              color: '#1e40af',
-                              borderRadius: '4px',
-                              fontSize: '11px'
-                            }}
-                          >
-                            ADMIN
-                          </span>
-                        )}
                       </div>
                       <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>
                         ID: {user.id_number}
@@ -572,7 +560,7 @@ export const StaffManagementModal: React.FC<UserManagementModalProps> = ({
                     </div>
 
                     {isAdminAuthenticated && (
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                         <button
                           onClick={() => handleEdit(user)}
                           style={{
@@ -584,7 +572,8 @@ export const StaffManagementModal: React.FC<UserManagementModalProps> = ({
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '6px'
+                            gap: '6px',
+                            whiteSpace: 'nowrap'
                           }}
                         >
                           <Edit className="w-4 h-4" />
@@ -601,7 +590,8 @@ export const StaffManagementModal: React.FC<UserManagementModalProps> = ({
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '6px'
+                            gap: '6px',
+                            whiteSpace: 'nowrap'
                           }}
                         >
                           <Trash2 className="w-4 h-4" />

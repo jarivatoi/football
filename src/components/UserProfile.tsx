@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import AdminPanel from './AdminPanel'
 import ConfirmationModal from './ConfirmationModal'
 import { removeUserSession } from '../utils/userSessionDB'
+import { Eye, EyeOff } from 'lucide-react'
 
 type ProfileProps = {
   user: { id: string; idNumber: string; surname: string; name: string; isAdmin: boolean } | null
@@ -281,13 +282,12 @@ const ProfileTab: React.FC<ProfileProps> = ({ user, onLoginSuccess, onClose }) =
                 border: 'none',
                 cursor: 'pointer',
                 padding: '8px',
-                fontSize: '18px',
                 color: '#6b7280',
                 userSelect: 'none',
                 WebkitUserSelect: 'none'
               }}
             >
-              {showPasscode ? '🙈' : '👁️'}
+              {showPasscode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
 
@@ -348,13 +348,12 @@ const ProfileTab: React.FC<ProfileProps> = ({ user, onLoginSuccess, onClose }) =
                   border: 'none',
                   cursor: 'pointer',
                   padding: '8px',
-                  fontSize: '18px',
                   color: '#6b7280',
                   userSelect: 'none',
                   WebkitUserSelect: 'none'
                 }}
               >
-                {showNewPasscode ? '🙈' : '👁️'}
+                {showNewPasscode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -381,13 +380,12 @@ const ProfileTab: React.FC<ProfileProps> = ({ user, onLoginSuccess, onClose }) =
                   border: 'none',
                   cursor: 'pointer',
                   padding: '8px',
-                  fontSize: '18px',
                   color: '#6b7280',
                   userSelect: 'none',
                   WebkitUserSelect: 'none'
                 }}
               >
-                {showConfirmPasscode ? '🙈' : '👁️'}
+                {showConfirmPasscode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
 
             </div>
