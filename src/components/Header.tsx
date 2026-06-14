@@ -38,13 +38,14 @@ export const API_SOURCES: ApiSource[] = [
 
 interface HeaderProps {
   selectionCount: number;
+  hasInvalidSelections?: boolean;
   onSlipClick: () => void;
   selectedSource: ApiSource;
   onSourceChange: (source: ApiSource) => void;
   onSettingsClick?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ selectionCount, onSlipClick, selectedSource, onSourceChange, onSettingsClick }) => {
+const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = false, onSlipClick, selectedSource, onSourceChange, onSettingsClick }) => {
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
 
   const handleSourceSelect = (source: ApiSource) => {
@@ -127,11 +128,19 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, onSlipClick, selectedSo
             {selectionCount > 0 && (
               <button
                 onClick={onSlipClick}
-                className="relative flex items-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 px-3 py-2 rounded-lg font-semibold transition-colors"
+                className={`relative flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-colors ${
+                  hasInvalidSelections
+                    ? 'bg-red-500 hover:bg-red-600 text-white'
+                    : 'bg-yellow-400 hover:bg-yellow-500 text-gray-900'
+                }`}
               >
                 <Ticket className="w-5 h-5" />
                 <span className="text-sm">Slip</span>
-                <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                <span className={`absolute -top-2 -right-2 text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center ${
+                  hasInvalidSelections
+                    ? 'bg-white text-red-600 border-2 border-red-500'
+                    : 'bg-red-600 text-white'
+                }`}>
                   {selectionCount}
                 </span>
               </button>

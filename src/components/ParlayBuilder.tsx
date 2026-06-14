@@ -1247,7 +1247,21 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                </div>
                {selection.matchDate && (
                  <div className="text-xs text-gray-500 font-medium">
-                   {selection.matchDate}
+                   {(() => {
+                     // Format date from YYYY-MM-DD to "Sun 14 Jun 2026"
+                     try {
+                       const date = new Date(selection.matchDate);
+                       const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                       const day = days[date.getDay()];
+                       const dateNum = date.getDate();
+                       const month = months[date.getMonth()];
+                       const year = date.getFullYear();
+                       return `${day} ${dateNum} ${month} ${year}`;
+                     } catch {
+                       return selection.matchDate;
+                     }
+                   })()}
                  </div>
                )}
                <div className="text-xs text-gray-500">
@@ -1486,7 +1500,21 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                         {/* Date */}
                         {selection?.matchDate && (
                           <div className="text-xs text-gray-500 font-medium">
-                            {selection.matchDate}
+                            {(() => {
+                              // Format date from YYYY-MM-DD to "Sun 14 Jun 2026"
+                              try {
+                                const date = new Date(selection.matchDate);
+                                const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                const day = days[date.getDay()];
+                                const dateNum = date.getDate();
+                                const month = months[date.getMonth()];
+                                const year = date.getFullYear();
+                                return `${day} ${dateNum} ${month} ${year}`;
+                              } catch {
+                                return selection.matchDate;
+                              }
+                            })()}
                           </div>
                         )}
                         {/* Time and market */}

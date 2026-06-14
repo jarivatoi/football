@@ -1095,8 +1095,17 @@ function App() {
       );
       
       if (existingIndex >= 0) {
-        // Remove existing selection (toggle off)
-        setParlaySelections(prev => prev.filter((_, index) => index !== existingIndex));
+        // Remove existing selection (toggle off) and revalidate remaining selections
+        setParlaySelections(prev => {
+          // Remove the toggled selection
+          const filtered = prev.filter((_, index) => index !== existingIndex);
+          
+          // Revalidate: clear errors on remaining selections from same match
+          // (since the duplicate is now gone)
+          return filtered.map(s => 
+            s.matchId === matchId ? { ...s, hasError: false } : s
+          );
+        });
       } else {
         // Validate the selection
         let hasError = false;
@@ -1125,31 +1134,22 @@ function App() {
           }
         }
 
-        // Check 2: Duplicate market (same match + same market type)
+        // Check 2: Duplicate match (any selection from same match)
         if (!hasError) {
-          // Calculate the actual marketId that will be used
-          const actualMarketId = marketId || 
-                                (match.marketId && match.marketId !== '0' && match.marketId !== 'undefined' && match.marketId !== 'null' 
-                                  ? match.marketId 
-                                  : marketBookNo || match.id || '0');
-          
           const isDuplicate = parlaySelections.some(s => 
-            s.matchId === matchId && 
-            s.marketId === actualMarketId &&
-            s.priceType !== priceType // Different selection on same market
+            s.matchId === matchId
           );
           
           console.log('🔄 Duplicate Check:', {
             matchId,
-            marketId: actualMarketId,
             priceType,
-            existingSelections: parlaySelections.map(s => ({ matchId: s.matchId, marketId: s.marketId, priceType: s.priceType })),
+            existingSelections: parlaySelections.map(s => ({ matchId: s.matchId, priceType: s.priceType })),
             isDuplicate
           });
           
           if (isDuplicate) {
             hasError = true;
-            errorMessage = 'Duplicate market detected';
+            errorMessage = 'Duplicate match detected';
             console.log('❌ Duplicate error');
           }
         }
@@ -1199,11 +1199,11 @@ function App() {
         });
         
         // If this is a duplicate, mark BOTH selections with error
-        if (hasError && errorMessage === 'Duplicate market detected') {
+        if (hasError && errorMessage === 'Duplicate match detected') {
           setParlaySelections(prev => {
-            // Mark existing selections with same matchId and marketId as error
+            // Mark ALL selections from same matchId as error
             const updated = prev.map(s => 
-              (s.matchId === matchId && s.marketId === newSelection.marketId)
+              s.matchId === matchId
                 ? { ...s, hasError: true }
                 : s
             );
@@ -1343,8 +1343,9 @@ function App() {
     <div className="min-h-screen bg-gray-100">
       {/* Combined Sticky Header: Header + Date Selector + Search */}
       <div className="sticky top-0 z-40" id="main-sticky-header">
-        <Header 
+        <Header
           selectionCount={parlaySelections.length}
+          hasInvalidSelections={parlaySelections.some(s => s.hasError)}
           onSlipClick={toggleParlayBuilder}
           selectedSource={selectedSource}
           onSourceChange={handleSourceChange}
