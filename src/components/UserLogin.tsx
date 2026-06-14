@@ -579,8 +579,86 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           visibility: hidden !important;
           pointer-events: none !important;
         }
+        
+        @keyframes roll {
+          0% {
+            transform: translateX(-40px) translateY(-50%) rotate(0deg);
+            opacity: 0;
+          }
+          10% {
+            opacity: 1;
+          }
+          90% {
+            opacity: 1;
+          }
+          100% {
+            transform: translateX(320px) translateY(-50%) rotate(720deg);
+            opacity: 0;
+          }
+        }
+        
+        @keyframes distort {
+          0%, 100% {
+            transform: scaleY(1) scaleX(1);
+          }
+          50% {
+            transform: scaleY(1.3) scaleX(0.8);
+          }
+        }
+        
+        .rolling-ball {
+          position: absolute;
+          top: 50%;
+          left: 0;
+          animation: roll 2.5s linear infinite;
+          font-size: 48px;
+          line-height: 1;
+          z-index: 0;
+        }
+        
+        .football-letter {
+          display: inline-block;
+          animation: distort 2s ease-in-out infinite;
+        }
+        
+        .football-letter:nth-child(1) { animation-delay: 0.0s; }
+        .football-letter:nth-child(2) { animation-delay: 0.15s; }
+        .football-letter:nth-child(3) { animation-delay: 0.3s; }
+        .football-letter:nth-child(4) { animation-delay: 0.45s; }
+        .football-letter:nth-child(5) { animation-delay: 0.6s; }
+        .football-letter:nth-child(6) { animation-delay: 0.75s; }
+        .football-letter:nth-child(7) { animation-delay: 0.9s; }
+        .football-letter:nth-child(8) { animation-delay: 1.05s; }
       `}</style>
       <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 420, display: 'grid', gap: '12px' }}>
+        {/* FOOTBALL Header */}
+        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px' }}>
+          <h1 
+            style={{ 
+              margin: '0',
+              fontSize: '48px',
+              fontWeight: '900',
+              color: '#2563eb',
+              letterSpacing: '4px',
+              textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
+              lineHeight: '1',
+              position: 'relative',
+              zIndex: 1
+            }}
+          >
+            <span className="football-letter">F</span>
+            <span className="football-letter">O</span>
+            <span className="football-letter">O</span>
+            <span className="football-letter">T</span>
+            <span className="football-letter">B</span>
+            <span className="football-letter">A</span>
+            <span className="football-letter">L</span>
+            <span className="football-letter">L</span>
+            <span className="rolling-ball">⚽</span>
+          </h1>
+        </div>
+        
+        {/* User Sign In - drops from FOOTBALL */}
         <h2 
           ref={headerRef}
           style={{ 
