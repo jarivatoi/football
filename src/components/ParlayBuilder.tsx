@@ -891,7 +891,7 @@ export interface ParlaySelection {
 
 interface ParlayBuilderProps {
   selections: ParlaySelection[];
-  onRemoveSelection: (matchId: string) => void;
+  onRemoveSelection: (matchId: string, priceType?: string) => void;
   onClearAll: () => void;
   onClose?: () => void;  // Optional close button handler
   selectedSource?: ApiSource;  // API source to use for placing bets
@@ -1210,9 +1210,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       {/* Selections - Scrollable */}
       <div className="flex-1 overflow-y-auto p-4">
         <div className="space-y-3">
-          {selections.map((selection) => (
+          {selections.map((selection, index) => (
             <div
-              key={selection.matchId}
+              key={`${selection.matchId}-${selection.priceType}-${index}`}
               className={`flex items-center justify-between p-3 rounded-lg transition-all ${
                 selection.hasError 
                   ? 'bg-red-50 border-2 border-red-500' 
@@ -1291,7 +1291,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 {typeof selection.odds === 'string' ? selection.odds : selection.odds.toFixed(2)}
               </span>
               <button
-                onClick={() => onRemoveSelection(selection.matchId)}
+                onClick={() => onRemoveSelection(selection.matchId, selection.priceType)}
                 className="text-red-500 hover:text-red-700 p-1"
               >
                 <Trash2 className="w-4 h-4" />
