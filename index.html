@@ -21,9 +21,13 @@
       // Register service worker
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
+          // Use the correct base path for GitHub Pages
+          const swUrl = window.location.pathname.startsWith('/football/') 
+            ? '/football/sw.js' 
+            : '/sw.js';
+          navigator.serviceWorker.register(swUrl)
             .catch((registrationError) => {
-              console.error('SW registration failed: ', registrationError);
+              // Silently fail - service worker is optional
             });
         });
       }
