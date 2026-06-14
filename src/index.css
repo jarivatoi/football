@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Disable text selection across the entire app */
+* {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection only in input fields and textareas */
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
 /* Hide scrollbar for horizontal scrolling */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */
