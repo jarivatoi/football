@@ -130,6 +130,8 @@ export const StaffManagementModal: React.FC<UserManagementModalProps> = ({
 
     if (!formData.id_number.trim()) {
       errors.id_number = 'ID Number is required';
+    } else if (!/^[A-Z0-9]{14}$/.test(formData.id_number)) {
+      errors.id_number = 'ID Number must be exactly 14 alphanumeric characters';
     }
 
     if (!formData.surname.trim()) {

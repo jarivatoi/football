@@ -353,6 +353,11 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
       return
     }
     
+    if (!/^[A-Z0-9]{14}$/.test(tempIdNumber)) {
+      setError('ID Number must be exactly 14 alphanumeric characters')
+      return
+    }
+    
     try {
       const { data, error } = await supabase.from('users').select('id').eq('id_number', tempIdNumber).single()
       

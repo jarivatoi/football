@@ -181,6 +181,17 @@ const ProfileTab: React.FC<ProfileProps> = ({ user, onLoginSuccess, onClose }) =
 
   const handleForgotPasscode = async () => {
     setError(null)
+    
+    if (!tempIdNumber || tempIdNumber.trim().length === 0) {
+      setError('Enter a valid ID')
+      return
+    }
+    
+    if (!/^[A-Z0-9]{14}$/.test(tempIdNumber)) {
+      setError('ID Number must be exactly 14 alphanumeric characters')
+      return
+    }
+    
     try {
       const { data, error } = await supabase.from('users').select('id').eq('id_number', tempIdNumber).single()
       if (error || !data) {

@@ -57,11 +57,11 @@ const UserRegistration: React.FC<UserRegistrationProps> = ({ onBack }) => {
     // Basic validation
     const validSurname = surname.trim().length > 0
     const validName = name.trim().length > 0
-    const validId = /^[A-Z0-9]+$/.test(idNumber) && idNumber.length >= 4
+    const validId = /^[A-Z0-9]{14}$/.test(idNumber) // Exactly 14 alphanumeric characters
     const validPass = /^\d{4}$/.test(passcode)
     
     if (!validSurname || !validName || !validId || !validPass) {
-      setError('Please fill all fields: surname, name, ID (letters+digits), and a 4-digit passcode')
+      setError('Please fill all fields: surname, name, ID (exactly 14 letters+digits), and a 4-digit passcode')
       setIsLoading(false)
       return
     }
