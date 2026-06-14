@@ -15,10 +15,15 @@ import AlternativeSolutions from './components/AlternativeSolutions';
 import MatchSpecificTester from './components/MatchSpecificTester';
 import BetPlacementAnalyzer from './components/BetPlacementAnalyzer';
 import BookingDiscoveryGuide from './components/BookingDiscoveryGuide';
+import UserLogin from './components/UserLogin';
+import UserProfile from './components/UserProfile';
+import { MaintenanceMode } from './components/MaintenanceMode';
 import { totelepepService } from './services/totelepepService';
 import { totelepepExtractor } from './services/totelepepExtractor';
 import type { TotelepepMatch } from './services/totelepepExtractor';
 import { registerServiceWorker, requestNotificationPermission, scheduleBackgroundSync } from './utils/pwaUtils';
+import { getUserSession, removeUserSession } from './utils/userSessionDB';
+import { supabase } from './lib/supabase';
 
 // Helper function to get today's date in local timezone
 const getTodayDate = () => {
@@ -30,6 +35,24 @@ const getTodayDate = () => {
 };
 
 function App() {
+  // ========================================
+  // ALL HOOKS MUST BE AT THE TOP - BEFORE ANY RETURNS
+  // ========================================
+  
+  // Authentication state
+  const [userSession, setUserSession] = useState<{
+    userId: string;
+    idNumber: string;
+    isAdmin: boolean;
+    surname?: string;
+    name?: string;
+  } | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Maintenance mode state
+  const [isMaintenanceEnabled, setIsMaintenanceEnabled] = useState(false);
+  
   // Add a simple test to see if the component is rendering
   
   
@@ -957,6 +980,111 @@ function App() {
     
   }, [groupedMatches]);
 
+  // ========================================
+  // AUTHENTICATION HANDLERS (AFTER ALL HOOKS)
+  // ========================================
+  
+  // Check for existing session on mount
+  useEffect(() => {
+    // Don't auto-login - always show login screen on refresh (like anwh)
+    // Session will be created when user logs in
+    setUserSession(null);
+    setIsLoading(false);
+  }, []);
+
+  const checkMaintenanceMode = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('metadata')
+        .select('value')
+        .eq('key', 'maintenanceMode')
+        .single();
+      
+      if (error) {
+        // If no metadata record exists, default to false
+        if (error.code === 'PGRST116') {
+          setIsMaintenanceEnabled(false);
+        } else {
+          // Silently fail
+        }
+      } else {
+        setIsMaintenanceEnabled(data?.value === true);
+      }
+    } catch (err) {
+      // Silently fail
+    }
+  };
+
+  const handleLoginSuccess = (session: any) => {
+    // Check if this is a logout (empty session)
+    if (!session || !session.userId) {
+      setUserSession(null);
+      // Re-check maintenance mode on logout
+      checkMaintenanceMode();
+    } else {
+      setUserSession(session);
+      // Re-check maintenance mode on login
+      checkMaintenanceMode();
+    }
+  };
+
+  const handleLogout = async () => {
+    await removeUserSession();
+    setUserSession(null);
+    setShowSettings(false);
+  };
+  
+  const handleSettingsClick = () => {
+    setShowSettings(true);
+  };
+  
+  const handleCloseSettings = () => {
+    setShowSettings(false);
+  };
+  
+  // ========================================
+  // EARLY RETURNS (AFTER ALL HOOKS AND HANDLERS)
+  // ========================================
+  
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login screen if not authenticated (ALWAYS show login, even during maintenance)
+  if (!userSession) {
+    return <UserLogin onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // Show maintenance mode screen (for non-admin users AFTER login)
+  if (isMaintenanceEnabled && !userSession.isAdmin) {
+    return <MaintenanceMode isEnabled={true} />;
+  }
+
+  // Show settings/profile if clicked
+  if (showSettings) {
+    return (
+      <UserProfile 
+        user={{
+          id: userSession.userId,
+          idNumber: userSession.idNumber,
+          surname: userSession.surname || '',
+          name: userSession.name || '',
+          isAdmin: userSession.isAdmin
+        }}
+        onLoginSuccess={handleLoginSuccess}
+        onClose={handleCloseSettings}
+      />
+    );
+  }
+
   const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => {
     // Find the match details
     const match = matches.find(m => m.id === matchId);
@@ -1025,24 +1153,9 @@ function App() {
           
           
           
-          
           // Additional validation debugging
           if (match.marketBookNo) {
-            console.log(`🔍 MARKETBOOKNO VALIDATION:`, {
-              value: match.marketBookNo,
-              type: typeof match.marketBookNo,
-              length: match.marketBookNo.length,
-              isNumeric: !isNaN(Number(match.marketBookNo)),
-              numericValue: Number(match.marketBookNo),
-              isValid: !isNaN(Number(match.marketBookNo)) && Number(match.marketBookNo) > 0,
-              // Special check for the correct value
-              isExactMatch: match.marketBookNo === '5160495'
-            });
-            
-            // Special handling for the correct marketBookNo
-            if (match.marketBookNo === '5160495') {
-              
-            }
+            // Validation check removed
           }
         }
       
@@ -1168,6 +1281,7 @@ function App() {
           onSlipClick={toggleParlayBuilder}
           selectedSource={selectedSource}
           onSourceChange={handleSourceChange}
+          onSettingsClick={handleSettingsClick}
         />
         
         {/* Date Selector */}

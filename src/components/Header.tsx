@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrendingUp, Ticket, ChevronDown } from 'lucide-react';
+import { TrendingUp, Ticket, ChevronDown, Settings } from 'lucide-react';
 import OfflineIndicator from './OfflineIndicator';
 
 export interface ApiSource {
@@ -41,9 +41,10 @@ interface HeaderProps {
   onSlipClick: () => void;
   selectedSource: ApiSource;
   onSourceChange: (source: ApiSource) => void;
+  onSettingsClick?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ selectionCount, onSlipClick, selectedSource, onSourceChange }) => {
+const Header: React.FC<HeaderProps> = ({ selectionCount, onSlipClick, selectedSource, onSourceChange, onSettingsClick }) => {
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
 
   const handleSourceSelect = (source: ApiSource) => {
@@ -104,6 +105,17 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, onSlipClick, selectedSo
                 </div>
               )}
             </div>
+            
+            {/* Settings Button */}
+            {onSettingsClick && (
+              <button
+                onClick={onSettingsClick}
+                className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg transition-colors"
+              >
+                <Settings className="w-5 h-5" />
+                <span className="text-sm">Settings</span>
+              </button>
+            )}
             
             <div>
               <h1 className="text-xl font-bold text-gray-900">{selectedSource.displayName} Soccer</h1>

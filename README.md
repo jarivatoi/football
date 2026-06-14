@@ -1,4 +1,4 @@
-# Totelepep PWA - Live Sports Betting Data Extractor
+# Football PWA - Live Sports Betting Data Extractor
 
 A Progressive Web App that extracts real-time sports betting data from totelepep.mu using Power Query logic.
 

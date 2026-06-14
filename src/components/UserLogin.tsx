@@ -564,6 +564,17 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
 
   return (
     <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '1rem' }}>
+      {/* Hide browser's built-in password reveal button */}
+      <style>{`
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-ms-clear,
+        input[type="password"]::-webkit-credentials-auto-fill-button,
+        input[type="password"]::-webkit-show-password-button {
+          display: none !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+        }
+      `}</style>
       <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 420, display: 'grid', gap: '12px' }}>
         <h2 
           ref={headerRef}
