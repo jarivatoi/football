@@ -160,7 +160,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
   const [idNumber, setIdNumber] = useState('');
   
   // Words to alternate between
-  const words = ['✨FOOTBALL✨'];
+  const words = ['♨️FOOTBALL♨️', 'Created By Viraj'];
   const maxLetters = Math.max(...words.map(w => w.length));
   
   // Track ball position and reveal letters based on actual position
@@ -727,12 +727,11 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         }
         
         .football-text {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%); /* Center both vertically and horizontally */
+          position: relative;
+          display: inline-block;
           white-space: nowrap; /* Prevent text wrapping */
           pointer-events: none; /* Prevent interaction */
+          line-height: 1.2; /* Match parent for emoji support */
         }
         
         .football-letter {
@@ -765,12 +764,15 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
               color: '#2563eb',
               letterSpacing: '4px',
               textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
-              lineHeight: '1',
+              lineHeight: '1.2', // Increased to accommodate emojis
               position: 'relative',
               zIndex: 1,
               width: '100%', // Match parent width
               maxWidth: '420px', // Don't exceed form width
-              textAlign: 'center' // Center text
+              textAlign: 'center', // Center text
+              display: 'flex', // Use flexbox
+              justifyContent: 'center', // Center horizontally
+              alignItems: 'center' // Center vertically
             }}
           >
             <span className="football-text">
