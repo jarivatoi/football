@@ -915,6 +915,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   } | null>(null);
   const [showNewBetButton, setShowNewBetButton] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [smsPressTimer, setSmsPressTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Effect to show the "Place New Bet" button after a successful booking
   useEffect(() => {
@@ -928,6 +929,40 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       setShowNewBetButton(false);
     }
   }, [lastResult]);
+
+  // SMS Bet functionality with long press
+  const handleSmsPressStart = () => {
+    const timer = setTimeout(() => {
+      // Open SMS app
+      const ticketNo = lastResult?.ticketNo || '';
+      const message = `BET${ticketNo}`;
+      
+      // Determine phone number based on selected source
+      let phoneNumber = '+23058638683'; // Default Totelepep
+      if (selectedSource?.id === 'valueplus') {
+        phoneNumber = '+23055098899';
+      } else if (selectedSource?.id === 'superscore') {
+        phoneNumber = '+23052502599';
+      } else if (selectedSource?.id === 'stevenhills') {
+        phoneNumber = '+23059590182';
+      }
+      
+      // iOS uses &body=, Android uses ?body=
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const separator = isIOS ? '&' : '?';
+      
+      window.location.href = `sms:${phoneNumber}${separator}body=${encodeURIComponent(message)}`;
+    }, 3500); // 3.5 seconds long press
+    
+    setSmsPressTimer(timer);
+  };
+
+  const handleSmsPressEnd = () => {
+    if (smsPressTimer) {
+      clearTimeout(smsPressTimer);
+      setSmsPressTimer(null);
+    }
+  };
 
   const totalOdds = selections.reduce((acc, selection) => {
     const odds = typeof selection.odds === 'string' ? parseFloat(selection.odds) : selection.odds;
@@ -1497,6 +1532,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                         <div className="text-xs text-gray-600 font-medium mt-1">
                           {selection?.homeTeam} v {selection?.awayTeam}
                         </div>
+                        {/* Competition */}
+                        {(selection?.league || bet.competitionName) && (
+                          <div className="text-xs text-gray-500 font-medium mt-1">
+                            ⚽ {bet.competitionName || selection?.league}
+                          </div>
+                        )}
                         {/* Date */}
                         {selection?.matchDate && (
                           <div className="text-xs text-gray-500 font-medium">
@@ -1550,8 +1591,15 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               </div>
             </div>
 
-            {/* SMS Option */}
-            <div className="p-3 bg-yellow-400 text-center border-t border-yellow-500">
+            {/* SMS Option - Long Press 3.5s */}
+            <div 
+              className="p-3 bg-yellow-400 text-center border-t border-yellow-500 cursor-pointer select-none active:bg-yellow-500 transition-colors"
+              onMouseDown={handleSmsPressStart}
+              onMouseUp={handleSmsPressEnd}
+              onMouseLeave={handleSmsPressEnd}
+              onTouchStart={handleSmsPressStart}
+              onTouchEnd={handleSmsPressEnd}
+            >
               <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
                 <span>📱</span>
                 <span>SMS BET{lastResult.ticketNo}</span>
