@@ -160,7 +160,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
   const [idNumber, setIdNumber] = useState('');
   
   // Words to alternate between
-  const words = ['♨️FOOTBALL♨️', 'Created By Viraj'];
+  const words = ['♨️FOOTBALL♨️'];
   const maxLetters = Math.max(...words.map(w => w.length));
   
   // Track ball position and reveal letters based on actual position
@@ -767,8 +767,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
               lineHeight: '1.2', // Increased to accommodate emojis
               position: 'relative',
               zIndex: 1,
-              width: '100%', // Match parent width
-              maxWidth: '420px', // Don't exceed form width
+              width: '420px', // Fixed width
               textAlign: 'center', // Center text
               display: 'flex', // Use flexbox
               justifyContent: 'center', // Center horizontally
