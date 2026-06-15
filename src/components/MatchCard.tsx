@@ -18,6 +18,187 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   const [activeMarketTab, setActiveMarketTab] = useState<string>('ALL'); // ALL, FT, HT, 2H
   const hasClearedRef = React.useRef(false); // Track if we've already handled the clear
 
+  // Parse advanced filter code (e.g., 120FT, 150H1BTTS, 120FTUO2.5, 150-180H1BTTS)
+  const parseFilterCode = (code: string) => {
+    if (!code || searchMode === 'matches' && !/\d/.test(code)) return null;
+    
+    const upper = code.toUpperCase().trim();
+    
+    // Check for range pattern (e.g., 150-180H1BTTS)
+    const isRange = searchMode === 'between' && upper.includes('-');
+    let oddsMin: number | undefined;
+    let oddsMax: number | undefined;
+    let odds: number;
+    let afterOdds: string;
+    
+    if (isRange) {
+      // Parse range: 150-180H1BTTS
+      const rangeMatch = upper.match(/^(\d{2,3})-(\d{2,3})/);
+      if (!rangeMatch) return null;
+      
+      oddsMin = parseFloat(rangeMatch[1]);
+      oddsMax = parseFloat(rangeMatch[2]);
+      if (oddsMin > 10) oddsMin = oddsMin / 100;
+      if (oddsMax > 10) oddsMax = oddsMax / 100;
+      odds = oddsMin; // Use min for compatibility
+      afterOdds = upper.slice(rangeMatch[0].length);
+    } else {
+      // Single odds: 120FT
+      const oddsMatch = upper.match(/^(\d{2,3})/);
+      if (!oddsMatch) return null;
+      
+      odds = parseFloat(oddsMatch[1]);
+      if (odds > 10) odds = odds / 100;
+      afterOdds = upper.slice(oddsMatch[1].length);
+    }
+    
+    // Parse period and market
+    let period = 'FT';
+    let marketType = '1X2';
+    let option: string | undefined;
+    let line: string | undefined;
+    
+    // Check for period codes
+    if (afterOdds.startsWith('H1')) {
+      period = 'H1';
+    } else if (afterOdds.startsWith('H2') || afterOdds.startsWith('2H')) {
+      period = 'H2';
+    }
+    
+    const afterPeriod = afterOdds.startsWith('H1') ? afterOdds.slice(2) : 
+                        afterOdds.startsWith('H2') ? afterOdds.slice(2) :
+                        afterOdds.startsWith('2H') ? afterOdds.slice(2) : afterOdds;
+    
+    // Check for market types
+    if (afterPeriod.startsWith('DC')) {
+      marketType = 'DC';
+    } else if (afterPeriod.startsWith('UO')) {
+      marketType = 'UO';
+      // Check for line (e.g., 2.5, 3.5)
+      const lineMatch = afterPeriod.slice(2).match(/^(\d+\.\d+)/);
+      if (lineMatch) {
+        line = lineMatch[1];
+      }
+    } else if (afterPeriod.startsWith('BTTS')) {
+      marketType = 'BTTS';
+    } else if (afterPeriod.startsWith('GM')) {
+      marketType = 'GM';
+    } else if (afterPeriod.startsWith('CS')) {
+      marketType = 'CS';
+    } else if (afterPeriod.startsWith('WM')) {
+      marketType = 'WM';
+    } else if (afterPeriod.startsWith('OE')) {
+      marketType = 'OE';
+    }
+    
+    // Check for option (H, D, A, O, U)
+    const afterMarket = afterPeriod.startsWith('DC') ? afterPeriod.slice(2) :
+                        afterPeriod.startsWith('UO') ? (line ? afterPeriod.slice(2 + line.length + 1) : afterPeriod.slice(2)) :
+                        afterPeriod.startsWith('BTTS') ? afterPeriod.slice(4) :
+                        afterPeriod.startsWith('GM') ? afterPeriod.slice(2) :
+                        afterPeriod.startsWith('CS') ? afterPeriod.slice(2) :
+                        afterPeriod.startsWith('WM') ? afterPeriod.slice(2) :
+                        afterPeriod.startsWith('OE') ? afterPeriod.slice(2) : afterPeriod;
+    
+    if (afterMarket) {
+      if (afterMarket === 'H' || afterMarket === '1') option = 'H';
+      else if (afterMarket === 'D' || afterMarket === 'X') option = 'D';
+      else if (afterMarket === 'A' || afterMarket === '2') option = 'A';
+      else if (afterMarket === 'O' || afterMarket.startsWith('OVER')) option = 'O';
+      else if (afterMarket === 'U' || afterMarket.startsWith('UNDER')) option = 'U';
+    }
+    
+    return { 
+      odds, 
+      oddsMin, 
+      oddsMax, 
+      isRange, 
+      period, 
+      marketType, 
+      option, 
+      line, 
+      rawCode: code 
+    };
+  };
+
+  // Market type detection helpers
+  const is1X2Market = (market: any) => {
+    return market.name === '1 X 2' || market.name === '1X2' || market.marketCode === 'CP';
+  };
+
+  const isDoubleChanceMarket = (market: any) => {
+    return market.name.includes('Double Chance') || market.name.includes('DC') || market.marketCode === 'DC';
+  };
+
+  const isOverUnderMarket = (market: any) => {
+    return market.name.includes('Over/Under') || market.name.includes('O/U') || 
+           market.name.includes('Total Goals') || market.marketCode === 'OU';
+  };
+
+  const isBTTSMarket = (market: any) => {
+    return market.name.includes('Both Teams') || market.name.includes('BTTS') || 
+           market.name.includes('GG/NG') || market.marketCode === 'BTTS';
+  };
+
+  const isGoalMarket = (market: any) => {
+    return market.name.includes('Goal Market') || market.name.includes('GM');
+  };
+
+  const isCorrectScoreMarket = (market: any) => {
+    return market.name.includes('Correct Score') || market.name.includes('CS');
+  };
+
+  const isWinningMarginMarket = (market: any) => {
+    return market.name.includes('Winning Margin') || market.name.includes('WM');
+  };
+
+  const isOddEvenMarket = (market: any) => {
+    return market.name.includes('Odd/Even') || market.name.includes('OE') || 
+           market.name.includes('Odd Even');
+  };
+
+  const marketMatchesFilter = (market: any, parsed: any) => {
+    // Check period
+    if (parsed.period === 'FT' && market.periodCode !== 'FT' && !market.periodCode) return false;
+    if (parsed.period === 'H1' && market.periodCode !== 'H1') return false;
+    if (parsed.period === 'H2' && market.periodCode !== 'H2' && market.periodCode !== '2H') return false;
+    
+    // Check market type
+    switch (parsed.marketType) {
+      case '1X2':
+        if (!is1X2Market(market)) return false;
+        break;
+      case 'DC':
+        if (!isDoubleChanceMarket(market)) return false;
+        break;
+      case 'UO':
+        if (!isOverUnderMarket(market)) return false;
+        // Check line if specified
+        if (parsed.line) {
+          const marketLine = market.line || market.name.match(/(\d+\.\d+)/)?.[1];
+          if (marketLine !== parsed.line) return false;
+        }
+        break;
+      case 'BTTS':
+        if (!isBTTSMarket(market)) return false;
+        break;
+      case 'GM':
+        if (!isGoalMarket(market)) return false;
+        break;
+      case 'CS':
+        if (!isCorrectScoreMarket(market)) return false;
+        break;
+      case 'WM':
+        if (!isWinningMarginMarket(market)) return false;
+        break;
+      case 'OE':
+        if (!isOddEvenMarket(market)) return false;
+        break;
+    }
+    
+    return true;
+  };
+
   // Sync selection state when expanding markets
   React.useEffect(() => {
     if (isExpanded && match.allMarkets && match.allMarkets.length > 0) {
@@ -42,136 +223,59 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     }
   }, [isExpanded, match.allMarkets, match.id, selectedPrices]);
 
-  // Auto-expand period-specific markets when filtering by H1/H2
+  // Auto-expand markets based on advanced filter code
   React.useEffect(() => {
     if (isExpanded && match.allMarkets && match.allMarkets.length > 0) {
-      const upperSearch = searchTerm.toUpperCase().trim();
-      
       // If no search term, collapse all auto-expanded markets
-      if (!searchTerm || !upperSearch) {
+      if (!searchTerm || searchMode !== 'matches') {
         setExpandedMarkets({});
         return;
       }
       
-      let periodFilter: 'H1' | 'H2' | null = null;
-      let positionFilter: 'home' | 'draw' | 'away' | null = null;
-      let targetOdds = parseFloat(searchTerm);
+      // Try to parse as advanced filter code
+      const parsed = parseFilterCode(searchTerm);
       
-      // Check for period + position (H1H, H1D, H1A, H2H, H2D, H2A)
-      if (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A')) {
-        periodFilter = 'H1';
-        const withoutPeriodAndPosition = upperSearch.slice(0, -3);
-        if (upperSearch.endsWith('H1H')) positionFilter = 'home';
-        else if (upperSearch.endsWith('H1D')) positionFilter = 'draw';
-        else if (upperSearch.endsWith('H1A')) positionFilter = 'away';
-        targetOdds = parseFloat(withoutPeriodAndPosition);
-      } else if (upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A')) {
-        periodFilter = 'H2';
-        const withoutPeriodAndPosition = upperSearch.slice(0, -3);
-        if (upperSearch.endsWith('H2H')) positionFilter = 'home';
-        else if (upperSearch.endsWith('H2D')) positionFilter = 'draw';
-        else if (upperSearch.endsWith('H2A')) positionFilter = 'away';
-        targetOdds = parseFloat(withoutPeriodAndPosition);
-      } else if (upperSearch.endsWith('H1') || upperSearch.endsWith('H2')) {
-        // Period only (e.g., 190H1) - any position
-        periodFilter = upperSearch.endsWith('H1') ? 'H1' : 'H2';
-        targetOdds = parseFloat(upperSearch.slice(0, -2));
-      }
-      
-      // Handle input like "130" as "1.30" for decimal odds
-      if (!isNaN(targetOdds) && targetOdds > 10) {
-        targetOdds = targetOdds / 100;
-      }
-      
-      // Auto-switch market tab to the filtered period (only if not on ALL tab)
-      if (periodFilter && searchMode !== 'matches' && activeMarketTab === 'ALL') {
-        const targetTab = periodFilter === 'H1' ? 'HT' : '2H';
-        setActiveMarketTab(targetTab);
-      }
-      
-      if (periodFilter && !isNaN(targetOdds)) {
-        // Try both '2H' and 'H2' for second half
-        const possiblePeriodCodes = periodFilter === 'H1' ? ['H1'] : ['2H', 'H2'];
+      if (parsed) {
+        // Advanced filter mode
+        const newExpandedMarkets: Record<string, boolean> = {};
         
-        // Start fresh - only expand markets that match the current filter
-        const newExpandedMarkets = {};
+        // Auto-switch market tab based on period
+        if (parsed.period === 'H1' && activeMarketTab !== 'HT') {
+          setActiveMarketTab('HT');
+        } else if (parsed.period === 'H2' && activeMarketTab !== '2H') {
+          setActiveMarketTab('2H');
+        } else if (parsed.period === 'FT' && activeMarketTab !== 'ALL') {
+          setActiveMarketTab('ALL');
+        }
         
-        for (const periodCode of possiblePeriodCodes) {
-          const periodMarkets = match.allMarkets.filter(m => 
-            m.periodCode === periodCode && m.selections && m.selections.length > 0
-          );
+        // Find and expand matching markets
+        const matchingMarkets = match.allMarkets.filter(m => 
+          m.selections && m.selections.length > 0 && marketMatchesFilter(m, parsed)
+        );
+        
+        for (const market of matchingMarkets) {
+          // Check if this market has any selection matching the target odds
+          const hasMatchingOdds = market.selections.some((sel: any) => {
+            const selOdds = parseFloat(String(sel.odds));
+            if (isNaN(selOdds)) return false;
+            
+            // Range mode: check if odds fall within range
+            if (parsed.isRange && parsed.oddsMin !== undefined && parsed.oddsMax !== undefined) {
+              return selOdds >= parsed.oddsMin && selOdds <= parsed.oddsMax;
+            }
+            
+            // Single odds mode: exact match with tolerance
+            return Math.abs(selOdds - parsed.odds) < 0.001;
+          });
           
-          for (const market of periodMarkets) {
-            // When position filter is specified (H/D/A), only auto-expand 1X2 markets
-            // Other markets (OU, BTTS, etc.) will show orange arrow but won't auto-expand
-            if (positionFilter) {
-              const is1X2Market = market.name === '1 X 2' || market.name === '1X2' || market.marketCode === 'CP';
-              if (!is1X2Market) {
-                continue; // Skip non-1X2 markets when position filter is active
-              }
-            }
-            
-            // Check if this market has any selection matching the filter
-            const hasMatchingOdds = market.selections.some((sel: any) => {
-              const selOdds = parseFloat(String(sel.odds));
-              if (isNaN(selOdds)) return false;
-              
-              // If position filter specified, check specific position
-              if (positionFilter) {
-                const positionIndex = positionFilter === 'home' ? 0 : positionFilter === 'draw' ? 1 : 2;
-                const index = market.selections.indexOf(sel);
-                if (index !== positionIndex) return false;
-              }
-              
-              // Check based on searchMode (=, >=, <=, between)
-              if (searchMode === 'gte') {
-                return selOdds >= targetOdds;
-              } else if (searchMode === 'lte') {
-                return selOdds <= targetOdds;
-              } else if (searchMode === 'between') {
-                // Parse range from searchTerm (e.g., "100-200H1")
-                if (searchTerm.includes('-')) {
-                  const rangeParts = searchTerm.split('-');
-                  if (rangeParts.length === 2) {
-                    let minStr = rangeParts[0].trim();
-                    let maxStr = rangeParts[1].trim();
-                    
-                    // Remove period/position suffixes
-                    if (maxStr.toUpperCase().endsWith('H1H') || maxStr.toUpperCase().endsWith('H1D') || maxStr.toUpperCase().endsWith('H1A') ||
-                        maxStr.toUpperCase().endsWith('H2H') || maxStr.toUpperCase().endsWith('H2D') || maxStr.toUpperCase().endsWith('H2A')) {
-                      maxStr = maxStr.slice(0, -3);
-                    } else if (maxStr.toUpperCase().endsWith('H1') || maxStr.toUpperCase().endsWith('H2')) {
-                      maxStr = maxStr.slice(0, -2);
-                    } else if (maxStr.toUpperCase().endsWith('H') || maxStr.toUpperCase().endsWith('D') || maxStr.toUpperCase().endsWith('A')) {
-                      maxStr = maxStr.slice(0, -1);
-                    }
-                    
-                    const minOdds = parseFloat(minStr);
-                    const maxOdds = parseFloat(maxStr);
-                    
-                    const adjustedMin = minOdds > 10 ? minOdds / 100 : minOdds;
-                    const adjustedMax = maxOdds > 10 ? maxOdds / 100 : maxOdds;
-                    
-                    return selOdds >= adjustedMin && selOdds <= adjustedMax;
-                  }
-                }
-                return false;
-              } else {
-                // Default (eq): equal to
-                return selOdds === targetOdds;
-              }
-            });
-            
-            if (hasMatchingOdds) {
-              newExpandedMarkets[market.marketBookNo] = true;
-            }
+          if (hasMatchingOdds) {
+            newExpandedMarkets[market.marketBookNo] = true;
           }
         }
         
-        // Always update - even if empty (to collapse markets when filter becomes less specific)
         setExpandedMarkets(newExpandedMarkets);
       } else {
-        // No period filter or invalid odds - collapse all auto-expanded markets
+        // Fall back to old behavior for simple odds filtering
         setExpandedMarkets({});
       }
     }
