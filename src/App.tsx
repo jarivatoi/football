@@ -689,9 +689,16 @@ function App() {
                   for (const market of periodMarkets) {
                     const hasMatchingOdds = market.selections.some((sel: any) => {
                       const selOdds = parseFloat(String(sel.odds));
+                      if (isNaN(selOdds)) return false;
+                      
                       if (searchMode === 'between') {
                         return selOdds >= targetOddsMin && selOdds <= targetOddsMax;
+                      } else if (searchMode === 'gte') {
+                        return selOdds >= targetOdds;
+                      } else if (searchMode === 'lte') {
+                        return selOdds <= targetOdds;
                       }
+                      // Default: exact match
                       return selOdds === targetOdds;
                     });
                     

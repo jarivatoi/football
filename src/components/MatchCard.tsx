@@ -117,11 +117,27 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                         afterPeriod.startsWith('OE') ? afterPeriod.slice(2) : afterPeriod;
     
     if (afterMarket) {
-      if (afterMarket === 'H' || afterMarket === '1') option = 'H';
-      else if (afterMarket === 'D' || afterMarket === 'X') option = 'D';
-      else if (afterMarket === 'A' || afterMarket === '2') option = 'A';
-      else if (afterMarket === 'O' || afterMarket.startsWith('OVER')) option = 'O';
-      else if (afterMarket === 'U' || afterMarket.startsWith('UNDER')) option = 'U';
+      if (afterMarket === 'H' || afterMarket === '1') {
+        option = 'H';
+        // If position is specified without explicit market, default to 1X2
+        if (!marketType) marketType = '1X2';
+      }
+      else if (afterMarket === 'D' || afterMarket === 'X') {
+        option = 'D';
+        // If position is specified without explicit market, default to 1X2
+        if (!marketType) marketType = '1X2';
+      }
+      else if (afterMarket === 'A' || afterMarket === '2') {
+        option = 'A';
+        // If position is specified without explicit market, default to 1X2
+        if (!marketType) marketType = '1X2';
+      }
+      else if (afterMarket === 'O' || afterMarket.startsWith('OVER')) {
+        option = 'O';
+      }
+      else if (afterMarket === 'U' || afterMarket.startsWith('UNDER')) {
+        option = 'U';
+      }
     }
     
     const result = { 
@@ -359,9 +375,25 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               return selOdds >= parsed.oddsMin && selOdds <= parsed.oddsMax;
             }
             
-            // Single odds mode: exact match with tolerance
+            // Check based on searchMode
+            if (searchMode === 'eq') {
+              // Exact match with tolerance
+              const matches = Math.abs(selOdds - parsed.odds) < 0.001;
+              console.log(`[Filter] Checking ${sel.odds} vs ${parsed.odds} = ${matches}`);
+              return matches;
+            } else if (searchMode === 'gte') {
+              // Greater than or equal
+              return selOdds >= parsed.odds;
+            } else if (searchMode === 'lte') {
+              // Less than or equal
+              return selOdds <= parsed.odds;
+            }
+            
+            // Default: exact match
             return Math.abs(selOdds - parsed.odds) < 0.001;
           });
+          
+          console.log(`[Filter] Market ${market.name} hasMatchingOdds: ${hasMatchingOdds}`);
           
           if (hasMatchingOdds) {
             newExpandedMarkets[market.marketBookNo] = true;
@@ -531,10 +563,21 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     const selOdds = parseFloat(String(odds));
     if (isNaN(selOdds)) return false;
     
-    // Check odds match
+    // Check odds match based on searchMode
     if (parsed.isRange && parsed.oddsMin !== undefined && parsed.oddsMax !== undefined) {
+      // Range mode
       if (selOdds < parsed.oddsMin || selOdds > parsed.oddsMax) return false;
+    } else if (searchMode === 'eq') {
+      // Exact match
+      if (Math.abs(selOdds - parsed.odds) >= 0.001) return false;
+    } else if (searchMode === 'gte') {
+      // Greater than or equal
+      if (selOdds < parsed.odds) return false;
+    } else if (searchMode === 'lte') {
+      // Less than or equal
+      if (selOdds > parsed.odds) return false;
     } else {
+      // Default: exact match
       if (Math.abs(selOdds - parsed.odds) >= 0.001) return false;
     }
     
@@ -545,9 +588,20 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     
     // Check position match (for 1X2 markets)
     if (parsed.option && position) {
-      if (parsed.option === 'H' && position !== 'home') return false;
-      if (parsed.option === 'D' && position !== 'draw') return false;
-      if (parsed.option === 'A' && position !== 'away') return false;
+      console.log(`[oddsMatchFilter] Checking position: parsed.option=${parsed.option}, position=${position}`);
+      if (parsed.option === 'H' && position !== 'home') {
+        console.log(`[oddsMatchFilter] ❌ Filtering out ${position} - looking for Home only`);
+        return false;
+      }
+      if (parsed.option === 'D' && position !== 'draw') {
+        console.log(`[oddsMatchFilter] ❌ Filtering out ${position} - looking for Draw only`);
+        return false;
+      }
+      if (parsed.option === 'A' && position !== 'away') {
+        console.log(`[oddsMatchFilter] ❌ Filtering out ${position} - looking for Away only`);
+        return false;
+      }
+      console.log(`[oddsMatchFilter] ✅ Position match: ${position}`);
     }
     
     return true;
@@ -792,16 +846,30 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                           className={`flex-1 min-w-[80px] py-2 px-2 rounded text-sm font-medium transition-all ${
                             isSelectedMarket
                               ? 'bg-blue-600 text-white'
-                              : oddsMatchFilter(
-                                  selection.odds,
-                                  selection.name === '1' || selection.name === 'Home' || selection.name === '1 (Home)' || selection.name === match.homeTeam ? 'home' :
-                                  selection.name === 'X' || selection.name === 'Draw' || selection.name === 'X (Draw)' ? 'draw' :
-                                  selection.name === '2' || selection.name === 'Away' || selection.name === '2 (Away)' || selection.name === match.awayTeam ? 'away' :
-                                  undefined,
-                                  market.periodCode
-                                )
-                              ? 'bg-orange-500 text-white'
-                              : 'bg-gray-100 hover:bg-gray-200'
+                              : (() => {
+                                  // For 1X2 markets, use selection index: 0=home, 1=draw, 2=away
+                                  let pos: 'home' | 'draw' | 'away' | undefined = undefined;
+                                  
+                                  if (is1X2Market(market)) {
+                                    // Find the index of this selection in the market
+                                    const selIndex = market.selections.findIndex((s: any) => s === selection);
+                                    if (selIndex === 0) pos = 'home';
+                                    else if (selIndex === 1) pos = 'draw';
+                                    else if (selIndex === 2) pos = 'away';
+                                  } else {
+                                    // For other markets, try name-based detection
+                                    pos = selection.name === '1' || selection.name === 'Home' || selection.name === '1 (Home)' || selection.name === match.homeTeam ? 'home' :
+                                          selection.name === 'X' || selection.name === 'Draw' || selection.name === 'X (Draw)' ? 'draw' :
+                                          selection.name === '2' || selection.name === 'Away' || selection.name === '2 (Away)' || selection.name === match.awayTeam ? 'away' :
+                                          undefined;
+                                  }
+                                  
+                                  if (searchTerm && /\d{2,3}(H1|H2|2H|FT)/.test(searchTerm.toUpperCase())) {
+                                    console.log(`[Position Check] Selection: "${selection.name}", Index: ${market.selections.findIndex((s: any) => s === selection)}, Detected position: ${pos}, market: ${market.name}`);
+                                  }
+                                  const matches = oddsMatchFilter(selection.odds, pos, market.periodCode);
+                                  return matches ? 'bg-orange-500 text-white' : 'bg-gray-100 hover:bg-gray-200';
+                                })()
                           }`}
                         >
                           <div className={`text-xs ${isSelectedMarket ? 'text-white' : oddsMatchFilter(
