@@ -235,13 +235,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
 
   return (
     <div style={{ padding: 16, maxWidth: 800, margin: '0 auto' }}>
-      {/* Header with Back and Logout buttons */}
+      {/* Header - All in one line, same height */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        marginBottom: 20 
+        marginBottom: 24,
+        height: 40
       }}>
+        {/* Back Button */}
         {onBack && (
           <button
             onClick={onBack}
@@ -256,7 +258,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
               alignItems: 'center',
               gap: 6,
               fontSize: 14,
-              fontWeight: 600
+              fontWeight: 600,
+              height: 40
             }}
           >
             <ArrowLeft className="w-4 h-4" />
@@ -264,32 +267,42 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
           </button>
         )}
         
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-          <h2 style={{ margin: 0 }}>Admin Panel</h2>
+        {/* Centered Title */}
+        <h2 style={{ 
+          margin: 0,
+          fontSize: 20,
+          fontWeight: 700,
+          textAlign: 'center',
+          flex: 1
+        }}>
+          Admin Panel
+        </h2>
+        
+        {/* Maintenance Mode Indicator */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '8px 12px',
+          borderRadius: '8px',
+          backgroundColor: isMaintenanceEnabled ? '#fee2e2' : '#dcfce7',
+          fontSize: '14px',
+          fontWeight: 600,
+          height: 40
+        }}>
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '6px 12px',
-            borderRadius: '6px',
-            backgroundColor: isMaintenanceEnabled ? '#fee2e2' : '#dcfce7',
-            fontSize: '12px',
-            fontWeight: 500,
-            marginTop: '8px'
-          }}>
-            <div style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: isMaintenanceEnabled ? '#dc2626' : '#16a34a',
-              animation: 'pulse 2s infinite'
-            }} />
-            <span style={{ color: isMaintenanceEnabled ? '#991b1b' : '#166534' }}>
-              Maintenance: {isMaintenanceEnabled ? 'ON' : 'OFF'}
-            </span>
-          </div>
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            backgroundColor: isMaintenanceEnabled ? '#dc2626' : '#16a34a',
+            animation: 'pulse 2s infinite'
+          }} />
+          <span style={{ color: isMaintenanceEnabled ? '#991b1b' : '#166534' }}>
+            Maintenance: {isMaintenanceEnabled ? 'ON' : 'OFF'}
+          </span>
         </div>
         
+        {/* Logout Button */}
         {onLogout && (
           <button
             onClick={onLogout}
@@ -304,7 +317,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
               alignItems: 'center',
               gap: 6,
               fontSize: 14,
-              fontWeight: 600
+              fontWeight: 600,
+              height: 40
             }}
           >
             <LogOut className="w-4 h-4" />
@@ -457,15 +471,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
       {/* User Directory - Hidden when Quick Actions is open */}
       {!showQuickActions && (
       <div style={{ backgroundColor: 'white', borderRadius: 8, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-        <h3 style={{ marginBottom: 12 }}>
+        {/* Centered Title */}
+        <h3 style={{ 
+          marginBottom: 16,
+          textAlign: 'center',
+          fontSize: 18,
+          fontWeight: 700
+        }}>
           <strong>User Directory</strong> ({sortedUsers.length} users)
         </h3>
         
-        {loading ? (
-          <div style={{ padding: 12, textAlign: 'center', color: '#6b7280' }}>Loading...</div>
-        ) : (
-          <div>
-            <div style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
+        {/* Centered Filter */}
+        <div style={{ 
+          marginBottom: 16, 
+          display: 'flex', 
+          gap: 8,
+          justifyContent: 'center'
+        }}>
               <select
                 value={`${sortBy}-${sortOrder}`}
                 onChange={(e) => {
@@ -487,6 +509,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
               </select>
             </div>
             
+            {loading ? (
+              <div style={{ padding: 12, textAlign: 'center', color: '#6b7280' }}>Loading...</div>
+            ) : (
+            <div>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
               {sortedUsers.map((user) => (
                 <li

@@ -1071,8 +1071,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     
     if (betAmount < minStake) {
       const toastMsg = isSingleBet && isSuperScore
-        ? 'Minimum stake for single bet is MUR 25'
-        : `Minimum stake for multi bet is MUR ${minStake}`;
+        ? 'Minimum stake for single bet is Rs 25'
+        : `Minimum stake for multi bet is Rs ${minStake}`;
       
       setToast(toastMsg);
       setTimeout(() => setToast(null), 3000);
@@ -1363,7 +1363,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             <div className="flex-1">
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium text-2xl font-bold">
-                  MUR
+                  Rs
                 </span>
                 <input
                   type="number"
@@ -1397,11 +1397,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               <div className="flex items-center justify-between mb-2">
                 <span className="font-medium text-gray-700">Potential Return (new stake):</span>
                 <span className="text-2xl font-bold text-blue-600">
-                  MUR {formatCurrency(betAmount * totalOdds)}
+                  Rs {formatCurrency(betAmount * totalOdds)}
                 </span>
               </div>
               <div className="text-sm text-gray-600">
-                Stake: MUR {formatCurrency(betAmount)} × Odds: {totalOdds.toFixed(2)}
+                Stake: Rs {formatCurrency(betAmount)} × Odds: {totalOdds.toFixed(2)}
               </div>
               {/* Show previous bet breakdown */}
               <div className="mt-3 pt-3 border-t border-blue-200">
@@ -1409,11 +1409,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 <div className="text-xs text-gray-600 space-y-1">
                   <div className="flex justify-between">
                     <span>Stake:</span>
-                    <span className="font-medium">MUR {Math.round(apiBreakdown.stake)}</span>
+                    <span className="font-medium">Rs {Math.round(apiBreakdown.stake)}</span>
                   </div>
                   <div className="flex justify-between text-red-600">
                     <span>Tax:</span>
-                    <span className="font-medium">-MUR {apiBreakdown.tax.toFixed(2)}</span>
+                    <span className="font-medium">-Rs {apiBreakdown.tax.toFixed(2)}</span>
                   </div>
                   {apiBreakdown.bonus > 0 && (() => {
                     // Calculate bonus percentage: bonus / (netPayout - bonus) * 100
@@ -1425,13 +1425,13 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     return (
                       <div className="flex justify-between text-green-600">
                         <span>Bonus:</span>
-                        <span className="font-medium">+MUR {formatCurrency(apiBreakdown.bonus)}</span>
+                        <span className="font-medium">+Rs {formatCurrency(apiBreakdown.bonus)}</span>
                       </div>
                     );
                   })()}
                   <div className="flex justify-between border-t border-blue-200 pt-1 font-bold text-lg">
                     <span className="text-gray-700">Net Payout:</span>
-                    <span className="text-green-600">MUR {formatCurrency(apiBreakdown.netPayout)}</span>
+                    <span className="text-green-600">Rs {formatCurrency(apiBreakdown.netPayout)}</span>
                   </div>
                 </div>
               </div>
@@ -1443,11 +1443,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               <div className="flex items-center justify-between">
                 <span className="font-medium text-gray-700">Potential Return:</span>
                 <span className="text-2xl font-bold text-blue-600">
-                  MUR {formatCurrency(potentialReturn)}
+                  Rs {formatCurrency(potentialReturn)}
                 </span>
               </div>
               <div className="text-sm text-gray-600 mt-1">
-                Stake: MUR {formatCurrency(betAmount)} × Odds: {totalOdds.toFixed(2)}
+                Stake: Rs {formatCurrency(betAmount)} × Odds: {totalOdds.toFixed(2)}
               </div>
             </>
           ) : (
@@ -1456,11 +1456,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               <div className="text-xs text-gray-600 space-y-1">
                 <div className="flex justify-between">
                   <span>Stake:</span>
-                  <span className="font-medium">MUR {Math.round(apiBreakdown.stake)}</span>
+                  <span className="font-medium">Rs {Math.round(apiBreakdown.stake)}</span>
                 </div>
                 <div className="flex justify-between text-red-600">
                   <span>Tax:</span>
-                  <span className="font-medium">-MUR {apiBreakdown.tax.toFixed(2)}</span>
+                  <span className="font-medium">-Rs {apiBreakdown.tax.toFixed(2)}</span>
                 </div>
                 {apiBreakdown.bonus > 0 && (() => {
                   // Calculate bonus percentage: bonus / (netPayout - bonus) * 100
@@ -1472,13 +1472,13 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   return (
                     <div className="flex justify-between text-green-600">
                       <span>Bonus:</span>
-                      <span className="font-medium">+MUR {formatCurrency(apiBreakdown.bonus)}</span>
+                      <span className="font-medium">+Rs {formatCurrency(apiBreakdown.bonus)}</span>
                     </div>
                   );
                 })()}
                 <div className="flex justify-between border-t border-blue-200 pt-1 font-bold text-xl mt-2">
                   <span className="text-gray-700">Net Payout:</span>
-                  <span className="text-green-600">MUR {formatCurrency(apiBreakdown.netPayout)}</span>
+                  <span className="text-green-600">Rs {formatCurrency(apiBreakdown.netPayout)}</span>
                 </div>
               </div>
             </>
