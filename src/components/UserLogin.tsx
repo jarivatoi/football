@@ -160,7 +160,8 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
   const [idNumber, setIdNumber] = useState('');
   
   // Words to alternate between
-  const words = ['FOOTBALL', 'By Viraj'];
+  const words = ['FOOTBALLing', 'By Viraj', 'Welcome'];
+  const maxLetters = Math.max(...words.map(w => w.length));
   
   // Track ball position and reveal letters based on actual position
   useEffect(() => {
@@ -168,6 +169,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
     let revealedLetters = new Set<number>();
     let lastBallX = 0;
     let cycleCount = 0;
+    let currentDisplayedWord = words[0];
       
     const animate = () => {
       // Get letter elements directly from ref each frame
@@ -180,56 +182,46 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
   
       const ballRect = ballRef.current.getBoundingClientRect();
       const ballCenterX = ballRect.left + ballRect.width / 2;
-      
+  
       // Detect when ball loops back (position suddenly decreases)
       // Ball moves left to right, so when X decreases, it means it looped
       if (revealedLetters.size > 0 && !isResetting && lastBallX > 0 && ballCenterX < lastBallX - 50) {
         isResetting = true;
         cycleCount++;
         
-        // Animate all letters back to hidden state
-        letterElements.forEach((letterEl, index) => {
-          gsap.to(letterEl, {
-            opacity: 0,
-            scale: 0.5,
-            filter: 'blur(4px)',
-            duration: 0.3,
-            delay: index * 0.03,
-            onComplete: () => {
-              if (index === letterElements.length - 1) {
-                isResetting = false;
-                revealedLetters.clear();
-                
-                // Update text content to next word
-                const nextWordIndex = cycleCount % words.length;
-                const nextWord = words[nextWordIndex];
-                
-                letterElements.forEach((el, idx) => {
-                  if (el && nextWord[idx]) {
-                    const newChar = nextWord[idx] === ' ' ? '\u00A0' : nextWord[idx];
-                    el.textContent = newChar;
-                    gsap.set(el, {
-                      opacity: 0,
-                      scale: 0.5,
-                      filter: 'blur(4px)'
-                    });
-                  }
-                });
-              }
-            }
-          });
-        });
-      }
-      
-      lastBallX = ballCenterX;
-
-      // Reveal letters as ball passes
-      letterElements.forEach((letterEl, index) => {
-        if (!letterEl || revealedLetters.has(index)) return;
+        // Immediately update to next word
+        const nextWordIndex = cycleCount % words.length;
+        const nextWord = words[nextWordIndex];
+        currentDisplayedWord = nextWord;
         
+        // Update letter content and hide immediately
+        letterElements.forEach((el, idx) => {
+          if (el) {
+            const newChar = idx < nextWord.length ? (nextWord[idx] === ' ' ? '\u00A0' : nextWord[idx]) : '';
+            el.textContent = newChar;
+            el.style.visibility = idx < nextWord.length ? 'visible' : 'hidden';
+            gsap.set(el, {
+              opacity: 0,
+              scale: 0.5,
+              filter: 'blur(4px)'
+            });
+          }
+        });
+        
+        // Clear revealed set for new word
+        revealedLetters.clear();
+        isResetting = false;
+      }
+        
+      lastBallX = ballCenterX;
+  
+      // Reveal letters as ball passes (only for visible letters)
+      letterElements.forEach((letterEl, index) => {
+        if (!letterEl || revealedLetters.has(index) || letterEl.style.visibility === 'hidden') return;
+          
         const letterRect = letterEl.getBoundingClientRect();
         const letterCenterX = letterRect.left + letterRect.width / 2;
-
+  
         if (ballCenterX >= letterCenterX) {
           revealedLetters.add(index);
           gsap.to(letterEl, {
@@ -241,16 +233,18 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           });
         }
       });
-
+  
       requestAnimationFrame(animate);
     };
-
+  
     // Initialize letters to hidden state
     const initLetters = () => {
       const letterElements = lettersRef.current[0] || [];
       if (letterElements.length > 0) {
-        letterElements.forEach((letterEl) => {
+        letterElements.forEach((letterEl, idx) => {
           if (letterEl) {
+            // Show only letters that fit the first word
+            letterEl.style.visibility = idx < words[0].length ? 'visible' : 'hidden';
             gsap.set(letterEl, {
               opacity: 0,
               scale: 0.5,
@@ -260,12 +254,12 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         });
       }
     };
-    
+      
     // Try to initialize immediately, retry if needed
     initLetters();
     setTimeout(initLetters, 50);
     setTimeout(initLetters, 100);
-
+  
     const animationId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationId);
   }, []);
@@ -763,18 +757,28 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
               textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
               lineHeight: '1',
               position: 'relative',
-              zIndex: 1
+              zIndex: 1,
+              width: 'fit-content', // Dynamic width based on content
+              minWidth: `${maxLetters * 30}px` // Minimum width for longest word
             }}
           >
             <span className="football-text">
-              <span className="football-letter" ref={(el) => { if (el && !lettersRef.current[0]) lettersRef.current[0] = []; if (el) lettersRef.current[0][0] = el }}>F</span>
-              <span className="football-letter" ref={(el) => { if (el && !lettersRef.current[0]) lettersRef.current[0] = []; if (el) lettersRef.current[0][1] = el }}>O</span>
-              <span className="football-letter" ref={(el) => { if (el && !lettersRef.current[0]) lettersRef.current[0] = []; if (el) lettersRef.current[0][2] = el }}>O</span>
-              <span className="football-letter" ref={(el) => { if (el && !lettersRef.current[0]) lettersRef.current[0] = []; if (el) lettersRef.current[0][3] = el }}>T</span>
-              <span className="football-letter" ref={(el) => { if (el && !lettersRef.current[0]) lettersRef.current[0] = []; if (el) lettersRef.current[0][4] = el }}>B</span>
-              <span className="football-letter" ref={(el) => { if (el && !lettersRef.current[0]) lettersRef.current[0] = []; if (el) lettersRef.current[0][5] = el }}>A</span>
-              <span className="football-letter" ref={(el) => { if (el && !lettersRef.current[0]) lettersRef.current[0] = []; if (el) lettersRef.current[0][6] = el }}>L</span>
-              <span className="football-letter" ref={(el) => { if (el && !lettersRef.current[0]) lettersRef.current[0] = []; if (el) lettersRef.current[0][7] = el }}>L</span>
+              {Array.from({ length: maxLetters }, (_, i) => {
+                const initialChar = i < words[0].length ? words[0][i] : '';
+                return (
+                  <span 
+                    key={i}
+                    className="football-letter" 
+                    ref={(el) => { 
+                      if (el && !lettersRef.current[0]) lettersRef.current[0] = []; 
+                      if (el) lettersRef.current[0][i] = el;
+                    }}
+                    style={{ visibility: i < words[0].length ? 'visible' : 'hidden' }}
+                  >
+                    {initialChar === ' ' ? '\u00A0' : initialChar}
+                  </span>
+                );
+              })}
             </span>
             <span className="rolling-ball" ref={ballRef}>⚽</span>
           </h1>
