@@ -160,7 +160,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
   const [idNumber, setIdNumber] = useState('');
   
   // Words to alternate between
-  const words = ['♨️FOOTBALL♨️'];
+  const words = ['FOOTBALL'];
   const maxLetters = Math.max(...words.map(w => w.length));
   
   // Track ball position and reveal letters based on actual position
