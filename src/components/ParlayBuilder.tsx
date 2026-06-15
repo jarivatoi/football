@@ -1416,15 +1416,16 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     <span className="font-medium">-Rs {apiBreakdown.tax.toFixed(2)}</span>
                   </div>
                   {apiBreakdown.bonus > 0 && (() => {
-                    // Calculate bonus percentage: bonus / (netPayout - bonus) * 100
-                    // netPayout includes bonus, so we need to subtract it to get the base payout
-                    const payoutWithoutBonus = apiBreakdown.netPayout - apiBreakdown.bonus;
-                    const rawPercentage = payoutWithoutBonus > 0 ? (apiBreakdown.bonus / payoutWithoutBonus) * 100 : 0;
-                    // Round to nearest 5
-                    const bonusPercentage = Math.round(rawPercentage / 5) * 5;
+                    // Reverse calculate bonus percentage from API response
+                    // Formula: (stake - tax) × odds = basePayout (rounded to int)
+                    // bonus% = ((apiNetPayout - basePayout) / basePayout) × 100
+                    const basePayout = Math.round((apiBreakdown.stake - apiBreakdown.tax) * totalOdds);
+                    const rawPercentage = basePayout > 0 ? ((apiBreakdown.netPayout - basePayout) / basePayout) * 100 : 0;
+                    // Round to nearest integer
+                    const bonusPercentage = Math.round(rawPercentage);
                     return (
                       <div className="flex justify-between text-green-600">
-                        <span>Bonus:</span>
+                        <span>Bonus ({bonusPercentage}%):</span>
                         <span className="font-medium">+Rs {formatCurrency(apiBreakdown.bonus)}</span>
                       </div>
                     );
@@ -1463,15 +1464,16 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   <span className="font-medium">-Rs {apiBreakdown.tax.toFixed(2)}</span>
                 </div>
                 {apiBreakdown.bonus > 0 && (() => {
-                  // Calculate bonus percentage: bonus / (netPayout - bonus) * 100
-                  // netPayout includes bonus, so we need to subtract it to get the base payout
-                  const payoutWithoutBonus = apiBreakdown.netPayout - apiBreakdown.bonus;
-                  const rawPercentage = payoutWithoutBonus > 0 ? (apiBreakdown.bonus / payoutWithoutBonus) * 100 : 0;
-                  // Round to nearest 5
-                  const bonusPercentage = Math.round(rawPercentage / 5) * 5;
+                  // Reverse calculate bonus percentage from API response
+                  // Formula: (stake - tax) × odds = basePayout (rounded to int)
+                  // bonus% = ((apiNetPayout - basePayout) / basePayout) × 100
+                  const basePayout = Math.round((apiBreakdown.stake - apiBreakdown.tax) * totalOdds);
+                  const rawPercentage = basePayout > 0 ? ((apiBreakdown.netPayout - basePayout) / basePayout) * 100 : 0;
+                  // Round to nearest integer
+                  const bonusPercentage = Math.round(rawPercentage);
                   return (
                     <div className="flex justify-between text-green-600">
-                      <span>Bonus:</span>
+                      <span>Bonus ({bonusPercentage}%):</span>
                       <span className="font-medium">+Rs {formatCurrency(apiBreakdown.bonus)}</span>
                     </div>
                   );
