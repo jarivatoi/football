@@ -12,6 +12,8 @@ interface MatchCardProps {
 }
 
 const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '' }) => {
+  console.log('[MatchCard] Render - searchTerm:', searchTerm, 'searchMode:', searchMode, 'match:', match.homeTeam, 'vs', match.awayTeam);
+  
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoadingMarkets, setIsLoadingMarkets] = useState(false);
   const [expandedMarkets, setExpandedMarkets] = useState<Record<string, boolean>>({});
@@ -20,7 +22,13 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
 
   // Parse advanced filter code (e.g., 120FT, 150H1BTTS, 120FTUO2.5, 150-180H1BTTS)
   const parseFilterCode = (code: string) => {
-    if (!code || searchMode === 'matches' && !/\d/.test(code)) return null;
+    try {
+      console.log(`[Parser] Input: "${code}", searchMode: ${searchMode}`);
+      
+      if (!code || !code.trim()) {
+        console.log('[Parser] Empty code, returning null');
+        return null;
+      }
     
     const upper = code.toUpperCase().trim();
     
@@ -34,7 +42,10 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     if (isRange) {
       // Parse range: 150-180H1BTTS
       const rangeMatch = upper.match(/^(\d{2,3})-(\d{2,3})/);
-      if (!rangeMatch) return null;
+      if (!rangeMatch) {
+        console.log('[Parser] No range match found');
+        return null;
+      }
       
       oddsMin = parseFloat(rangeMatch[1]);
       oddsMax = parseFloat(rangeMatch[2]);
@@ -42,19 +53,24 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       if (oddsMax > 10) oddsMax = oddsMax / 100;
       odds = oddsMin; // Use min for compatibility
       afterOdds = upper.slice(rangeMatch[0].length);
+      console.log(`[Parser] Range: ${oddsMin}-${oddsMax}, afterOdds: "${afterOdds}"`);
     } else {
       // Single odds: 120FT
       const oddsMatch = upper.match(/^(\d{2,3})/);
-      if (!oddsMatch) return null;
+      if (!oddsMatch) {
+        console.log('[Parser] No odds match found');
+        return null;
+      }
       
       odds = parseFloat(oddsMatch[1]);
       if (odds > 10) odds = odds / 100;
       afterOdds = upper.slice(oddsMatch[1].length);
+      console.log(`[Parser] Single odds: ${odds}, afterOdds: "${afterOdds}"`);
     }
     
     // Parse period and market
     let period = 'FT';
-    let marketType = '1X2';
+    let marketType: string | null = null; // null means ALL markets
     let option: string | undefined;
     let line: string | undefined;
     
@@ -108,7 +124,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       else if (afterMarket === 'U' || afterMarket.startsWith('UNDER')) option = 'U';
     }
     
-    return { 
+    const result = { 
       odds, 
       oddsMin, 
       oddsMax, 
@@ -119,6 +135,14 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       line, 
       rawCode: code 
     };
+    
+    console.log('[Parser] Returning:', result);
+    return result;
+    } catch (error) {
+      console.error('[Parser] CRASHED with error:', error);
+      console.error('[Parser] Input was:', code);
+      return null;
+    }
   };
 
   // Market type detection helpers
@@ -225,33 +249,104 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
 
   // Auto-expand markets based on advanced filter code
   React.useEffect(() => {
+    console.log('[AutoExpand] useEffect triggered, isExpanded:', isExpanded, 'hasMarkets:', match.allMarkets?.length, 'searchTerm:', searchTerm, 'searchMode:', searchMode);
+    
     if (isExpanded && match.allMarkets && match.allMarkets.length > 0) {
       // If no search term, collapse all auto-expanded markets
-      if (!searchTerm || searchMode !== 'matches') {
+      if (!searchTerm) {
+        console.log('[AutoExpand] No search term, clearing');
         setExpandedMarkets({});
         return;
       }
       
+      console.log('[AutoExpand] Calling parseFilterCode with:', searchTerm);
       // Try to parse as advanced filter code
-      const parsed = parseFilterCode(searchTerm);
+      let parsed;
+      try {
+        parsed = parseFilterCode(searchTerm);
+      } catch (error) {
+        console.error('[AutoExpand] Parser crashed:', error);
+        parsed = null;
+      }
+      
+      console.log('[AutoExpand] Parsed result:', parsed);
       
       if (parsed) {
         // Advanced filter mode
-        const newExpandedMarkets: Record<string, boolean> = {};
         
         // Auto-switch market tab based on period
-        if (parsed.period === 'H1' && activeMarketTab !== 'HT') {
+        if (parsed.period === 'H1') {
           setActiveMarketTab('HT');
-        } else if (parsed.period === 'H2' && activeMarketTab !== '2H') {
+        } else if (parsed.period === 'H2') {
           setActiveMarketTab('2H');
-        } else if (parsed.period === 'FT' && activeMarketTab !== 'ALL') {
+        } else if (parsed.period === 'FT') {
           setActiveMarketTab('ALL');
         }
         
-        // Find and expand matching markets
-        const matchingMarkets = match.allMarkets.filter(m => 
-          m.selections && m.selections.length > 0 && marketMatchesFilter(m, parsed)
-        );
+        // Clear expanded markets first, then find new ones
+        const newExpandedMarkets: Record<string, boolean> = {};
+        
+        // Find and expand ONLY matching markets for the specified period
+        const matchingMarkets = match.allMarkets.filter(m => {
+          if (!m.selections || m.selections.length === 0) return false;
+          
+          // STRICT period check - only show markets for the specified period
+          // Note: API may use HT or H1 for first half, 2H or H2 for second half
+          if (parsed.period === 'H1' && m.periodCode !== 'H1' && m.periodCode !== 'HT') {
+            console.log(`[Filter] Excluding market ${m.name} - periodCode is ${m.periodCode}, need H1/HT`);
+            return false;
+          }
+          if (parsed.period === 'H2' && m.periodCode !== 'H2' && m.periodCode !== '2H') return false;
+          if (parsed.period === 'FT' && m.periodCode !== 'FT' && m.periodCode) return false;
+          
+          // Check market type (only if specified)
+          if (parsed.marketType) {
+            switch (parsed.marketType) {
+              case '1X2':
+                if (!is1X2Market(m)) return false;
+                break;
+              case 'DC':
+                if (!isDoubleChanceMarket(m)) return false;
+                break;
+              case 'UO':
+                if (!isOverUnderMarket(m)) return false;
+                // Check line if specified
+                if (parsed.line) {
+                  const marketLine = m.marketLine || m.name.match(/(\d+\.\d+)/)?.[1];
+                  if (marketLine !== parsed.line) return false;
+                }
+                break;
+              case 'BTTS':
+                if (!isBTTSMarket(m)) return false;
+                break;
+              case 'GM':
+                if (!isGoalMarket(m)) return false;
+                break;
+              case 'CS':
+                if (!isCorrectScoreMarket(m)) return false;
+                break;
+              case 'WM':
+                if (!isWinningMarginMarket(m)) return false;
+                break;
+              case 'OE':
+                if (!isOddEvenMarket(m)) return false;
+                break;
+            }
+          }
+          
+          console.log(`[Filter] Including market ${m.name} - periodCode is ${m.periodCode}`);
+          return true;
+        });
+        
+        console.log(`[Filter] Parsed: period=${parsed.period}, marketType=${parsed.marketType}, Found ${matchingMarkets.length} matching markets`);
+        
+        // Log all markets for debugging
+        console.log(`[Filter] All markets in match:`, match.allMarkets.map(m => ({
+          name: m.name,
+          periodCode: m.periodCode,
+          marketCode: m.marketCode,
+          hasSelections: m.selections?.length > 0
+        })));
         
         for (const market of matchingMarkets) {
           // Check if this market has any selection matching the target odds
@@ -270,9 +365,11 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           
           if (hasMatchingOdds) {
             newExpandedMarkets[market.marketBookNo] = true;
+            console.log(`[Filter] Expanded market ${market.name} (${market.marketBookNo})`);
           }
         }
         
+        console.log(`[Filter] Total expanded markets: ${Object.keys(newExpandedMarkets).length}`);
         setExpandedMarkets(newExpandedMarkets);
       } else {
         // Fall back to old behavior for simple odds filtering
@@ -288,9 +385,17 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       hasClearedRef.current = false;
       
       const upperSearch = searchTerm.toUpperCase().trim();
+      
+      // Check for advanced filter patterns (e.g., 160H1, 125H1DC, 150H1BTTS, 120FTUO2.5)
+      const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT)/.test(upperSearch);
+      
+      // Also check for old patterns (H1H, H1D, H1A, etc.)
       const hasPeriodFilter = upperSearch.endsWith('H1') || upperSearch.endsWith('H2') || 
                               upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A') ||
-                              upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A');
+                              upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A') ||
+                              hasAdvancedFilter;
+      
+      console.log('[AutoExpand Detection] searchTerm:', searchTerm, 'hasAdvancedFilter:', hasAdvancedFilter, 'hasPeriodFilter:', hasPeriodFilter, 'isExpanded:', isExpanded);
       
       if (hasPeriodFilter && !isExpanded) {
         // Expand match card when period filter is added
@@ -399,128 +504,53 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
 
   // Check if an odds value matches the current search filter
   const oddsMatchFilter = (odds: number | string, position?: 'home' | 'draw' | 'away', period?: string): boolean => {
-    if (searchMode === 'matches' || !searchTerm) return false;
+    // Only process when there's a search term and we're NOT in matches mode
+    if (!searchTerm || searchMode === 'matches') return false;
     
-    let targetOdds = parseFloat(searchTerm);
-    let positionFilter: 'home' | 'draw' | 'away' | null = null;
-    let periodFilter: 'H1' | 'H2' | null = null;
-    
-    // Check for position suffix (H=Home, D=Draw, A=Away) and period (H1=1st Half, H2=2nd Half)
-    const upperSearch = searchTerm.toUpperCase().trim();
-    
-    // Check for period + position suffix FIRST (H1H, H1D, H1A, H2H, H2D, H2A)
-    if (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A')) {
-      periodFilter = 'H1';
-      const withoutPeriodAndPosition = upperSearch.slice(0, -3);
-      if (upperSearch.endsWith('H1H')) {
-        positionFilter = 'home';
-        targetOdds = parseFloat(withoutPeriodAndPosition);
-      } else if (upperSearch.endsWith('H1D')) {
-        positionFilter = 'draw';
-        targetOdds = parseFloat(withoutPeriodAndPosition);
-      } else if (upperSearch.endsWith('H1A')) {
-        positionFilter = 'away';
-        targetOdds = parseFloat(withoutPeriodAndPosition);
-      }
-    } else if (upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A')) {
-      periodFilter = 'H2';
-      const withoutPeriodAndPosition = upperSearch.slice(0, -3);
-      if (upperSearch.endsWith('H2H')) {
-        positionFilter = 'home';
-        targetOdds = parseFloat(withoutPeriodAndPosition);
-      } else if (upperSearch.endsWith('H2D')) {
-        positionFilter = 'draw';
-        targetOdds = parseFloat(withoutPeriodAndPosition);
-      } else if (upperSearch.endsWith('H2A')) {
-        positionFilter = 'away';
-        targetOdds = parseFloat(withoutPeriodAndPosition);
-      }
-    } else if (upperSearch.endsWith('H1') || upperSearch.endsWith('H2')) {
-      // Period only (e.g., 190H1)
-      periodFilter = upperSearch.endsWith('H1') ? 'H1' : 'H2';
-      targetOdds = parseFloat(upperSearch.slice(0, -2));
-    } else if (upperSearch.endsWith('H')) {
-      positionFilter = 'home';
-      targetOdds = parseFloat(upperSearch.slice(0, -1));
-    } else if (upperSearch.endsWith('D')) {
-      positionFilter = 'draw';
-      targetOdds = parseFloat(upperSearch.slice(0, -1));
-    } else if (upperSearch.endsWith('A')) {
-      positionFilter = 'away';
-      targetOdds = parseFloat(upperSearch.slice(0, -1));
-    }
-    
-    // Handle input like "130" as "1.30" for decimal odds
-    if (!isNaN(targetOdds) && targetOdds > 10) {
-      targetOdds = targetOdds / 100;
-    }
-    
-    const oddsValue = typeof odds === 'string' ? parseFloat(odds) : odds;
-    
-    if (isNaN(targetOdds) || isNaN(oddsValue)) return false;
-    
-    // If period filter is specified (H1/H2), only match All Markets (not quick 1X2)
-    // Quick 1X2 has no period parameter, so it should not match period-specific filters
-    if (periodFilter && !period) {
-      return false; // Quick 1X2 shouldn't match H1/H2 filters
-    }
-    
-    // If period filter is specified, check if it matches
-    if (periodFilter && period) {
-      const marketPeriod = period.toUpperCase();
-      if (periodFilter === 'H1' && marketPeriod !== 'H1') return false;
-      // For H2, accept both '2H' and 'H2'
-      if (periodFilter === 'H2' && marketPeriod !== '2H' && marketPeriod !== 'H2') return false;
-    }
-    
-    // If position filter is specified, check if it matches
-    // For All Markets (position=undefined), we need to check the period+position context
-    if (positionFilter) {
-      // If position is provided, check directly
-      if (position) {
-        if (positionFilter !== position) return false;
-      }
-      // If position is undefined (All Markets), the caller should ensure only the correct position is being checked
-      // For now, we allow it to match if odds value matches (the period check above should filter correctly)
-    }
-    
-    if (searchMode === 'eq') {
-      return oddsValue === targetOdds;
-    } else if (searchMode === 'gte') {
-      return oddsValue >= targetOdds;
-    } else if (searchMode === 'lte') {
-      return oddsValue <= targetOdds;
-    } else if (searchMode === 'between') {
-      // Parse range for "between" mode
-      if (searchTerm.includes('-')) {
-        const rangeParts = searchTerm.split('-');
-        if (rangeParts.length === 2) {
-          let minStr = rangeParts[0].trim();
-          let maxStr = rangeParts[1].trim();
-          
-          // Remove period/position suffixes
-          if (maxStr.toUpperCase().endsWith('H1H') || maxStr.toUpperCase().endsWith('H1D') || maxStr.toUpperCase().endsWith('H1A') ||
-              maxStr.toUpperCase().endsWith('H2H') || maxStr.toUpperCase().endsWith('H2D') || maxStr.toUpperCase().endsWith('H2A')) {
-            maxStr = maxStr.slice(0, -3);
-          } else if (maxStr.toUpperCase().endsWith('H1') || maxStr.toUpperCase().endsWith('H2')) {
-            maxStr = maxStr.slice(0, -2);
-          } else if (maxStr.toUpperCase().endsWith('H') || maxStr.toUpperCase().endsWith('D') || maxStr.toUpperCase().endsWith('A')) {
-            maxStr = maxStr.slice(0, -1);
-          }
-          
-          const minOdds = parseFloat(minStr);
-          const maxOdds = parseFloat(maxStr);
-          
-          const adjustedMin = minOdds > 10 ? minOdds / 100 : minOdds;
-          const adjustedMax = maxOdds > 10 ? maxOdds / 100 : maxOdds;
-          
-          return oddsValue >= adjustedMin && oddsValue <= adjustedMax;
-        }
+    // Use the new parser
+    const parsed = parseFilterCode(searchTerm);
+    if (!parsed) {
+      // Fall back to old logic for backwards compatibility
+      let targetOdds = parseFloat(searchTerm);
+      if (!isNaN(targetOdds) && targetOdds > 10) targetOdds = targetOdds / 100;
+      
+      const selOdds = parseFloat(String(odds));
+      if (isNaN(selOdds)) return false;
+      
+      if (searchMode === 'eq') {
+        return Math.abs(selOdds - targetOdds) < 0.001;
+      } else if (searchMode === 'gte') {
+        return selOdds >= targetOdds;
+      } else if (searchMode === 'lte') {
+        return selOdds <= targetOdds;
       }
       return false;
     }
     
-    return false;
+    // New logic using parsed filter
+    const selOdds = parseFloat(String(odds));
+    if (isNaN(selOdds)) return false;
+    
+    // Check odds match
+    if (parsed.isRange && parsed.oddsMin !== undefined && parsed.oddsMax !== undefined) {
+      if (selOdds < parsed.oddsMin || selOdds > parsed.oddsMax) return false;
+    } else {
+      if (Math.abs(selOdds - parsed.odds) >= 0.001) return false;
+    }
+    
+    // Check period match
+    if (parsed.period === 'H1' && period !== 'H1' && period !== 'HT') return false;
+    if (parsed.period === 'H2' && period !== 'H2' && period !== '2H') return false;
+    if (parsed.period === 'FT' && period !== 'FT' && period) return false;
+    
+    // Check position match (for 1X2 markets)
+    if (parsed.option && position) {
+      if (parsed.option === 'H' && position !== 'home') return false;
+      if (parsed.option === 'D' && position !== 'draw') return false;
+      if (parsed.option === 'A' && position !== 'away') return false;
+    }
+    
+    return true;
   };
 
   return (

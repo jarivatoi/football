@@ -261,7 +261,6 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             });
           }
         });
-        console.log('✅ Initialized', letterElements.length, 'letters for word:', words[0]);
       }
     };
       
