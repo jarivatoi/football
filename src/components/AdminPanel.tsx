@@ -50,6 +50,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
   // Sort state for User Directory
   const [sortBy, setSortBy] = useState<'last_login'>('last_login')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [searchQuery, setSearchQuery] = useState('')
 
   const fetchData = async () => {
     setLoading(true)
@@ -188,6 +189,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
   const sortedUsers = useMemo(() => {
     let filtered = users.filter(u => u.id_number !== '5274');
     
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(u => 
+        (u.name && u.name.toLowerCase().includes(query)) ||
+        (u.surname && u.surname.toLowerCase().includes(query)) ||
+        (u.id_number && u.id_number.toLowerCase().includes(query))
+      );
+    }
+    
     filtered.sort((a, b) => {
       let comparison = 0;
       
@@ -211,7 +222,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
     });
     
     return filtered;
-  }, [users, sortBy, sortOrder]);
+  }, [users, sortBy, sortOrder, searchQuery]);
 
   const toggleUserAccess = async (userId: string, currentActiveStatus: boolean) => {
     try {
@@ -291,25 +302,30 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
         {/* Maintenance Mode Indicator */}
         <div style={{
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          gap: '8px',
-          padding: '8px 12px',
+          justifyContent: 'center',
+          gap: '2px',
+          padding: '6px 12px',
           borderRadius: '8px',
           backgroundColor: isMaintenanceEnabled ? '#fee2e2' : '#dcfce7',
-          fontSize: '14px',
-          fontWeight: 600,
-          height: 40
+          minHeight: 40
         }}>
-          <div style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: isMaintenanceEnabled ? '#dc2626' : '#16a34a',
-            animation: 'pulse 2s infinite'
-          }} />
-          <span style={{ color: isMaintenanceEnabled ? '#991b1b' : '#166534' }}>
-            Maintenance: {isMaintenanceEnabled ? 'ON' : 'OFF'}
-          </span>
+          <div style={{ fontSize: '11px', fontWeight: 600, color: '#374151', lineHeight: 1 }}>
+            Maintenance:
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: isMaintenanceEnabled ? '#dc2626' : '#16a34a',
+              animation: 'pulse 2s infinite'
+            }} />
+            <span style={{ fontSize: '12px', fontWeight: 600, color: isMaintenanceEnabled ? '#991b1b' : '#166534', lineHeight: 1 }}>
+              {isMaintenanceEnabled ? 'ON' : 'OFF'}
+            </span>
+          </div>
         </div>
         
         {/* Logout Button */}
@@ -491,6 +507,25 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
           <strong>User Directory</strong> ({sortedUsers.length} users)
         </h3>
         
+        {/* Search Bar */}
+        <div style={{ marginBottom: 12 }}>
+          <input
+            type="text"
+            placeholder="Search by name or ID..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              fontSize: 14,
+              border: '1px solid #d1d5db',
+              borderRadius: 8,
+              outline: 'none',
+              boxSizing: 'border-box'
+            }}
+          />
+        </div>
+        
         {/* Centered Filter */}
         <div style={{ 
           marginBottom: 16, 
@@ -545,38 +580,39 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
                     <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
                       Last Login: {formatDate(user.last_login)}
                     </div>
-                  </div>
-                  
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      onClick={() => toggleUserAccess(user.id, user.is_active)}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: user.is_active ? '#ef4444' : '#10b981',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 4,
-                        fontSize: 12,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {user.is_active ? 'Deactivate' : 'Activate'}
-                    </button>
                     
-                    <button
-                      onClick={() => handleDeleteClick(user.id, `${user.name} ${user.surname}`)}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#dc2626',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 4,
-                        fontSize: 12,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Delete
-                    </button>
+                    {/* Buttons moved to bottom */}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                      <button
+                        onClick={() => toggleUserAccess(user.id, user.is_active)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: user.is_active ? '#ef4444' : '#10b981',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 4,
+                          fontSize: 12,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {user.is_active ? 'Deactivate' : 'Activate'}
+                      </button>
+                      
+                      <button
+                        onClick={() => handleDeleteClick(user.id, `${user.name} ${user.surname}`)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#dc2626',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 4,
+                          fontSize: 12,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </li>
               ))}
