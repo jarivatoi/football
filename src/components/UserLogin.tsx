@@ -160,7 +160,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
   const [idNumber, setIdNumber] = useState('');
   
   // Words to alternate between
-  const words = ['FOOTBALLing', 'By Viraj', 'Welcome'];
+  const words = ['✨FOOTBALL✨'];
   const maxLetters = Math.max(...words.map(w => w.length));
   
   // Track ball position and reveal letters based on actual position
@@ -184,8 +184,9 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
       const ballCenterX = ballRect.left + ballRect.width / 2;
   
       // Detect when ball loops back (position suddenly decreases)
-      // Ball moves left to right, so when X decreases, it means it looped
-      if (revealedLetters.size > 0 && !isResetting && lastBallX > 0 && ballCenterX < lastBallX - 50) {
+      // Ball moves left to right, so when X decreases significantly, it means it looped
+      // Use a larger threshold (100px) to ensure ball has fully completed its pass
+      if (revealedLetters.size > 0 && !isResetting && lastBallX > 0 && ballCenterX < lastBallX - 100) {
         isResetting = true;
         cycleCount++;
         
@@ -194,12 +195,13 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         const nextWord = words[nextWordIndex];
         currentDisplayedWord = nextWord;
         
-        // Update letter content and hide immediately
+        // Hide ALL letters immediately and reset their state
         letterElements.forEach((el, idx) => {
           if (el) {
             const newChar = idx < nextWord.length ? (nextWord[idx] === ' ' ? '\u00A0' : nextWord[idx]) : '';
             el.textContent = newChar;
             el.style.visibility = idx < nextWord.length ? 'visible' : 'hidden';
+            // Force hide all letters
             gsap.set(el, {
               opacity: 0,
               scale: 0.5,
@@ -208,9 +210,12 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           }
         });
         
-        // Clear revealed set for new word
+        // Clear ALL revealed letters - start fresh
         revealedLetters.clear();
         isResetting = false;
+        
+        // Reset lastBallX to current position to prevent false triggers
+        lastBallX = ballCenterX;
       }
         
       lastBallX = ballCenterX;
@@ -222,7 +227,9 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         const letterRect = letterEl.getBoundingClientRect();
         const letterCenterX = letterRect.left + letterRect.width / 2;
   
-        if (ballCenterX >= letterCenterX) {
+        // Only reveal if ball is directly at or slightly past the letter (30px window)
+        // This prevents letters from auto-revealing after word reset
+        if (ballCenterX >= letterCenterX - 5 && ballCenterX < letterCenterX + 25) {
           revealedLetters.add(index);
           gsap.to(letterEl, {
             opacity: 1,
@@ -244,7 +251,9 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         letterElements.forEach((letterEl, idx) => {
           if (letterEl) {
             // Show only letters that fit the first word
-            letterEl.style.visibility = idx < words[0].length ? 'visible' : 'hidden';
+            const isVisible = idx < words[0].length;
+            letterEl.style.visibility = isVisible ? 'visible' : 'hidden';
+            // Force hidden state with GSAP
             gsap.set(letterEl, {
               opacity: 0,
               scale: 0.5,
@@ -252,6 +261,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             });
           }
         });
+        console.log('✅ Initialized', letterElements.length, 'letters for word:', words[0]);
       }
     };
       
@@ -689,7 +699,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         
         @keyframes roll {
           0% {
-            transform: translateX(-40px) translateY(-50%) rotate(0deg);
+            transform: translateX(-50px) translateY(-50%) rotate(0deg);
             opacity: 0;
           }
           5% {
@@ -699,7 +709,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             opacity: 1;
           }
           100% {
-            transform: translateX(320px) translateY(-50%) rotate(720deg);
+            transform: translateX(470px) translateY(-50%) rotate(720deg);
             opacity: 0;
           }
         }
@@ -749,7 +759,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px' }}>
           <h1 
             style={{ 
-              margin: '0',
+              margin: '0 auto', // Center the h1
               fontSize: '48px',
               fontWeight: '900',
               color: '#2563eb',
@@ -758,8 +768,9 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
               lineHeight: '1',
               position: 'relative',
               zIndex: 1,
-              width: 'fit-content', // Dynamic width based on content
-              minWidth: `${maxLetters * 30}px` // Minimum width for longest word
+              width: '100%', // Match parent width
+              maxWidth: '420px', // Don't exceed form width
+              textAlign: 'center' // Center text
             }}
           >
             <span className="football-text">
