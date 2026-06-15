@@ -45,6 +45,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
   const [isMaintenanceEnabled, setIsMaintenanceEnabled] = useState(false)
   const [confirmMaintenanceModal, setConfirmMaintenanceModal] = useState(false)
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [deleteModal, setDeleteModal] = useState<{ userId: string; userName: string } | null>(null)
   
   // Sort state for User Directory
   const [sortBy, setSortBy] = useState<'last_login'>('last_login')
@@ -221,21 +222,41 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
     }
   }
 
-  const deleteUser = async (userId: string, userName: string) => {
-    if (!confirm(`Are you sure you want to delete ${userName}?`)) return;
+    const handleDeleteClick = (userId: string, userName: string) => {
+    setDeleteModal({ userId, userName });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteModal) return;
     
     try {
-      await supabase.from('users').delete().eq('id', userId)
-      fetchData()
-      setNotification({ message: `${userName} deleted successfully`, type: 'success' })
+      await supabase.from('users').delete().eq('id', deleteModal.userId);
+      fetchData();
+      setNotification({ message: `${deleteModal.userName} deleted successfully`, type: 'success' });
+      setDeleteModal(null);
     } catch (error) {
-      setNotification({ message: 'Error deleting user', type: 'error' })
+      setNotification({ message: 'Error deleting user', type: 'error' });
+      setDeleteModal(null);
     }
-  }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModal(null);
+  };
 
   return (
     <div style={{ padding: 16, maxWidth: 800, margin: '0 auto' }}>
-      {/* Header - All in one line, same height */}
+      {/* Admin Panel Title - Top */}
+      <h2 style={{ 
+        margin: '0 0 16px 0',
+        fontSize: 24,
+        fontWeight: 700,
+        textAlign: 'center'
+      }}>
+        Admin Panel
+      </h2>
+      
+      {/* Back, Maintenance, Logout - In one line */}
       <div style={{ 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -266,17 +287,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
             Back
           </button>
         )}
-        
-        {/* Centered Title */}
-        <h2 style={{ 
-          margin: 0,
-          fontSize: 20,
-          fontWeight: 700,
-          textAlign: 'center',
-          flex: 1
-        }}>
-          Admin Panel
-        </h2>
         
         {/* Maintenance Mode Indicator */}
         <div style={{
@@ -526,11 +536,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
                   }}
                 >
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600 }}>
+                    <div style={{ fontWeight: 600, fontSize: 16 }}>
                       {user.surname} {user.name}
                     </div>
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
-                      ID: {user.id_number} | Last Login: {formatDate(user.last_login)}
+                    <div style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>
+                      ID: {user.id_number}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
+                      Last Login: {formatDate(user.last_login)}
                     </div>
                   </div>
                   
@@ -551,7 +564,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
                     </button>
                     
                     <button
-                      onClick={() => deleteUser(user.id, `${user.name} ${user.surname}`)}
+                      onClick={() => handleDeleteClick(user.id, `${user.name} ${user.surname}`)}
                       style={{
                         padding: '6px 12px',
                         backgroundColor: '#dc2626',
@@ -597,6 +610,78 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
           type={notification.type}
           onClose={() => setNotification(null)}
         />
+      )}
+      
+      {/* Delete Confirmation Modal */}
+      {deleteModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={handleCancelDelete}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: 12,
+              padding: 24,
+              maxWidth: 400,
+              width: '90%',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 16px 0', fontSize: 20, fontWeight: 700 }}>
+              Confirm Delete
+            </h3>
+            <p style={{ margin: '0 0 24px 0', fontSize: 16, color: '#374151' }}>
+              Are you sure you want to delete <strong>{deleteModal.userName}</strong>?
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                onClick={handleCancelDelete}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  backgroundColor: '#6b7280',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       
       {/* Maintenance Mode Confirmation Modal */}
