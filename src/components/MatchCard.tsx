@@ -81,12 +81,15 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       period = 'H2';
     } else if (afterOdds.startsWith('FT')) {
       period = 'FT';
+    } else if (afterOdds.startsWith('ALL')) {
+      period = 'ALL';
     }
     
     const afterPeriod = afterOdds.startsWith('H1') ? afterOdds.slice(2) : 
                         afterOdds.startsWith('H2') ? afterOdds.slice(2) :
                         afterOdds.startsWith('2H') ? afterOdds.slice(2) :
-                        afterOdds.startsWith('FT') ? afterOdds.slice(2) : afterOdds;
+                        afterOdds.startsWith('FT') ? afterOdds.slice(2) :
+                        afterOdds.startsWith('ALL') ? afterOdds.slice(3) : afterOdds;
     
     // Check for market types
     if (afterPeriod.startsWith('DC')) {
@@ -299,6 +302,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         } else if (parsed.period === 'H2') {
           setActiveMarketTab('2H');
         } else if (parsed.period === 'FT') {
+          setActiveMarketTab('FT');
+        } else if (parsed.period === 'ALL') {
           setActiveMarketTab('ALL');
         }
         
@@ -306,17 +311,29 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         const newExpandedMarkets: Record<string, boolean> = {};
         
         // Find and expand ONLY matching markets for the specified period
+        console.log(`[Filter] Total markets to check: ${match.allMarkets.length}`);
         const matchingMarkets = match.allMarkets.filter(m => {
           if (!m.selections || m.selections.length === 0) return false;
           
           // STRICT period check - only show markets for the specified period
           // Note: API may use HT or H1 for first half, 2H or H2 for second half
-          if (parsed.period === 'H1' && m.periodCode !== 'H1' && m.periodCode !== 'HT') {
+          // For 'ALL', don't filter by period - include everything
+          if (parsed.period === 'ALL') {
+            // Include all markets, no period filtering
+          } else if (parsed.period === 'H1' && m.periodCode !== 'H1' && m.periodCode !== 'HT') {
             console.log(`[Filter] Excluding market ${m.name} - periodCode is ${m.periodCode}, need H1/HT`);
             return false;
           }
-          if (parsed.period === 'H2' && m.periodCode !== 'H2' && m.periodCode !== '2H') return false;
-          if (parsed.period === 'FT' && m.periodCode !== 'FT' && m.periodCode) return false;
+          if (parsed.period === 'H2' && m.periodCode !== 'H2' && m.periodCode !== '2H') {
+            console.log(`[Filter] Excluding market ${m.name} - periodCode is ${m.periodCode}, need H2/2H`);
+            return false;
+          }
+          // For FT: exclude markets that have a periodCode but it's not FT
+          // (markets without periodCode are assumed to be FT)
+          if (parsed.period === 'FT' && m.periodCode && m.periodCode !== 'FT') {
+            console.log(`[Filter] Excluding market ${m.name} - periodCode is ${m.periodCode}, need FT`);
+            return false;
+          }
           
           // Check market type (only if specified)
           if (parsed.marketType) {
@@ -421,19 +438,21 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       
       const upperSearch = searchTerm.toUpperCase().trim();
       
-      // Check for advanced filter patterns (e.g., 160H1, 125H1DC, 150H1BTTS, 120FTUO2.5)
-      const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT)/.test(upperSearch);
+      // Check for advanced filter patterns (e.g., 160H1, 125H1DC, 150H1BTTS, 120FTUO2.5, 140ALL)
+      const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
       
       // Also check for old patterns (H1H, H1D, H1A, etc.)
       const hasPeriodFilter = upperSearch.endsWith('H1') || upperSearch.endsWith('H2') || 
                               upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A') ||
                               upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A') ||
+                              upperSearch.endsWith('FT') || upperSearch.endsWith('ALL') ||
                               hasAdvancedFilter;
       
       console.log('[AutoExpand Detection] searchTerm:', searchTerm, 'hasAdvancedFilter:', hasAdvancedFilter, 'hasPeriodFilter:', hasPeriodFilter, 'isExpanded:', isExpanded);
       
       if (hasPeriodFilter && !isExpanded) {
         // Expand match card when period filter is added
+        console.log('[AutoExpand Detection] Expanding card for period filter');
         toggleExpand();
       } else if (!hasPeriodFilter && isExpanded && searchMode !== 'matches') {
         // Collapse match card when period filter is removed (but keep expanded for text search)
