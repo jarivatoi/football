@@ -79,11 +79,14 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       period = 'H1';
     } else if (afterOdds.startsWith('H2') || afterOdds.startsWith('2H')) {
       period = 'H2';
+    } else if (afterOdds.startsWith('FT')) {
+      period = 'FT';
     }
     
     const afterPeriod = afterOdds.startsWith('H1') ? afterOdds.slice(2) : 
                         afterOdds.startsWith('H2') ? afterOdds.slice(2) :
-                        afterOdds.startsWith('2H') ? afterOdds.slice(2) : afterOdds;
+                        afterOdds.startsWith('2H') ? afterOdds.slice(2) :
+                        afterOdds.startsWith('FT') ? afterOdds.slice(2) : afterOdds;
     
     // Check for market types
     if (afterPeriod.startsWith('DC')) {
@@ -587,6 +590,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     if (parsed.period === 'FT' && period !== 'FT' && period) return false;
     
     // Check position match (for 1X2 markets)
+    console.log(`[oddsMatchFilter] DEBUG: parsed.option=${parsed?.option}, position=${position}, searchTerm=${searchTerm}`);
     if (parsed.option && position) {
       console.log(`[oddsMatchFilter] Checking position: parsed.option=${parsed.option}, position=${position}`);
       if (parsed.option === 'H' && position !== 'home') {
@@ -865,7 +869,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                                   }
                                   
                                   if (searchTerm && /\d{2,3}(H1|H2|2H|FT)/.test(searchTerm.toUpperCase())) {
-                                    console.log(`[Position Check] Selection: "${selection.name}", Index: ${market.selections.findIndex((s: any) => s === selection)}, Detected position: ${pos}, market: ${market.name}`);
+                                    const selIndex = market.selections.findIndex((s: any) => s === selection);
+                                    console.log(`[Position Check] Selection: "${selection.name}", Index: ${selIndex}, is1X2: ${is1X2Market(market)}, Detected position: ${pos}, market: ${market.name}, period: ${market.periodCode}`);
                                   }
                                   const matches = oddsMatchFilter(selection.odds, pos, market.periodCode);
                                   return matches ? 'bg-orange-500 text-white' : 'bg-gray-100 hover:bg-gray-200';

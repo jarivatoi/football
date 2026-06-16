@@ -577,6 +577,7 @@ function App() {
         );
       } else {
         // Filter by odds value
+        console.log(`[App Filter] Starting odds filter for searchTerm: ${searchTerm}, searchMode: ${searchMode}`);
         let targetOdds = parseFloat(searchTerm);
         let positionFilter: 'home' | 'draw' | 'away' | null = null;
         let periodFilter: 'H1' | 'H2' | null = null;
@@ -680,6 +681,10 @@ function App() {
                 // Try both '2H' and 'H2' for second half
                 const possiblePeriodCodes = periodFilter === 'H1' ? ['H1'] : ['2H', 'H2'];
                 
+                if (searchTerm.includes('210')) {
+                  console.log(`[App Filter] Checking match ${match.homeTeam} vs ${match.awayTeam} for 210H2, targetOdds: ${targetOdds}`);
+                }
+                
                 // Check ALL markets in the specified period for matching odds
                 for (const periodCode of possiblePeriodCodes) {
                   const periodMarkets = match.allMarkets.filter(m => 
@@ -691,15 +696,23 @@ function App() {
                       const selOdds = parseFloat(String(sel.odds));
                       if (isNaN(selOdds)) return false;
                       
+                      let matches = false;
                       if (searchMode === 'between') {
-                        return selOdds >= targetOddsMin && selOdds <= targetOddsMax;
+                        matches = selOdds >= targetOddsMin && selOdds <= targetOddsMax;
                       } else if (searchMode === 'gte') {
-                        return selOdds >= targetOdds;
+                        matches = selOdds >= targetOdds;
                       } else if (searchMode === 'lte') {
-                        return selOdds <= targetOdds;
+                        matches = selOdds <= targetOdds;
+                      } else {
+                        // Default: exact match
+                        matches = Math.abs(selOdds - targetOdds) < 0.001;
                       }
-                      // Default: exact match
-                      return selOdds === targetOdds;
+                      
+                      if (matches && searchTerm.includes('210')) {
+                        console.log(`[App Filter] MATCH! Market: ${market.name}, Selection: ${sel.name}, Odds: ${selOdds}, Target: ${targetOdds}, Mode: ${searchMode}`);
+                      }
+                      
+                      return matches;
                     });
                     
                     if (hasMatchingOdds) return true;
@@ -709,8 +722,8 @@ function App() {
                 // No matching odds found in any period market
                 return false;
               }
-              // allMarkets not loaded yet - show match and let it load
-              return true;
+              // allMarkets not loaded yet - don't show match until we can verify
+              return false;
             }
             
             // If period filter is specified with position, check allMarkets if available
