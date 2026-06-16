@@ -92,7 +92,6 @@ const FilterBuilder: React.FC<FilterBuilderProps> = ({ searchTerm, onApply, onCl
           { label: 'H', value: 'H', description: `Home (${parsed.period})` },
           { label: 'D', value: 'D', description: `Draw (${parsed.period})` },
           { label: 'A', value: 'A', description: `Away (${parsed.period})` },
-          { label: '(All Markets)', value: '', description: 'All market types' },
           { label: 'UO', value: 'UO', description: 'Over/Under' },
           { label: 'BTTS', value: 'BTTS', description: 'Both Teams To Score' },
           { label: 'DC', value: 'DC', description: 'Double Chance' },
@@ -211,8 +210,24 @@ const FilterBuilder: React.FC<FilterBuilderProps> = ({ searchTerm, onApply, onCl
   };
 
   const isValid = (filter: string) => {
-    // Valid: 150FT, 150FTUO+2.5, 150H1BTTSY, etc.
-    return /^(\d{2,3})(FT|H1|H2|2H|ALL)?(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)?([+-YN])?(\d+\.\d+)?$/.test(filter);
+    // Valid: 150, 150FT, 150H, 150FTUO+2.5, 150H1BTTSY, etc.
+    // Minimum: just odds (e.g., 150) or odds+position (150H)
+    return /^(\d{2,3})(FT|H1|H2|2H|ALL)?(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)?([+-YN])?(\d+\.\d+)?$/.test(filter) ||
+           /^(\d{2,3})(H|D|A)$/.test(filter); // Also allow 150H, 150D, 150A
+  };
+
+  const getValidationMessage = (filter: string) => {
+    if (!isValid(filter)) return 'Invalid Filter';
+    
+    const parsed = parseFilterState(filter);
+    if (!parsed.odds) return 'Enter odds first';
+    if (!parsed.period && !['H', 'D', 'A'].includes(parsed.odds.slice(-1))) return 'Add period or position';
+    
+    // Check if it's a complete filter (has odds + something else)
+    if (parsed.period || parsed.market || parsed.option || parsed.line) {
+      return '✓ Apply Filter';
+    }
+    return '✓ Apply Filter (All Markets)';
   };
 
   return (
@@ -291,7 +306,7 @@ const FilterBuilder: React.FC<FilterBuilderProps> = ({ searchTerm, onApply, onCl
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
           >
-            {isValid(currentFilter) ? '✓ Apply Filter' : 'Incomplete Filter'}
+            {isValid(currentFilter) ? '✓ Apply Filter' : 'Incomplete - Keep Building'}
           </button>
         </div>
       </div>
