@@ -689,17 +689,14 @@ function App() {
           const marketType = marketTypeMatch ? marketTypeMatch[1] : null;
           
           filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
-            // If allMarkets not loaded yet, let it through temporarily ONLY for non-market-type filters
-            // For market type filters (DC, UO, BTTS, etc), we need to wait for markets to load
+            // If allMarkets not loaded yet
             if (!match.allMarkets || match.allMarkets.length === 0) {
-              if (hasMarketType) {
-                // Don't let through for market type filters - wait for markets to load
-                return false;
+              // For period-specific filters (H1, H2), don't let through - wait for markets
+              // For simple odds filters without period, let through
+              if (periodCode) {
+                return false; // Wait for markets to load
               }
-              if (match.homeTeam?.includes('Shahrdari Nowshahr') || match.awayTeam?.includes('Navad Urmia')) {
-                console.log(`[App Filter] allMarkets not loaded for Shahrdari Nowshahr vs Navad Urmia FC, letting through`);
-              }
-              return true;
+              return true; // No period filter, let through
             }
             
             return match.allMarkets.some(m => {
@@ -1549,9 +1546,12 @@ function App() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder={searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A, 130H1H' : 'Enter odds (e.g., 130H, 150H2A)...'}
+                placeholder={loading ? 'Loading markets...' : searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A, 130H1H' : 'Enter odds (e.g., 130H, 150H2A)...'}
                 value={searchTerm}
+                disabled={loading}
+                className={`w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 onChange={(e) => {
+                  if (loading) return; // Don't allow input while loading
                   const value = e.target.value;
                   setSearchTerm(value);
                   
@@ -1561,7 +1561,6 @@ function App() {
                     setSearchOddsValue('');
                   }
                 }}
-                className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               {searchTerm && (
                 <button
