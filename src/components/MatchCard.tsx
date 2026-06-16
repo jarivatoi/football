@@ -572,6 +572,22 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       
       console.log('[AutoExpand Detection] searchTerm:', searchTerm, 'hasAdvancedFilter:', hasAdvancedFilter, 'hasPeriodFilter:', hasPeriodFilter, 'isExpanded:', isExpanded);
       
+      // Auto-load markets if market-type filter detected
+      const hasMarketTypeFilter = /\d{2,3}(H1|H2|2H|FT|ALL)?(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)/i.test(searchTerm);
+      if (hasMarketTypeFilter && (!match.allMarkets || match.allMarkets.length === 0) && !isLoadingMarkets) {
+        console.log('[MatchCard] Auto-loading markets for market-type filter:', searchTerm);
+        const loadMarkets = async () => {
+          setIsLoadingMarkets(true);
+          await totelepepExtractor.fetchMarketsForMatch(match);
+          setIsLoadingMarkets(false);
+          // Notify parent that markets have loaded
+          if (onMarketsLoaded && match.allMarkets && match.allMarkets.length > 0) {
+            onMarketsLoaded(match.id, match.allMarkets);
+          }
+        };
+        loadMarkets();
+      }
+      
       if (hasPeriodFilter && !isExpanded) {
         // Expand match card when period filter is added
         console.log('[AutoExpand Detection] Expanding card for period filter');
