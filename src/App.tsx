@@ -689,8 +689,13 @@ function App() {
           const marketType = marketTypeMatch ? marketTypeMatch[1] : null;
           
           filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
-            // If allMarkets not loaded yet, let it through temporarily
+            // If allMarkets not loaded yet, let it through temporarily ONLY for non-market-type filters
+            // For market type filters (DC, UO, BTTS, etc), we need to wait for markets to load
             if (!match.allMarkets || match.allMarkets.length === 0) {
+              if (hasMarketType) {
+                // Don't let through for market type filters - wait for markets to load
+                return false;
+              }
               if (match.homeTeam?.includes('Shahrdari Nowshahr') || match.awayTeam?.includes('Navad Urmia')) {
                 console.log(`[App Filter] allMarkets not loaded for Shahrdari Nowshahr vs Navad Urmia FC, letting through`);
               }
@@ -712,6 +717,31 @@ function App() {
               } else if (marketType === 'BTTS') {
                 // API returns: "Both Team To Score " (with trailing space)
                 isMatchingMarket = marketName.includes('Both Team To Score') || marketName.includes('BTTS');
+                // Also check if this market has selections matching the target odds and Y/N option
+                if (isMatchingMarket && m.selections && m.selections.length > 0) {
+                  const hasMatchingOdds = m.selections.some((sel: any) => {
+                    const selOdds = parseFloat(String(sel.odds));
+                    if (isNaN(selOdds)) return false;
+                    
+                    // Check Y/N option
+                    const selName = (sel.name || '').toLowerCase();
+                    if (upperSearch.includes('BTTSY') && !selName.includes('yes')) return false;
+                    if (upperSearch.includes('BTTSN') && !selName.includes('no')) return false;
+                    
+                    // Check based on searchMode
+                    if (searchMode === 'eq') {
+                      return Math.abs(selOdds - targetOdds) < 0.001;
+                    } else if (searchMode === 'gte') {
+                      return selOdds >= targetOdds;
+                    } else if (searchMode === 'lte') {
+                      return selOdds <= targetOdds;
+                    }
+                    return Math.abs(selOdds - targetOdds) < 0.001;
+                  });
+                  if (!hasMatchingOdds) {
+                    isMatchingMarket = false;
+                  }
+                }
               } else if (marketType === 'UO') {
                 // API returns: "Under Over +2.5" (single market with both Over and Under selections)
                 // Just check the line number, not the prefix
