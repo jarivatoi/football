@@ -797,7 +797,11 @@ function App() {
               } else if (marketType === 'AH') {
                 isMatchingMarket = marketName.includes('Asian Handicap') || m.marketCode === 'AH';
               } else if (marketType === 'HTFT') {
-                isMatchingMarket = marketName.includes('Half Time/Full Time') || marketName.includes('HT/FT');
+                isMatchingMarket = marketName.includes('Half Time Full Time') || 
+                                   marketName.includes('Half Time/Full Time') || 
+                                   marketName.includes('HT/FT') ||
+                                   m.marketCode === 'HF' ||
+                                   m.marketCode === 'HTFT';
               } else if (marketType === 'HSH') {
                 isMatchingMarket = marketName.includes('Highest Scoring Half');
               }

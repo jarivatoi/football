@@ -252,17 +252,14 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   };
 
   const isHalfTimeFullTimeMarket = (market: any) => {
-    const marketName = market.marketDisplayName || market.name || '';
-    const isMatch = marketName.includes('Half Time/Full Time') || marketName.includes('HT/FT') || market.marketCode === 'HTFT';
-    if (marketName.includes('Half Time') || marketName.includes('HT') || marketName.includes('Full Time')) {
-      console.log('[HTFT Detection]', {
-        marketName,
-        marketCode: market.marketCode,
-        isMatch,
-        displayName: market.marketDisplayName
-      });
-    }
-    return isMatch;
+    const marketName = (market.marketDisplayName || market.name || '').trim();
+    const marketCode = market.marketCode || '';
+    // API uses marketCode 'HF' for Half Time Full Time
+    return marketName.includes('Half Time Full Time') || 
+           marketName.includes('Half Time/Full Time') || 
+           marketName.includes('HT/FT') || 
+           marketCode === 'HF' || 
+           marketCode === 'HTFT';
   };
 
   const isHighestScoringHalfMarket = (market: any) => {
