@@ -582,6 +582,7 @@ function App() {
         // Check if this is an advanced filter with market type (DC, BTTS, UO, etc)
         // If so, filter to only matches that have the market type in the correct period
         const hasMarketType = /\d{2,3}(H1|H2|2H|FT|ALL)(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)/i.test(searchTerm);
+        console.log(`[App Filter] searchTerm=${searchTerm}, hasMarketType=${hasMarketType}`);
         
         let targetOdds = parseFloat(searchTerm);
         let positionFilter: 'home' | 'draw' | 'away' | null = null;
@@ -590,8 +591,13 @@ function App() {
         // Check for position suffix (H=Home, D=Draw, A=Away) and period (H1=1st Half, H2=2nd Half)
         const upperSearch = searchTerm.toUpperCase().trim();
         
-        // Check for period + position suffix FIRST (H1H, H1D, H1A, H2H, H2D, H2A)
-        if (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A')) {
+        // For market type filters (DC, UO, BTTS, etc), extract odds from the beginning
+        if (hasMarketType) {
+          const oddsMatch = upperSearch.match(/^(\d{2,3})/);
+          if (oddsMatch) {
+            targetOdds = parseFloat(oddsMatch[1]);
+          }
+        } else if (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A')) {
           periodFilter = 'H1';
           const withoutPeriodAndPosition = upperSearch.slice(0, -3); // Remove H1H, H1D, or H1A (3 chars)
           if (upperSearch.endsWith('H1H')) {
@@ -684,7 +690,9 @@ function App() {
           filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
             // If allMarkets not loaded yet, let it through temporarily
             if (!match.allMarkets || match.allMarkets.length === 0) {
-              console.log(`[App Filter] allMarkets not loaded for ${match.homeTeam} vs ${match.awayTeam}, letting through`);
+              if (match.homeTeam?.includes('Shahrdari Nowshahr') || match.awayTeam?.includes('Navad Urmia')) {
+                console.log(`[App Filter] allMarkets not loaded for Shahrdari Nowshahr vs Navad Urmia FC, letting through`);
+              }
               return true;
             }
             
@@ -704,20 +712,17 @@ function App() {
                 // API returns: "Both Team To Score " (with trailing space)
                 isMatchingMarket = marketName.includes('Both Team To Score') || marketName.includes('BTTS');
               } else if (marketType === 'UO') {
-                // API returns: "Under Over +2.5", "Under Over +3.5", etc.
+                // API returns: "Under Over +2.5" (single market with both Over and Under selections)
+                // Just check the line number, not the prefix
                 isMatchingMarket = marketName.includes('Under Over') || marketName.includes('Over/Under') || marketName.includes('Total Goals') || m.marketCode === 'OU';
-                // Check line if specified
+                // Check line number if specified (ignore +/- prefix)
                 if (isMatchingMarket) {
                   const lineMatch = searchTerm.toUpperCase().match(/UO([+-]?\d+\.\d+)/);
                   if (lineMatch) {
-                    const searchLine = lineMatch[1];
-                    const marketLine = m.marketLine || marketName.match(/([+-]?\d+\.\d+)/)?.[1];
-                    console.log(`[App Filter] UO line check: searchLine=${searchLine}, marketLine=${marketLine}, marketName=${marketName}`);
+                    const searchLine = lineMatch[1].replace(/[+-]/, ''); // Just the number
+                    const marketLine = (m.marketLine || marketName.match(/([+-]?\d+\.\d+)/)?.[1])?.replace(/[+-]/, '');
                     if (marketLine !== searchLine) {
-                      console.log(`[App Filter] ❌ Line mismatch, filtering out`);
                       isMatchingMarket = false;
-                    } else {
-                      console.log(`[App Filter] ✅ Line match`);
                     }
                   }
                 }
@@ -1536,7 +1541,10 @@ function App() {
               {(() => {
                 const hasDash = searchTerm.includes('-');
                 // Check if it's a valid range: two numbers (3+ digits each) separated by -
+                // But NOT if it's ONLY a market line prefix (e.g., UO-2.5, AH-0.5)
+                // Allow ranges WITH market lines: 130-155FTUO-2.5
                 const rangeMatch = searchTerm.match(/^(\d{3,})-(\d{3,})/);
+                const isOnlyMarketLineWithDash = /^(\d{2,3})(FT|H1|H2|2H|ALL)(UO|AH)-/i.test(searchTerm);
                 const isValidRange = rangeMatch !== null;
                 
                 // Auto-switch searchMode based on pattern
@@ -1554,8 +1562,9 @@ function App() {
                   setSearchMode('between');
                 }
                 
-                if (hasDash && !isValidRange) {
+                if (hasDash && !isValidRange && !isOnlyMarketLineWithDash) {
                   // Has dash but invalid range (e.g., "55-130") - show nothing except Matches
+                  // But NOT for market lines like UO-2.5 or AH-0.5
                   return null;
                 } else if (isValidRange) {
                   // Valid range (e.g., "120-155H") - show only "In Between"

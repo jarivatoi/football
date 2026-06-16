@@ -424,10 +424,13 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                 break;
               case 'UO':
                 if (!isOverUnderMarket(m)) return false;
-                // Check line if specified
+                // Check line if specified - compare with or without +/- prefix
                 if (parsed.line) {
-                  const marketLine = m.marketLine || m.name.match(/(\d+\.\d+)/)?.[1];
-                  if (marketLine !== parsed.line) return false;
+                  const marketLine = m.marketLine || m.name.match(/([+-]?\d+\.\d+)/)?.[1];
+                  // Compare both exact match and without prefix
+                  const cleanMarketLine = marketLine?.replace(/[+-]/, '');
+                  const cleanParsedLine = parsed.line.replace(/[+-]/, '');
+                  if (cleanMarketLine !== cleanParsedLine) return false;
                 }
                 break;
               case 'BTTS':
