@@ -337,6 +337,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           
           // Check market type (only if specified)
           if (parsed.marketType) {
+            console.log(`[Filter] Checking market type: parsed=${parsed.marketType}, market=${m.name}, marketCode=${m.marketCode}`);
             switch (parsed.marketType) {
               case '1X2':
                 if (!is1X2Market(m)) return false;

@@ -578,6 +578,19 @@ function App() {
       } else {
         // Filter by odds value
         console.log(`[App Filter] Starting odds filter for searchTerm: ${searchTerm}, searchMode: ${searchMode}`);
+        
+        // Check if this is an advanced filter with market type (DC, BTTS, UO, etc)
+        // If so, let MatchCard handle the filtering - don't filter at App level
+        const hasMarketType = /\d{2,3}(H1|H2|2H|FT|ALL)(DC|UO|BTTS|GM|CS|WM|OE)/i.test(searchTerm);
+        if (hasMarketType) {
+          console.log(`[App Filter] Advanced filter with market type detected - letting MatchCard handle it`);
+          filteredDateMatches = dateMatches as TotelepepMatch[];
+          if (filteredDateMatches.length > 0) {
+            filtered[date] = filteredDateMatches;
+          }
+          return; // Skip the rest of the filtering logic
+        }
+        
         let targetOdds = parseFloat(searchTerm);
         let positionFilter: 'home' | 'draw' | 'away' | null = null;
         let periodFilter: 'H1' | 'H2' | null = null;
