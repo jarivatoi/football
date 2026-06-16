@@ -596,6 +596,7 @@ function App() {
           const oddsMatch = upperSearch.match(/^(\d{2,3})/);
           if (oddsMatch) {
             targetOdds = parseFloat(oddsMatch[1]);
+            console.log(`[App Filter] Market type filter: searchTerm=${searchTerm}, targetOdds=${targetOdds}, searchMode=${searchMode}`);
           }
         } else if (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A')) {
           periodFilter = 'H1';
@@ -723,7 +724,33 @@ function App() {
                     const marketLine = (m.marketLine || marketName.match(/([+-]?\d+\.\d+)/)?.[1])?.replace(/[+-]/, '');
                     if (marketLine !== searchLine) {
                       isMatchingMarket = false;
+                    } else if (match.homeTeam?.includes('Shahrdari Nowshahr') || match.awayTeam?.includes('Navad Urmia')) {
+                      console.log(`[App Filter UO] ✅ Line match: ${searchLine}`);
                     }
+                  }
+                }
+                // Also check if this market has selections matching the target odds
+                if (isMatchingMarket && m.selections && m.selections.length > 0) {
+                  const hasMatchingOdds = m.selections.some((sel: any) => {
+                    const selOdds = parseFloat(String(sel.odds));
+                    if (isNaN(selOdds)) return false;
+                    // Check based on searchMode
+                    if (searchMode === 'eq') {
+                      return Math.abs(selOdds - targetOdds) < 0.001;
+                    } else if (searchMode === 'gte') {
+                      return selOdds >= targetOdds;
+                    } else if (searchMode === 'lte') {
+                      return selOdds <= targetOdds;
+                    }
+                    return Math.abs(selOdds - targetOdds) < 0.001;
+                  });
+                  if (!hasMatchingOdds) {
+                    if (match.homeTeam?.includes('Shahrdari Nowshahr') || match.awayTeam?.includes('Navad Urmia')) {
+                      console.log(`[App Filter UO] ❌ No matching odds in UO market`);
+                    }
+                    isMatchingMarket = false;
+                  } else if (match.homeTeam?.includes('Shahrdari Nowshahr') || match.awayTeam?.includes('Navad Urmia')) {
+                    console.log(`[App Filter UO] ✅ Odds match found`);
                   }
                 }
               } else if (marketType === 'GM') {
