@@ -685,7 +685,7 @@ function App() {
           // For market type filters, check if match has the required market in the correct period
           const upperSearch = searchTerm.toUpperCase().trim();
           const periodMatch = upperSearch.match(/\d{2,3}(H1|H2|2H|FT|ALL)/);
-          const marketTypeMatch = upperSearch.match(/(DC|UO|BTTS|GM|CS|WM|OE)/);
+          const marketTypeMatch = upperSearch.match(/(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)/);
           
           const periodCode = periodMatch ? periodMatch[1] : null;
           const marketType = marketTypeMatch ? marketTypeMatch[1] : null;
