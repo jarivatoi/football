@@ -647,6 +647,10 @@ function App() {
           targetOdds = targetOdds / 100;
         }
         
+        if (hasMarketType) {
+          console.log(`[App Filter] After conversion: targetOdds=${targetOdds}`);
+        }
+        
         // Parse range for "between" mode (e.g., "100-200", "100-200H1", "100-200H1H")
         let targetOddsMin = targetOdds;
         let targetOddsMax = targetOdds;
@@ -710,6 +714,16 @@ function App() {
                 return false; // Wait for markets to load
               }
               return true; // No period filter, let through
+            }
+            
+            // Debug: Log all markets for HTFT filter
+            if (marketType === 'HTFT') {
+              console.log('[App Filter - HTFT] Checking match:', match.homeTeam, 'vs', match.awayTeam);
+              console.log('[App Filter - HTFT] All markets:', match.allMarkets.map((m: any) => ({
+                name: m.marketDisplayName || m.name,
+                code: m.marketCode,
+                period: m.periodCode
+              })));
             }
             
             return match.allMarkets.some(m => {
