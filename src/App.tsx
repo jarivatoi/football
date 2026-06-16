@@ -1726,9 +1726,11 @@ function App() {
           searchMode={searchMode}
           searchTerm={searchTerm}
           onMarketsLoaded={(matchId, markets) => {
-            // Trigger re-filter by updating a dummy state
-            // This forces the useMemo to re-run with the updated allMarkets
-            setMatches(prev => [...prev]);
+            console.log('[App] onMarketsLoaded called for match:', matchId, 'with', markets.length, 'markets');
+            // Update the specific match with loaded markets to trigger re-filter
+            setMatches(prev => prev.map(match => 
+              match.id === matchId ? { ...match, allMarkets: markets } : match
+            ));
           }}
         />
       </div>
