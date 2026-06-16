@@ -712,7 +712,13 @@ function App() {
                   if (lineMatch) {
                     const searchLine = lineMatch[1];
                     const marketLine = m.marketLine || marketName.match(/([+-]?\d+\.\d+)/)?.[1];
-                    if (marketLine !== searchLine) isMatchingMarket = false;
+                    console.log(`[App Filter] UO line check: searchLine=${searchLine}, marketLine=${marketLine}, marketName=${marketName}`);
+                    if (marketLine !== searchLine) {
+                      console.log(`[App Filter] ❌ Line mismatch, filtering out`);
+                      isMatchingMarket = false;
+                    } else {
+                      console.log(`[App Filter] ✅ Line match`);
+                    }
                   }
                 }
               } else if (marketType === 'GM') {
