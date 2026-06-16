@@ -690,6 +690,17 @@ function App() {
           const periodCode = periodMatch ? periodMatch[1] : null;
           const marketType = marketTypeMatch ? marketTypeMatch[1] : null;
           
+          // Debug logging for HTFT
+          if (marketType === 'HTFT') {
+            console.log('[App Filter - HTFT]', {
+              searchTerm,
+              periodCode,
+              marketType,
+              targetOdds,
+              searchMode
+            });
+          }
+          
           filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
             // If allMarkets not loaded yet
             if (!match.allMarkets || match.allMarkets.length === 0) {
@@ -802,6 +813,14 @@ function App() {
                                    marketName.includes('HT/FT') ||
                                    m.marketCode === 'HF' ||
                                    m.marketCode === 'HTFT';
+                if (isMatchingMarket) {
+                  console.log('[App Filter - HTFT Match]', {
+                    marketName,
+                    marketCode: m.marketCode,
+                    periodCode: m.periodCode,
+                    selections: m.selections?.length
+                  });
+                }
               } else if (marketType === 'HSH') {
                 isMatchingMarket = marketName.includes('Highest Scoring Half');
               }
