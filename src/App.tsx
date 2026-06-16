@@ -580,16 +580,8 @@ function App() {
         console.log(`[App Filter] Starting odds filter for searchTerm: ${searchTerm}, searchMode: ${searchMode}`);
         
         // Check if this is an advanced filter with market type (DC, BTTS, UO, etc)
-        // If so, let MatchCard handle the filtering - don't filter at App level
-        const hasMarketType = /\d{2,3}(H1|H2|2H|FT|ALL)(DC|UO|BTTS|GM|CS|WM|OE)/i.test(searchTerm);
-        if (hasMarketType) {
-          console.log(`[App Filter] Advanced filter with market type detected - letting MatchCard handle it`);
-          filteredDateMatches = dateMatches as TotelepepMatch[];
-          if (filteredDateMatches.length > 0) {
-            filtered[date] = filteredDateMatches;
-          }
-          return; // Skip the rest of the filtering logic
-        }
+        // If so, filter to only matches that have the market type in the correct period
+        const hasMarketType = /\d{2,3}(H1|H2|2H|FT|ALL)(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)/i.test(searchTerm);
         
         let targetOdds = parseFloat(searchTerm);
         let positionFilter: 'home' | 'draw' | 'away' | null = null;
@@ -680,6 +672,92 @@ function App() {
         
         if (isNaN(targetOdds) && searchMode !== 'between') {
           filteredDateMatches = [];
+        } else if (hasMarketType) {
+          // For market type filters, check if match has the required market in the correct period
+          const upperSearch = searchTerm.toUpperCase().trim();
+          const periodMatch = upperSearch.match(/\d{2,3}(H1|H2|2H|FT|ALL)/);
+          const marketTypeMatch = upperSearch.match(/(DC|UO|BTTS|GM|CS|WM|OE)/);
+          
+          const periodCode = periodMatch ? periodMatch[1] : null;
+          const marketType = marketTypeMatch ? marketTypeMatch[1] : null;
+          
+          filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
+            // If allMarkets not loaded yet, let it through temporarily
+            if (!match.allMarkets || match.allMarkets.length === 0) {
+              console.log(`[App Filter] allMarkets not loaded for ${match.homeTeam} vs ${match.awayTeam}, letting through`);
+              return true;
+            }
+            
+            return match.allMarkets.some(m => {
+              // Check period
+              if (periodCode === 'FT' && m.periodCode !== 'FT' && m.periodCode) return false;
+              if (periodCode === 'H1' && m.periodCode !== 'H1' && m.periodCode !== 'HT') return false;
+              if (periodCode === 'H2' && m.periodCode !== 'H2' && m.periodCode !== '2H') return false;
+              
+              // Check market type
+              let isMatchingMarket = false;
+              const marketName = m.marketDisplayName || m.name || '';
+              
+              if (marketType === 'DC') {
+                isMatchingMarket = marketName.includes('Double Chance') || m.marketCode === 'DC';
+              } else if (marketType === 'BTTS') {
+                // API returns: "Both Team To Score " (with trailing space)
+                isMatchingMarket = marketName.includes('Both Team To Score') || marketName.includes('BTTS');
+              } else if (marketType === 'UO') {
+                // API returns: "Under Over +2.5", "Under Over +3.5", etc.
+                isMatchingMarket = marketName.includes('Under Over') || marketName.includes('Over/Under') || marketName.includes('Total Goals') || m.marketCode === 'OU';
+                // Check line if specified
+                if (isMatchingMarket) {
+                  const lineMatch = searchTerm.toUpperCase().match(/UO([+-]?\d+\.\d+)/);
+                  if (lineMatch) {
+                    const searchLine = lineMatch[1];
+                    const marketLine = m.marketLine || marketName.match(/([+-]?\d+\.\d+)/)?.[1];
+                    if (marketLine !== searchLine) isMatchingMarket = false;
+                  }
+                }
+              } else if (marketType === 'GM') {
+                isMatchingMarket = marketName.includes('Goal Market');
+              } else if (marketType === 'CS') {
+                isMatchingMarket = marketName.includes('Correct Score');
+              } else if (marketType === 'WM') {
+                isMatchingMarket = marketName.includes('Winning Margin');
+              } else if (marketType === 'OE') {
+                isMatchingMarket = marketName.includes('Odd Even');
+              } else if (marketType === 'FTTS') {
+                isMatchingMarket = marketName.includes('First Team');
+              } else if (marketType === 'LTTS') {
+                isMatchingMarket = marketName.includes('Last Team');
+              } else if (marketType === 'AH') {
+                isMatchingMarket = marketName.includes('Asian Handicap') || m.marketCode === 'AH';
+              } else if (marketType === 'HTFT') {
+                isMatchingMarket = marketName.includes('Half Time/Full Time') || marketName.includes('HT/FT');
+              } else if (marketType === 'HSH') {
+                isMatchingMarket = marketName.includes('Highest Scoring Half');
+              }
+              
+              if (!isMatchingMarket) return false;
+              
+              // Check if this market has selections with matching odds
+              if (!m.selections || m.selections.length === 0) return false;
+              
+              return m.selections.some((sel: any) => {
+                const selOdds = parseFloat(String(sel.odds));
+                if (isNaN(selOdds)) return false;
+                
+                if (searchMode === 'eq') {
+                  return Math.abs(selOdds - targetOdds) < 0.001;
+                } else if (searchMode === 'gte') {
+                  return selOdds >= targetOdds;
+                } else if (searchMode === 'lte') {
+                  return selOdds <= targetOdds;
+                } else if (searchMode === 'between' && targetOddsMin !== undefined && targetOddsMax !== undefined) {
+                  return selOdds >= targetOddsMin && selOdds <= targetOddsMax;
+                }
+                
+                return false;
+              });
+            });
+          });
         } else {
           filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
             // Check if any of the match's odds match the filter

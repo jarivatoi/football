@@ -96,31 +96,59 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       marketType = 'DC';
     } else if (afterPeriod.startsWith('UO')) {
       marketType = 'UO';
-      // Check for line (e.g., 2.5, 3.5)
-      const lineMatch = afterPeriod.slice(2).match(/^(\d+\.\d+)/);
+      // Check for line with optional +/- prefix (e.g., +2.5, -2.5, 2.5)
+      const lineMatch = afterPeriod.slice(2).match(/^([+-]?)(\d+\.\d+)/);
       if (lineMatch) {
-        line = lineMatch[1];
+        line = lineMatch[0]; // Full line with prefix ("+2.5", "-2.5", or "2.5")
+        option = lineMatch[1] === '+' ? 'O' : lineMatch[1] === '-' ? 'U' : undefined; // + = Over, - = Under
       }
     } else if (afterPeriod.startsWith('BTTS')) {
       marketType = 'BTTS';
-    } else if (afterPeriod.startsWith('GM')) {
-      marketType = 'GM';
+      // Check for Y/N suffix (Yes/No)
+      const afterBTTS = afterPeriod.slice(4);
+      if (afterBTTS === 'Y' || afterBTTS === 'YES') {
+        option = 'Y';
+      } else if (afterBTTS === 'N' || afterBTTS === 'NO') {
+        option = 'N';
+      }
+    } else if (afterPeriod.startsWith('FTTS')) {
+      marketType = 'FTTS'; // First Team To Score
+    } else if (afterPeriod.startsWith('LTTS')) {
+      marketType = 'LTTS'; // Last Team To Score
+    } else if (afterPeriod.startsWith('AH')) {
+      marketType = 'AH'; // Asian Handicap
+      // Check for line (e.g., -0.5, +1.5)
+      const lineMatch = afterPeriod.slice(2).match(/^([+-]?\d+\.\d+)/);
+      if (lineMatch) {
+        line = lineMatch[1];
+      }
     } else if (afterPeriod.startsWith('CS')) {
-      marketType = 'CS';
+      marketType = 'CS'; // Correct Score
     } else if (afterPeriod.startsWith('WM')) {
-      marketType = 'WM';
+      marketType = 'WM'; // Winning Margin
     } else if (afterPeriod.startsWith('OE')) {
-      marketType = 'OE';
+      marketType = 'OE'; // Odd/Even
+    } else if (afterPeriod.startsWith('GM')) {
+      marketType = 'GM'; // Goal Market
+    } else if (afterPeriod.startsWith('HTFT')) {
+      marketType = 'HTFT'; // Half Time/Full Time
+    } else if (afterPeriod.startsWith('HSH')) {
+      marketType = 'HSH'; // Highest Scoring Half
     }
     
-    // Check for option (H, D, A, O, U)
+    // Check for option (H, D, A, O, U, Y, N)
     const afterMarket = afterPeriod.startsWith('DC') ? afterPeriod.slice(2) :
-                        afterPeriod.startsWith('UO') ? (line ? afterPeriod.slice(2 + line.length + 1) : afterPeriod.slice(2)) :
-                        afterPeriod.startsWith('BTTS') ? afterPeriod.slice(4) :
-                        afterPeriod.startsWith('GM') ? afterPeriod.slice(2) :
+                        afterPeriod.startsWith('UO') ? (line ? afterPeriod.slice(2 + line.length + (option ? 1 : 0)) : afterPeriod.slice(2)) :
+                        afterPeriod.startsWith('BTTS') ? (option ? afterPeriod.slice(5) : afterPeriod.slice(4)) :
+                        afterPeriod.startsWith('FTTS') ? afterPeriod.slice(4) :
+                        afterPeriod.startsWith('LTTS') ? afterPeriod.slice(4) :
+                        afterPeriod.startsWith('AH') ? (line ? afterPeriod.slice(2 + line.length) : afterPeriod.slice(2)) :
                         afterPeriod.startsWith('CS') ? afterPeriod.slice(2) :
                         afterPeriod.startsWith('WM') ? afterPeriod.slice(2) :
-                        afterPeriod.startsWith('OE') ? afterPeriod.slice(2) : afterPeriod;
+                        afterPeriod.startsWith('OE') ? afterPeriod.slice(2) :
+                        afterPeriod.startsWith('GM') ? afterPeriod.slice(2) :
+                        afterPeriod.startsWith('HTFT') ? afterPeriod.slice(4) :
+                        afterPeriod.startsWith('HSH') ? afterPeriod.slice(3) : afterPeriod;
     
     if (afterMarket) {
       if (afterMarket === 'H' || afterMarket === '1') {
@@ -177,13 +205,17 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   };
 
   const isOverUnderMarket = (market: any) => {
-    return market.name.includes('Over/Under') || market.name.includes('O/U') || 
-           market.name.includes('Total Goals') || market.marketCode === 'OU';
+    const marketName = market.marketDisplayName || market.name || '';
+    // API returns: "Under Over +2.5", "Under Over +3.5", etc.
+    return marketName.includes('Under Over') || marketName.includes('Over/Under') || 
+           marketName.includes('Total Goals') || market.marketCode === 'OU';
   };
 
   const isBTTSMarket = (market: any) => {
-    return market.name.includes('Both Teams') || market.name.includes('BTTS') || 
-           market.name.includes('GG/NG') || market.marketCode === 'BTTS';
+    const marketName = market.marketDisplayName || market.name || '';
+    // API returns: "Both Team To Score " (with trailing space)
+    return marketName.includes('Both Team To Score') || marketName.includes('BTTS') || 
+           marketName.includes('GG/NG') || market.marketCode === 'BTTS';
   };
 
   const isGoalMarket = (market: any) => {
@@ -196,6 +228,31 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
 
   const isWinningMarginMarket = (market: any) => {
     return market.name.includes('Winning Margin') || market.name.includes('WM');
+  };
+
+  const isFirstTeamToScoreMarket = (market: any) => {
+    const marketName = market.marketDisplayName || market.name || '';
+    return marketName.includes('First Team') || marketName.includes('FTTS');
+  };
+
+  const isLastTeamToScoreMarket = (market: any) => {
+    const marketName = market.marketDisplayName || market.name || '';
+    return marketName.includes('Last Team') || marketName.includes('LTTS');
+  };
+
+  const isAsianHandicapMarket = (market: any) => {
+    const marketName = market.marketDisplayName || market.name || '';
+    return marketName.includes('Asian Handicap') || market.marketCode === 'AH';
+  };
+
+  const isHalfTimeFullTimeMarket = (market: any) => {
+    const marketName = market.marketDisplayName || market.name || '';
+    return marketName.includes('Half Time/Full Time') || marketName.includes('HT/FT') || market.marketCode === 'HTFT';
+  };
+
+  const isHighestScoringHalfMarket = (market: any) => {
+    const marketName = market.marketDisplayName || market.name || '';
+    return marketName.includes('Highest Scoring Half') || market.marketCode === 'HSH';
   };
 
   const isOddEvenMarket = (market: any) => {
@@ -221,7 +278,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         if (!isOverUnderMarket(market)) return false;
         // Check line if specified
         if (parsed.line) {
-          const marketLine = market.line || market.name.match(/(\d+\.\d+)/)?.[1];
+          const marketLine = market.marketLine || market.name.match(/([+-]?\d+\.\d+)/)?.[1];
           if (marketLine !== parsed.line) return false;
         }
         break;
@@ -239,6 +296,26 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         break;
       case 'OE':
         if (!isOddEvenMarket(market)) return false;
+        break;
+      case 'FTTS':
+        if (!isFirstTeamToScoreMarket(market)) return false;
+        break;
+      case 'LTTS':
+        if (!isLastTeamToScoreMarket(market)) return false;
+        break;
+      case 'AH':
+        if (!isAsianHandicapMarket(market)) return false;
+        // Check line if specified
+        if (parsed.line) {
+          const marketLine = market.marketLine || market.name.match(/([+-]?\d+\.\d+)/)?.[1];
+          if (marketLine !== parsed.line) return false;
+        }
+        break;
+      case 'HTFT':
+        if (!isHalfTimeFullTimeMarket(market)) return false;
+        break;
+      case 'HSH':
+        if (!isHighestScoringHalfMarket(market)) return false;
         break;
     }
     
@@ -311,7 +388,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         const newExpandedMarkets: Record<string, boolean> = {};
         
         // Find and expand ONLY matching markets for the specified period
-        console.log(`[Filter] Total markets to check: ${match.allMarkets.length}`);
+        console.log(`[Filter] Total markets to check: ${match.allMarkets.length}, period: ${parsed.period}, marketType: ${parsed.marketType}`);
         const matchingMarkets = match.allMarkets.filter(m => {
           if (!m.selections || m.selections.length === 0) return false;
           
@@ -390,6 +467,20 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           const hasMatchingOdds = market.selections.some((sel: any) => {
             const selOdds = parseFloat(String(sel.odds));
             if (isNaN(selOdds)) return false;
+            
+            // Check UO option (O = Over, U = Under)
+            if (parsed.option === 'O' || parsed.option === 'U') {
+              const selName = (sel.name || '').toLowerCase();
+              if (parsed.option === 'O' && !selName.includes('over')) return false;
+              if (parsed.option === 'U' && !selName.includes('under')) return false;
+            }
+            
+            // Check BTTS option (Y = Yes, N = No)
+            if (parsed.option === 'Y' || parsed.option === 'N') {
+              const selName = (sel.name || '').toLowerCase();
+              if (parsed.option === 'Y' && !selName.includes('yes')) return false;
+              if (parsed.option === 'N' && !selName.includes('no')) return false;
+            }
             
             // Range mode: check if odds fall within range
             if (parsed.isRange && parsed.oddsMin !== undefined && parsed.oddsMax !== undefined) {
