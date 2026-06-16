@@ -132,10 +132,11 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     } else if (afterPeriod.startsWith('GM')) {
       marketType = 'GM'; // Goal Market
     } else if (afterPeriod.startsWith('HTFT')) {
-      marketType = 'HTFT'; // Half Time/Full Time - Always FT
-      // HTFT is a full-match market (HT result + FT result), override H1/H2 to FT
+      marketType = 'HTFT'; // Half Time/Full Time - FT only
+      // HTFT is invalid for H1/H2 periods (it compares HT result vs FT result)
       if (period === 'H1' || period === 'H2') {
-        period = 'FT';
+        // Invalid filter - HTFT doesn't exist for half periods
+        marketType = null; // Reset to show no matches
       }
     } else if (afterPeriod.startsWith('HSH')) {
       marketType = 'HSH'; // Highest Scoring Half - Can be FT, H1, or H2
