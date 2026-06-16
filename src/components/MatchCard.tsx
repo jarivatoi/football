@@ -9,9 +9,10 @@ interface MatchCardProps {
   selectedPrices: string[];
   searchMode?: 'matches' | 'eq' | 'gte' | 'lte' | 'between'; // Search filter mode
   searchTerm?: string; // Search term for odds highlighting
+  onMarketsLoaded?: (matchId: string, markets: any[]) => void; // Callback when markets load
 }
 
-const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '' }) => {
+const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '', onMarketsLoaded }) => {
   console.log('[MatchCard] Render - searchTerm:', searchTerm, 'searchMode:', searchMode, 'match:', match.homeTeam, 'vs', match.awayTeam);
   
   const [isExpanded, setIsExpanded] = useState(false);
@@ -576,6 +577,10 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       setIsLoadingMarkets(true);
       await totelepepExtractor.fetchMarketsForMatch(match);
       setIsLoadingMarkets(false);
+      // Notify parent that markets have loaded
+      if (onMarketsLoaded && match.allMarkets && match.allMarkets.length > 0) {
+        onMarketsLoaded(match.id, match.allMarkets);
+      }
       // Force a re-render by toggling a dummy state
       setExpandedMarkets(prev => ({ ...prev }));
     }

@@ -1672,6 +1672,11 @@ function App() {
           apiSourceName={selectedSource.displayName}
           searchMode={searchMode}
           searchTerm={searchTerm}
+          onMarketsLoaded={(matchId, markets) => {
+            // Trigger re-filter by updating a dummy state
+            // This forces the useMemo to re-run with the updated allMarkets
+            setMatches(prev => [...prev]);
+          }}
         />
       </div>
       
