@@ -66,6 +66,26 @@ function App() {
   const [searchMode, setSearchMode] = useState<'matches' | 'eq' | 'gte' | 'lte' | 'between'>('matches'); // matches, = (eq), >= (gte), <= (lte), between
   const [searchOddsValue, setSearchOddsValue] = useState<string>('');
   const [showFilterBuilder, setShowFilterBuilder] = useState(false);
+  
+  // Auto-load markets when market-type filter is detected
+  React.useEffect(() => {
+    const hasMarketType = /(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)/i.test(searchTerm);
+    if (!hasMarketType) return;
+    
+    console.log('[App] Market-type filter detected, loading markets for all matches...');
+    
+    // Load markets for all matches that don't have them
+    matches.forEach(async (match) => {
+      if (!match.allMarkets || match.allMarkets.length === 0) {
+        console.log('[App] Loading markets for:', match.homeTeam, 'vs', match.awayTeam);
+        await totelepepExtractor.fetchMarketsForMatch(match);
+        // Update match in state
+        setMatches(prev => prev.map(m => 
+          m.id === match.id ? { ...m, allMarkets: match.allMarkets } : m
+        ));
+      }
+    });
+  }, [searchTerm]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
   const [showExtractor, setShowExtractor] = useState(false);
