@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Check, ChevronRight } from 'lucide-react';
+import { X, Check, ChevronRight, ArrowLeft } from 'lucide-react';
 
 interface FilterBuilderProps {
   searchTerm: string;
@@ -28,21 +28,23 @@ const FilterBuilder: React.FC<FilterBuilderProps> = ({ searchTerm, onApply, onCl
   }, [currentFilter]);
 
   const parseFilterState = (filter: string) => {
-    // Parse: 150FTUO+2.5
-    const match = filter.match(/^(\d{2,3})(FT|H1|H2|2H|ALL)?(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)?([+-])?(\d+\.\d+)?$/);
+    // Parse: 150FTUO+2.5 or 150H1H
+    const match = filter.match(/^(\d{2,3})(FT|H1|H2|2H|ALL)?(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)?([+-YN])?(\d+\.\d+)?$/);
     
     if (!match) {
       // Try to parse partial
       const oddsMatch = filter.match(/^(\d{2,3})/);
       const periodMatch = filter.match(/\d{2,3}(FT|H1|H2|2H|ALL)/);
       const marketMatch = filter.match(/(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)/);
+      const optionMatch = filter.match(/([HDA])$/);
       const lineMatch = filter.match(/([+-]?\d+\.\d+)$/);
       
       return {
         odds: oddsMatch ? oddsMatch[1] : null,
         period: periodMatch ? periodMatch[1] : null,
         market: marketMatch ? marketMatch[1] : null,
-        line: lineMatch ? lineMatch[1] : null,
+        option: optionMatch ? optionMatch[1] : (lineMatch && lineMatch[1].startsWith('+') || lineMatch && lineMatch[1].startsWith('-') ? lineMatch[1][0] : null),
+        line: lineMatch ? lineMatch[1].replace(/[+-]/, '') : null,
         isComplete: false
       };
     }
@@ -66,15 +68,43 @@ const FilterBuilder: React.FC<FilterBuilderProps> = ({ searchTerm, onApply, onCl
       };
     }
 
-    // Step 2: Has odds, needs period
+    // Step 2: Has odds, needs period OR 1X2 position
     if (!parsed.period) {
       return {
-        title: 'Select Period',
+        title: 'Select Period or Position',
         options: [
+          { label: 'H', value: 'H', description: 'Home (1X2 FT)' },
+          { label: 'D', value: 'D', description: 'Draw (1X2 FT)' },
+          { label: 'A', value: 'A', description: 'Away (1X2 FT)' },
           { label: 'ALL', value: 'ALL', description: 'FT + H1 + H2' },
           { label: 'FT', value: 'FT', description: 'Full Time' },
           { label: 'H1', value: 'H1', description: '1st Half' },
           { label: 'H2', value: 'H2', description: '2nd Half' }
+        ]
+      };
+    }
+
+    // Step 2b: Has period (not ALL), check if it's 1X2 (no market specified)
+    if (parsed.period && !parsed.market && parsed.period !== 'ALL') {
+      return {
+        title: 'Select 1X2 Position or Market',
+        options: [
+          { label: 'H', value: 'H', description: `Home (${parsed.period})` },
+          { label: 'D', value: 'D', description: `Draw (${parsed.period})` },
+          { label: 'A', value: 'A', description: `Away (${parsed.period})` },
+          { label: '(All Markets)', value: '', description: 'All market types' },
+          { label: 'UO', value: 'UO', description: 'Over/Under' },
+          { label: 'BTTS', value: 'BTTS', description: 'Both Teams To Score' },
+          { label: 'DC', value: 'DC', description: 'Double Chance' },
+          { label: 'CS', value: 'CS', description: 'Correct Score' },
+          { label: 'WM', value: 'WM', description: 'Winning Margin' },
+          { label: 'OE', value: 'OE', description: 'Odd/Even' },
+          { label: 'FTTS', value: 'FTTS', description: 'First Team To Score' },
+          { label: 'LTTS', value: 'LTTS', description: 'Last Team To Score' },
+          { label: 'AH', value: 'AH', description: 'Asian Handicap' },
+          { label: 'HTFT', value: 'HTFT', description: 'Half Time/Full Time' },
+          { label: 'HSH', value: 'HSH', description: 'Highest Scoring Half' },
+          { label: 'GM', value: 'GM', description: 'Goal Market' }
         ]
       };
     }
@@ -101,7 +131,19 @@ const FilterBuilder: React.FC<FilterBuilderProps> = ({ searchTerm, onApply, onCl
       };
     }
 
-    // Step 4: UO market needs line
+    // Step 5: UO market with line needs option (+/-)
+    if (parsed.market === 'UO' && parsed.line && !parsed.option) {
+      return {
+        title: 'Select Option',
+        options: [
+          { label: '+', value: '+', description: 'Over' },
+          { label: '-', value: '-', description: 'Under' },
+          { label: '(both)', value: '', description: 'Over or Under' }
+        ]
+      };
+    }
+
+    // Step 4b: UO market without line - needs line first
     if (parsed.market === 'UO' && !parsed.line) {
       return {
         title: 'Select Line',
@@ -112,18 +154,6 @@ const FilterBuilder: React.FC<FilterBuilderProps> = ({ searchTerm, onApply, onCl
           { label: '3.5', value: '3.5' },
           { label: '4.5', value: '4.5' },
           { label: '5.5', value: '5.5' }
-        ]
-      };
-    }
-
-    // Step 5: UO market with line needs option (+/-)
-    if (parsed.market === 'UO' && parsed.line && !parsed.option) {
-      return {
-        title: 'Select Option',
-        options: [
-          { label: '+', value: '+', description: 'Over' },
-          { label: '-', value: '-', description: 'Under' },
-          { label: '(both)', value: '', description: 'Over or Under' }
         ]
       };
     }
@@ -149,21 +179,35 @@ const FilterBuilder: React.FC<FilterBuilderProps> = ({ searchTerm, onApply, onCl
     const parsed = parseFilterState(currentFilter);
 
     if (!parsed.period) {
+      // Adding period or 1X2 position
       newFilter = parsed.odds + value;
-    } else if (!parsed.market) {
+    } else if (!parsed.market && (value === 'H' || value === 'D' || value === 'A')) {
+      // Adding 1X2 position after period
       newFilter = parsed.odds + parsed.period + value;
+    } else if (!parsed.market) {
+      // Adding market type
+      newFilter = value === '' ? parsed.odds + parsed.period : parsed.odds + parsed.period + value;
     } else if (parsed.market === 'UO' && !parsed.line) {
+      // Adding UO line
       newFilter = parsed.odds + parsed.period + parsed.market + '+' + value;
     } else if (parsed.market === 'UO' && parsed.line && !parsed.option) {
-      // Replace the + with selected option
+      // Adding UO option (+/-)
       const base = parsed.odds + parsed.period + parsed.market;
       newFilter = value === '' ? base + parsed.line : base + value + parsed.line;
     } else if (parsed.market === 'BTTS' && !parsed.option) {
+      // Adding BTTS option (Y/N)
       const base = parsed.odds + parsed.period + parsed.market;
       newFilter = value === '' ? base : base + value;
     }
 
     setCurrentFilter(newFilter);
+  };
+
+  const handleBackspace = () => {
+    // Remove last character/component
+    if (currentFilter.length > 0) {
+      setCurrentFilter(currentFilter.slice(0, -1));
+    }
   };
 
   const isValid = (filter: string) => {
@@ -189,8 +233,19 @@ const FilterBuilder: React.FC<FilterBuilderProps> = ({ searchTerm, onApply, onCl
         {/* Current Filter Preview */}
         <div className="p-4 bg-blue-50 border-b">
           <div className="text-sm text-gray-600 mb-1">Current Filter:</div>
-          <div className="text-2xl font-mono font-bold text-blue-900">
-            {currentFilter || '...'}
+          <div className="flex items-center gap-2">
+            <div className="text-2xl font-mono font-bold text-blue-900 flex-1">
+              {currentFilter || '...'}
+            </div>
+            {currentFilter && (
+              <button
+                onClick={handleBackspace}
+                className="p-2 rounded-lg bg-white border border-gray-300 hover:bg-gray-100 transition-colors"
+                title="Backspace"
+              >
+                <ArrowLeft className="w-5 h-5 text-gray-600" />
+              </button>
+            )}
           </div>
         </div>
 
