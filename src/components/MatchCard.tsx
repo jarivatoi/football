@@ -449,6 +449,21 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
               case 'OE':
                 if (!isOddEvenMarket(m)) return false;
                 break;
+              case 'FTTS':
+                if (!isFirstTeamToScoreMarket(m)) return false;
+                break;
+              case 'LTTS':
+                if (!isLastTeamToScoreMarket(m)) return false;
+                break;
+              case 'AH':
+                if (!isAsianHandicapMarket(m)) return false;
+                break;
+              case 'HTFT':
+                if (!isHalfTimeFullTimeMarket(m)) return false;
+                break;
+              case 'HSH':
+                if (!isHighestScoringHalfMarket(m)) return false;
+                break;
             }
           }
           
