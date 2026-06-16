@@ -574,6 +574,12 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       
       // Auto-load markets if market-type filter detected
       const hasMarketTypeFilter = /\d{2,3}(H1|H2|2H|FT|ALL)?(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)/i.test(searchTerm);
+      console.log('[AutoLoad Check]', {
+        searchTerm,
+        hasMarketTypeFilter,
+        hasMarkets: (match.allMarkets?.length || 0) > 0,
+        isLoadingMarkets
+      });
       if (hasMarketTypeFilter && (!match.allMarkets || match.allMarkets.length === 0) && !isLoadingMarkets) {
         console.log('[MatchCard] Auto-loading markets for market-type filter:', searchTerm);
         const loadMarkets = async () => {
