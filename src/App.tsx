@@ -711,9 +711,16 @@ function App() {
               // For period-specific filters (H1, H2), don't let through - wait for markets
               // For simple odds filters without period, let through
               if (periodCode) {
+                if (marketType === 'HTFT' || marketType === 'FTTS') {
+                  console.log('[App Filter]', marketType, '- Markets not loaded for', match.homeTeam, 'vs', match.awayTeam, '- returning false');
+                }
                 return false; // Wait for markets to load
               }
               return true; // No period filter, let through
+            }
+            
+            if (marketType === 'HTFT' || marketType === 'FTTS') {
+              console.log('[App Filter]', marketType, '- Markets loaded for', match.homeTeam, 'vs', match.awayTeam, '(', match.allMarkets.length, 'markets)');
             }
             
             // Debug: Log all markets for HTFT filter
