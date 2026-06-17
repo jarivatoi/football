@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Search, Calendar, AlertCircle, Calculator, Database, Lightbulb, Trash2, Play, Pause, X, Ticket, Wand2 } from 'lucide-react';
+import { RefreshCw, Search, Calendar, AlertCircle, Calculator, Database, Lightbulb, Trash2, Play, Pause, X, Ticket } from 'lucide-react';
 import { Target } from 'lucide-react';
 import DateGroupedMatches from './components/DateGroupedMatches';
 import DateSelector from './components/DateSelector';
 import CompetitionFilter from './components/CompetitionFilter';
 import Header, { API_SOURCES, ApiSource } from './components/Header';
 import StatsCards from './components/StatsCards';
-import FilterBuilder from './components/FilterBuilder';
 import ParlayBuilder, { ParlaySelection } from './components/ParlayBuilder';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import DataExtractor from './components/DataExtractor';
@@ -65,7 +64,6 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchMode, setSearchMode] = useState<'matches' | 'eq' | 'gte' | 'lte' | 'between'>('matches'); // matches, = (eq), >= (gte), <= (lte), between
   const [searchOddsValue, setSearchOddsValue] = useState<string>('');
-  const [showFilterBuilder, setShowFilterBuilder] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
   const [showExtractor, setShowExtractor] = useState(false);
@@ -1297,20 +1295,6 @@ function App() {
               )}
             </div>
             
-            {/* Filter Builder Button */}
-            <button
-              onClick={() => setShowFilterBuilder(true)}
-              disabled={loading}
-              className={`p-2 rounded-lg border transition-all ${
-                loading 
-                  ? 'opacity-50 cursor-not-allowed border-gray-300' 
-                  : 'border-blue-300 hover:bg-blue-50 text-blue-600'
-              }`}
-              title="Open Filter Builder"
-            >
-              <Wand2 className="w-5 h-5" />
-            </button>
-            
             {/* Filter Mode Dropdown */}
             <select
               value={searchMode}
@@ -1440,19 +1424,6 @@ function App() {
           </div>
         )}
       </div>
-      
-      {/* Filter Builder Popup */}
-      {showFilterBuilder && (
-        <FilterBuilder
-          searchTerm={searchTerm}
-          onApply={(filter) => {
-            setSearchTerm(filter);
-            setSearchMode('eq');
-            setShowFilterBuilder(false);
-          }}
-          onClose={() => setShowFilterBuilder(false)}
-        />
-      )}
       
       <PWAInstallPrompt />
     </div>
