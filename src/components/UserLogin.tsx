@@ -701,10 +701,10 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             transform: translateX(calc(-100vw - 48px)) translateY(-50%) rotate(0deg);
             opacity: 0;
           }
-          15% {
+          10% {
             opacity: 1;
           }
-          85% {
+          90% {
             opacity: 1;
           }
           100% {
@@ -756,7 +756,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
       `}</style>
       <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 420, display: 'grid', gap: '12px', padding: '0 16px', boxSizing: 'border-box' }}>
         {/* FOOTBALL Header */}
-        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px', overflow: 'hidden' }}>
+        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '0', overflow: 'visible' }}>
           <h1 
             style={{ 
               fontSize: 'clamp(36px, 10vw, 48px)',
