@@ -8,7 +8,6 @@ class UserSessionDB {
   async init(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!window.indexedDB) {
-        console.error('❌ IndexedDB not supported');
         reject(new Error('IndexedDB not supported'));
         return;
       }
@@ -16,7 +15,6 @@ class UserSessionDB {
       const request = indexedDB.open(this.dbName, this.version);
 
       request.onerror = () => {
-        console.error('❌ Failed to open IndexedDB:', request.error);
         reject(new Error(`Failed to open database: ${request.error}`));
       };
 
@@ -55,7 +53,6 @@ class UserSessionDB {
       const store = transaction.objectStore('userSessions');
       
       transaction.onerror = () => {
-        console.error('❌ User session transaction error:', transaction.error);
         reject(new Error(`Transaction failed: ${transaction.error}`));
       };
       
@@ -66,7 +63,6 @@ class UserSessionDB {
       const request = store.put(session);
       
       request.onerror = () => {
-        console.error('❌ Failed to save user session:', request.error);
         reject(new Error(`Failed to save user session: ${request.error}`));
       };
     });
@@ -93,12 +89,10 @@ class UserSessionDB {
         };
         
         request.onerror = () => {
-          console.error('Failed to get user session:', request.error);
           resolve(null);
         };
       });
     } catch (error) {
-      console.error('getUserSession error:', error);
       return null;
     }
   }
@@ -111,12 +105,10 @@ class UserSessionDB {
       const store = transaction.objectStore('userSessions');
       
       transaction.onerror = () => {
-        console.error('❌ Remove user session transaction error:', transaction.error);
         reject(new Error(`Transaction failed: ${transaction.error}`));
       };
       
       transaction.oncomplete = () => {
-        console.log('✅ User session removed successfully');
         resolve();
       };
       
@@ -131,18 +123,15 @@ class UserSessionDB {
         clearRequest.onsuccess = () => {
           if (lastUsedIdEntry) {
             store.put(lastUsedIdEntry);
-            console.log('✅ Preserved lastUsedIdNumber:', lastUsedIdEntry.idNumber);
           }
         };
         
         clearRequest.onerror = () => {
-          console.error('❌ Failed to clear store:', clearRequest.error);
           reject(new Error(`Failed to clear store: ${clearRequest.error}`));
         };
       };
       
       getAllRequest.onerror = () => {
-        console.error('❌ Failed to get sessions:', getAllRequest.error);
         reject(new Error(`Failed to get sessions: ${getAllRequest.error}`));
       };
     });
@@ -156,7 +145,6 @@ class UserSessionDB {
       const store = transaction.objectStore('userSessions');
       
       transaction.onerror = () => {
-        console.error('❌ Save ID number transaction error:', transaction.error);
         reject(new Error(`Transaction failed: ${transaction.error}`));
       };
       
@@ -171,7 +159,6 @@ class UserSessionDB {
       });
       
       request.onerror = () => {
-        console.error('❌ Failed to save ID number:', request.error);
         reject(new Error(`Failed to save ID number: ${request.error}`));
       };
     });
@@ -190,7 +177,6 @@ class UserSessionDB {
       };
       
       request.onerror = () => {
-        console.error('❌ Failed to get last used ID number:', request.error);
         reject(new Error(`Failed to get last used ID number: ${request.error}`));
       };
     });

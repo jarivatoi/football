@@ -281,7 +281,6 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           setIdNumber(lastId);
         }
       } catch (error) {
-        console.warn('Could not load last used ID number:', error);
       }
     };
     
@@ -411,7 +410,6 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         onLoginSuccess(session);
         return;
       } catch (error) {
-        console.error('❌ Admin 5274 login failed:', error);
         setError('Failed to login as admin. Please try again.');
         return;
       }
@@ -553,7 +551,6 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         onLoginSuccess(session);
       }
     } catch (err: any) {
-      console.error('Failed to update passcode:', err);
       setError(err?.message ?? 'Failed to update passcode')
     }
   }

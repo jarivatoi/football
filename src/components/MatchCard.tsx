@@ -24,10 +24,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   // Parse advanced filter code (e.g., 120FT, 150H1BTTS, 120FTUO2.5, 150-180H1BTTS)
   const parseFilterCode = (code: string) => {
     try {
-      console.log(`[Parser] Input: "${code}", searchMode: ${searchMode}`);
-      
       if (!code || !code.trim()) {
-        console.log('[Parser] Empty code, returning null');
         return null;
       }
     
@@ -44,7 +41,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       // Parse range: 150-180H1BTTS
       const rangeMatch = upper.match(/^(\d{2,3})-(\d{2,3})/);
       if (!rangeMatch) {
-        console.log('[Parser] No range match found');
         return null;
       }
       
@@ -54,19 +50,16 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       if (oddsMax > 10) oddsMax = oddsMax / 100;
       odds = oddsMin; // Use min for compatibility
       afterOdds = upper.slice(rangeMatch[0].length);
-      console.log(`[Parser] Range: ${oddsMin}-${oddsMax}, afterOdds: "${afterOdds}"`);
     } else {
       // Single odds: 120FT
       const oddsMatch = upper.match(/^(\d{2,3})/);
       if (!oddsMatch) {
-        console.log('[Parser] No odds match found');
         return null;
       }
       
       odds = parseFloat(oddsMatch[1]);
       if (odds > 10) odds = odds / 100;
       afterOdds = upper.slice(oddsMatch[1].length);
-      console.log(`[Parser] Single odds: ${odds}, afterOdds: "${afterOdds}"`);
     }
     
     // Parse period and market
@@ -191,12 +184,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       line, 
       rawCode: code 
     };
-    
-    console.log('[Parser] Returning:', result);
     return result;
     } catch (error) {
-      console.error('[Parser] CRASHED with error:', error);
-      console.error('[Parser] Input was:', code);
       return null;
     }
   };
@@ -342,8 +331,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       const homeSelected = selectedPrices.includes(`${match.id}-home`);
       const drawSelected = selectedPrices.includes(`${match.id}-draw`);
       const awaySelected = selectedPrices.includes(`${match.id}-away`);
-      
-      
+
       if (homeSelected || drawSelected || awaySelected) {
         // Find the 1X2 market and expand it
         const x2Market = match.allMarkets.find(m => m.name === '1 X 2' || m.name === '1X2' || m.marketCode === 'CP');
@@ -360,29 +348,20 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
 
   // Auto-expand markets based on advanced filter code
   React.useEffect(() => {
-    console.log('[AutoExpand] useEffect triggered, isExpanded:', isExpanded, 'hasMarkets:', match.allMarkets?.length, 'searchTerm:', searchTerm, 'searchMode:', searchMode, 'activeTab:', activeMarketTab);
-    
     if (isExpanded && match.allMarkets && match.allMarkets.length > 0) {
       // If no search term, collapse all auto-expanded markets
       if (!searchTerm) {
-        console.log('[AutoExpand] No search term, clearing');
         setExpandedMarkets({});
         hasAutoExpandedRef.current = false;
         return;
       }
-      
-      console.log('[AutoExpand] Calling parseFilterCode with:', searchTerm);
       // Try to parse as advanced filter code
       let parsed;
       try {
         parsed = parseFilterCode(searchTerm);
       } catch (error) {
-        console.error('[AutoExpand] Parser crashed:', error);
         parsed = null;
       }
-      
-      console.log('[AutoExpand] Parsed result:', parsed);
-      
       if (parsed) {
         // Advanced filter mode
         
@@ -414,7 +393,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         const newExpandedMarkets: Record<string, boolean> = {};
         
         // Find and expand ONLY matching markets for the active tab period
-        console.log(`[Filter] Total markets to check: ${match.allMarkets.length}, activePeriod: ${activePeriod}, marketType: ${parsed.marketType}`);
         const matchingMarkets = match.allMarkets.filter(m => {
           if (!m.selections || m.selections.length === 0) return false;
           
@@ -424,23 +402,19 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           if (activePeriod === 'ALL') {
             // Include all markets, no period filtering
           } else if (activePeriod === 'H1' && m.periodCode !== 'H1' && m.periodCode !== 'HT') {
-            console.log(`[Filter] Excluding market ${m.name} - periodCode is ${m.periodCode}, need H1/HT`);
             return false;
           }
           if (activePeriod === 'H2' && m.periodCode !== 'H2' && m.periodCode !== '2H') {
-            console.log(`[Filter] Excluding market ${m.name} - periodCode is ${m.periodCode}, need H2/2H`);
             return false;
           }
           // For FT: exclude markets that have a periodCode but it's not FT
           // (markets without periodCode are assumed to be FT)
           if (activePeriod === 'FT' && m.periodCode && m.periodCode !== 'FT') {
-            console.log(`[Filter] Excluding market ${m.name} - periodCode is ${m.periodCode}, need FT`);
             return false;
           }
           
           // Check market type (only if specified)
           if (parsed.marketType) {
-            console.log(`[Filter] Checking market type: parsed=${parsed.marketType}, market=${m.name}, marketCode=${m.marketCode}`);
             switch (parsed.marketType) {
               case '1X2':
                 if (!is1X2Market(m)) return false;
@@ -491,13 +465,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                 break;
             }
           }
-          
-          console.log(`[Filter] Including market ${m.name} - periodCode is ${m.periodCode}`);
           return true;
         });
-        
-        console.log(`[Filter] Parsed: period=${parsed.period}, marketType=${parsed.marketType}, Found ${matchingMarkets.length} matching markets`);
-        
         // Log all markets for debugging
         console.log(`[Filter] All markets in match:`, match.allMarkets.map(m => ({
           name: m.name,
@@ -535,7 +504,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
             if (searchMode === 'eq') {
               // Exact match with tolerance
               const matches = Math.abs(selOdds - parsed.odds) < 0.001;
-              console.log(`[Filter] Checking ${sel.odds} vs ${parsed.odds} = ${matches}`);
               return matches;
             } else if (searchMode === 'gte') {
               // Greater than or equal
@@ -548,16 +516,10 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
             // Default: exact match
             return Math.abs(selOdds - parsed.odds) < 0.001;
           });
-          
-          console.log(`[Filter] Market ${market.name} hasMatchingOdds: ${hasMatchingOdds}`);
-          
           if (hasMatchingOdds) {
             newExpandedMarkets[market.marketBookNo] = true;
-            console.log(`[Filter] Expanded market ${market.name} (${market.marketBookNo})`);
           }
         }
-        
-        console.log(`[Filter] Total expanded markets: ${Object.keys(newExpandedMarkets).length}`);
         setExpandedMarkets(newExpandedMarkets);
       } else {
         // Fall back to old behavior for simple odds filtering
@@ -583,9 +545,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                               upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A') ||
                               upperSearch.endsWith('FT') || upperSearch.endsWith('ALL') ||
                               hasAdvancedFilter;
-      
-      console.log('[AutoExpand Detection] searchTerm:', searchTerm, 'hasAdvancedFilter:', hasAdvancedFilter, 'hasPeriodFilter:', hasPeriodFilter, 'isExpanded:', isExpanded);
-      
       // Auto-load markets if market-type filter detected
       const hasMarketTypeFilter = /\d{2,3}(H1|H2|2H|FT|ALL)?(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)/i.test(searchTerm);
       console.log('[AutoLoad Check]', {
@@ -595,7 +554,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         isLoadingMarkets
       });
       if (hasMarketTypeFilter && (!match.allMarkets || match.allMarkets.length === 0) && !isLoadingMarkets) {
-        console.log('[MatchCard] Auto-loading markets for market-type filter:', searchTerm);
         const loadMarkets = async () => {
           setIsLoadingMarkets(true);
           await totelepepExtractor.fetchMarketsForMatch(match);
@@ -610,7 +568,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       
       if (hasPeriodFilter && !isExpanded) {
         // Expand match card when period filter is added
-        console.log('[AutoExpand Detection] Expanding card for period filter');
         toggleExpand();
       } else if (!hasPeriodFilter && isExpanded && searchMode !== 'matches') {
         // Collapse match card when period filter is removed (but keep expanded for text search)
@@ -774,22 +731,16 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     if (parsed.period === 'FT' && period !== 'FT' && period) return false;
     
     // Check position match (for 1X2 markets)
-    console.log(`[oddsMatchFilter] DEBUG: parsed.option=${parsed?.option}, position=${position}, searchTerm=${searchTerm}`);
     if (parsed.option && position) {
-      console.log(`[oddsMatchFilter] Checking position: parsed.option=${parsed.option}, position=${position}`);
       if (parsed.option === 'H' && position !== 'home') {
-        console.log(`[oddsMatchFilter] ❌ Filtering out ${position} - looking for Home only`);
         return false;
       }
       if (parsed.option === 'D' && position !== 'draw') {
-        console.log(`[oddsMatchFilter] ❌ Filtering out ${position} - looking for Draw only`);
         return false;
       }
       if (parsed.option === 'A' && position !== 'away') {
-        console.log(`[oddsMatchFilter] ❌ Filtering out ${position} - looking for Away only`);
         return false;
       }
-      console.log(`[oddsMatchFilter] ✅ Position match: ${position}`);
     }
     
     return true;
@@ -1054,7 +1005,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                                   
                                   if (searchTerm && /\d{2,3}(H1|H2|2H|FT)/.test(searchTerm.toUpperCase())) {
                                     const selIndex = market.selections.findIndex((s: any) => s === selection);
-                                    console.log(`[Position Check] Selection: "${selection.name}", Index: ${selIndex}, is1X2: ${is1X2Market(market)}, Detected position: ${pos}, market: ${market.name}, period: ${market.periodCode}`);
                                   }
                                   const matches = oddsMatchFilter(selection.odds, pos, market.periodCode);
                                   return matches ? 'bg-orange-500 text-white' : 'bg-gray-100 hover:bg-gray-200';

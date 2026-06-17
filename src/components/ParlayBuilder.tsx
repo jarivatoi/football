@@ -13,16 +13,8 @@ const formatCurrency = (amount: number): string => {
 // Totelepep betting API integration
 const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, selectedSource?: ApiSource) => {
   try {
-    console.log('🔍 Analyzing selections for market data:', selections);
-    console.log('💰 Stake amount:', stake);
-    
     // Build the form data in Totelepep's exact format
     const formData = new URLSearchParams();
-    
-    console.log(`🎯 PLACING BET DEBUG INFO:`);
-    console.log(`   Stake amount:`, stake);
-    console.log(`   Number of selections:`, selections.length);
-    
     // Multi-bet data (populate when multiple selections for parlay)
     if (selections.length > 1) {
       // Calculate total odds for multi-bet
@@ -34,48 +26,29 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       // Set MultiStake for parlay bets
       formData.append('data[MultiStake]', stake.toString());
       formData.append('data[MultiReturn]', (stake * totalOdds).toFixed(2));
-      console.log(`🔗 Multi-bet (Parlay) - Total Odds: ${totalOdds.toFixed(2)}, MultiStake: ${stake}`);
     } else {
       formData.append('data[MultiStake]', '');
     }
         
     // Add each selection as SingleBets array
     selections.forEach((selection, index) => {
-      console.log(`📋 Processing selection ${index}:`, selection);
-          
       // Specific debug for PSV Eindhoven vs ZFK Minsk or any match
       if (selection.homeTeam && selection.awayTeam) {
-        console.log(`🎯 MATCH DEBUG: ${selection.homeTeam} vs ${selection.awayTeam}`);
-        console.log(`   matchId:`, selection.matchId);
-        console.log(`   marketBookNo:`, selection.marketBookNo);
-        console.log(`   marketCode:`, selection.marketCode);
-        console.log(`   competitionId:`, selection.competitionId);
       }
           
       // Map selection type to option details FIRST (needed for betRef)
       const optionDetails = getOptionDetails(selection);
-      console.log(`📋 Option details for selection ${index}:`, optionDetails);
-          
       // Generate betRef (format: marketId-optionNo) - Use ACTUAL marketId from GetMatch API
       // DO NOT use marketBookNo which is only for 1X2!
       const marketIdToUse = (selection.marketId && selection.marketId !== '0' && selection.marketId !== 'undefined' && selection.marketId !== 'null')
         ? selection.marketId
         : (selection.matchId || '0');
       const betRef = `${marketIdToUse}-${optionDetails.optionNo}`;
-      console.log(`🔍 betRef result - marketIdToUse: ${marketIdToUse}, optionNo: ${optionDetails.optionNo}, betRef: ${betRef}`);
-      console.log(`🎯 betRef should use actual market ID (e.g., 96909 for Highest Scoring Half), NOT 96901 for 1X2`);
-      
       // Extract real market data from the match
       const marketData = extractMarketData(selection);
-      console.log(`📋 Market data for selection ${index}:`, marketData);
-      
       // Additional validation for market data to ensure we don't send "null" or "undefined" strings
       let finalMarketBookNo = marketData.marketBookNo;
       let finalMarketCode = marketData.marketCode;
-      
-      console.log(`🔍 placeTotelepepBet validation - initial finalMarketBookNo:`, finalMarketBookNo);
-      console.log(`🔍 placeTotelepepBet validation - initial finalMarketCode:`, finalMarketCode);
-      
       // Use marketBookNo when available, with minimal validation
       // Only override if the value is truly invalid
       const hasUsableFinalMarketBookNo = finalMarketBookNo && 
@@ -86,7 +59,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
         !isNaN(Number(finalMarketBookNo));
       
       if (!hasUsableFinalMarketBookNo) {
-        console.warn(`⚠️ Invalid marketBookNo for selection ${index}, using fallback`);
         // Only use fallback if we don't already have a valid marketBookNo from the selection
         if (!selection.marketBookNo || selection.marketBookNo === 'undefined' || selection.marketBookNo === 'null' || selection.marketBookNo.trim() === '' || selection.marketBookNo.trim() === '0' || isNaN(Number(selection.marketBookNo))) {
           finalMarketBookNo = selection.matchId || '76713';
@@ -107,7 +79,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       
       // Only override marketCode if it's truly invalid
       if (!finalMarketCode || finalMarketCode === 'undefined' || finalMarketCode === 'null' || finalMarketCode.trim() === '') {
-        console.warn(`⚠️ Invalid marketCode for selection ${index}, using fallback`);
         // Check if selection has a valid marketCode first
         if (selection.marketCode && selection.marketCode !== 'undefined' && selection.marketCode !== 'null' && selection.marketCode.trim() !== '') {
           finalMarketCode = selection.marketCode;
@@ -119,7 +90,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       // Ensure marketBookNo is a valid number
       // Only apply this check if we're not using the original selection's marketBookNo
       if (finalMarketBookNo !== selection.marketBookNo && isNaN(Number(finalMarketBookNo))) {
-        console.warn(`⚠️ marketBookNo is not a valid number for selection ${index}, using matchId fallback`);
         // Try to use the original selection's marketBookNo if it's valid
         if (selection.marketBookNo && !isNaN(Number(selection.marketBookNo)) && Number(selection.marketBookNo) > 0) {
           finalMarketBookNo = selection.marketBookNo;
@@ -129,19 +99,14 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       }
       
       // Additional safety checks
-      console.log(`🔍 placeTotelepepBet validation - finalMarketBookNo before safety:`, finalMarketBookNo);
-      console.log(`🔍 placeTotelepepBet validation - finalMarketCode before safety:`, finalMarketCode);
-      
       // Ensure we have valid string values
       // Only override if we don't have a valid marketBookNo from the selection
       if (!finalMarketBookNo || typeof finalMarketBookNo !== 'string' || finalMarketBookNo === 'null' || finalMarketBookNo === 'undefined' || finalMarketBookNo.trim() === '') {
         // Try to use the original selection's marketBookNo if it's valid
         if (selection.marketBookNo && selection.marketBookNo !== 'null' && selection.marketBookNo !== 'undefined' && selection.marketBookNo.trim() !== '' && !isNaN(Number(selection.marketBookNo)) && Number(selection.marketBookNo) > 0) {
           finalMarketBookNo = selection.marketBookNo;
-          console.log(`🔍 placeTotelepepBet validation - finalMarketBookNo restored from selection:`, finalMarketBookNo);
         } else {
           finalMarketBookNo = selection.matchId || '76713';
-          console.log(`🔍 placeTotelepepBet validation - finalMarketBookNo fallback to matchId:`, finalMarketBookNo);
         }
       }
       
@@ -150,16 +115,10 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
         // Try to use the original selection's marketCode if it's valid
         if (selection.marketCode && selection.marketCode !== 'null' && selection.marketCode !== 'undefined' && selection.marketCode.trim() !== '') {
           finalMarketCode = selection.marketCode;
-          console.log(`🔍 placeTotelepepBet validation - finalMarketCode restored from selection:`, finalMarketCode);
         } else {
           finalMarketCode = 'CP';
-          console.log(`🔍 placeTotelepepBet validation - finalMarketCode fallback to CP:`, finalMarketCode);
         }
       }
-      
-      console.log(`🔍 placeTotelepepBet validation - final finalMarketBookNo:`, finalMarketBookNo);
-      console.log(`🔍 placeTotelepepBet validation - final finalMarketCode:`, finalMarketCode);
-      
       // Log final form data values for debugging
       console.log(`📋 Final form data values for selection ${index}:`, {
         betRef: betRef,
@@ -201,26 +160,11 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       
       // CRITICAL: Use selection.marketId (actual market ID from GetMatch API like 96909 for Highest Scoring Half)
       // DO NOT fall back to marketBookNo which is only for 1X2!
-      console.log(`🔍 marketId generation - selection:`, selection);
-      
       const marketId = (selection.marketId && selection.marketId !== '0' && selection.marketId !== 'undefined' && selection.marketId !== 'null')
         ? selection.marketId
         : (selection.matchId || '0');
-      
-      console.log(`🎯 FINAL marketId being sent: ${marketId} (should be 96909 for Highest Scoring Half, NOT 96901 for 1X2)`);
-      
-      console.log(`🔍 marketId result - selection.marketId: ${selection.marketId}, selection.marketBookNo: ${selection.marketBookNo}, final marketId: ${marketId}`);
-      
-      console.log(`🔍 DETAILED MARKET ID DEBUGGING:`);
-      console.log(`   selection.marketId:`, selection.marketId);
-      console.log(`   selection.marketBookNo:`, selection.marketBookNo);
-      console.log(`   selection.matchId:`, selection.matchId);
-      console.log(`   Final marketId:`, marketId);
-      console.log(`   Final marketId type:`, typeof marketId);
-      
       // Special handling for the correct marketBookNo
       if (selection.marketBookNo === '5160495') {
-        console.log(`🎯 FOUND EXACT MATCH MARKETBOOKNO for selection ${index}!`);
       }
       
       // Ensure we're not sending undefined or null values
@@ -238,7 +182,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
           selection.marketBookNo.trim() !== '' && 
           selection.marketBookNo.trim() !== '0') {
         safeMarketBookNo = selection.marketBookNo;
-        console.log(`   🎯 Using selection.marketBookNo: ${safeMarketBookNo}`);
       }
       // Priority 2: Use finalMarketBookNo if it's valid
       else if (finalMarketBookNo && 
@@ -248,7 +191,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
                finalMarketBookNo.trim() !== '' && 
                finalMarketBookNo.trim() !== '0') {
         safeMarketBookNo = finalMarketBookNo;
-        console.log(`   🎯 Using finalMarketBookNo: ${safeMarketBookNo}`);
       }
       // Priority 3: Use selection.matchId as fallback
       else if (selection.matchId && 
@@ -258,7 +200,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
                selection.matchId.trim() !== '' && 
                selection.matchId.trim() !== '0') {
         safeMarketBookNo = selection.matchId;
-        console.log(`   🎯 Using selection.matchId as fallback: ${safeMarketBookNo}`);
       }
       
       // Same priority logic for marketCode
@@ -268,7 +209,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
           selection.marketCode !== 'undefined' && 
           selection.marketCode.trim() !== '') {
         safeMarketCode = selection.marketCode;
-        console.log(`   🎯 Using selection.marketCode: ${safeMarketCode}`);
       }
       else if (finalMarketCode && 
                typeof finalMarketCode === 'string' && 
@@ -276,20 +216,13 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
                finalMarketCode !== 'undefined' && 
                finalMarketCode.trim() !== '') {
         safeMarketCode = finalMarketCode;
-        console.log(`   🎯 Using finalMarketCode: ${safeMarketCode}`);
       }
       // Default fallback for marketCode
       else {
         safeMarketCode = 'CP';
-        console.log(`   🎯 Using default marketCode: ${safeMarketCode}`);
       }
       
       // Debug the form data being added
-      console.log(`📋 Adding form data for selection ${index}:`);
-      console.log(`   marketId: ${marketId} (type: ${typeof marketId})`);
-      console.log(`   marketBookNo: ${safeMarketBookNo} (type: ${typeof safeMarketBookNo})`);
-      console.log(`   marketCode: ${safeMarketCode} (type: ${typeof safeMarketCode})`);
-      
       // Additional validation for the safe values
       console.log(`🔍 DETAILED MARKETBOOKNO DEBUG for selection ${index}:`, {
         originalSelectionMarketBookNo: selection.marketBookNo,
@@ -307,10 +240,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
         safeMarketBookNo: safeMarketBookNo,
         safeMarketCode: safeMarketCode
       });
-      
-      console.log(`   Safe marketBookNo: ${safeMarketBookNo} (type: ${typeof safeMarketBookNo})`);
-      console.log(`   Safe marketCode: ${safeMarketCode} (type: ${typeof safeMarketCode})`);
-      
       // Additional validation for the safe values
       console.log(`🔍 SAFE VALUES VALIDATION for selection ${index}:`, {
         safeMarketBookNoIsValid: safeMarketBookNo && safeMarketBookNo !== 'null' && safeMarketBookNo !== 'undefined' && safeMarketBookNo.trim() !== '',
@@ -409,32 +338,22 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
     
     // Proxy bet flag
     formData.append('data[ProxyBet]', '0');
-    
-    console.log('📡 Sending Totelepep bet request:', formData.toString());
-    
     // Parse and log the form data for easier reading
     const formDataObj: Record<string, string> = {};
     formData.forEach((value, key) => {
       formDataObj[key] = value.toString();
     });
-    console.log('📋 Form Data Object:', JSON.stringify(formDataObj, null, 2));
-          
     // Additional debugging to check specific market fields
-    console.log('🔍 Checking specific market fields in formData:');
     for (let [key, value] of formData.entries()) {
       if (key.includes('marketBookNo') || key.includes('marketCode') || key.includes('marketId')) {
-        console.log(`   ${key}: ${value} (type: ${typeof value})`);
       }
     }
     
     // Additional specific check for marketBookNo and marketCode fields
-    console.log('🔍 Detailed market field check:');
     Object.keys(formDataObj).forEach(key => {
       if (key.includes('marketBookNo') || key.includes('marketCode')) {
-        console.log(`   ${key}: "${formDataObj[key]}" (length: ${formDataObj[key].length})`);
         // Check if the value is actually "null" or "undefined" as strings
         if (formDataObj[key] === 'null' || formDataObj[key] === 'undefined') {
-          console.error(`   ❌ ERROR: Found string "${formDataObj[key]}" in ${key} field!`);
         }
       }
     });
@@ -443,10 +362,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
     // Use selected source or default to Totelepep
     const baseUrl = selectedSource?.baseUrl.replace('/webapi/GetSport', '') || 'https://www.totelepep.mu';
     const betUrl = 'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=' + encodeURIComponent(`${baseUrl}/webapi/placebet`);
-    
-    console.log('📡 Sending bet request to API (via CORS proxy):', baseUrl);
-    console.log('📝 Form data:', formData.toString());
-    
     const response = await fetch(betUrl, {
       method: 'POST',
       headers: {
@@ -462,22 +377,9 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
     }
     
     const result = await response.json();
-    console.log('📄 Totelepep response:', result);
-    console.log('📄 FULL RESULT JSON:', JSON.stringify(result, null, 2));
-    
     // Debug response details
-    console.log('📊 Response Status:', response.status);
-    console.log('📊 Response OK:', response.ok);
-    console.log('📊 Response Headers:', [...response.headers.entries()]);
-    
     // Log betList if it exists
     if (result.betList && result.betList.length > 0) {
-      console.log('📋 BETLIST DETAILS:');
-      console.log('  - ticketNo:', result.betList[0].ticketNo);
-      console.log('  - bookingReference:', result.betList[0].bookingReference);
-      console.log('  - betErrorCode:', result.betList[0].betErrorCode);
-      console.log('  - betErrorMessage:', result.betList[0].betErrorMessage);
-      console.log('  - Full betList[0]:', result.betList[0]);
     }
     
     // Extract ticket number from the response
@@ -503,7 +405,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       for (const field of possibleFields) {
         if (result[field]) {
           ticketNo = result[field];
-          console.log(`🎯 Found ticket in field '${field}':`, ticketNo);
           break;
         }
       }
@@ -515,19 +416,16 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       // Try ticketNo first
       if (firstBet.ticketNo) {
         ticketNo = firstBet.ticketNo;
-        console.log('🎯 Found ticketNo in betList:', ticketNo);
       }
       // Fallback to bookingReference
       else if (firstBet.bookingReference) {
         ticketNo = firstBet.bookingReference;
-        console.log('🎯 Found bookingReference in betList:', ticketNo);
       }
     }
     
     // Also check top-level bookingReference
     if (!ticketNo && result.bookingReference) {
       ticketNo = result.bookingReference;
-      console.log('🎯 Found bookingReference at top level:', ticketNo);
     }
     
     // If ticketNo is in the format "Booking Ref# 123456789", extract just the number
@@ -535,13 +433,11 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       const match = ticketNo.match(/# (\d+)/);
       if (match && match[1]) {
         ticketNo = match[1];
-        console.log('🎯 Extracted ticket number from Booking Ref format:', ticketNo);
       } else {
         // Try alternative patterns
         const altMatch = ticketNo.match(/#(\d+)/) || ticketNo.match(/(\d+)/);
         if (altMatch && altMatch[1]) {
           ticketNo = altMatch[1];
-          console.log('🎯 Extracted ticket number from alternative format:', ticketNo);
         }
       }
     }
@@ -589,7 +485,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
     };
     
   } catch (error) {
-    console.error('❌ Totelepep API error:', error);
     console.error('❌ Error details:', {
       name: error instanceof Error ? error.name : 'Unknown',
       message: error instanceof Error ? error.message : 'Unknown error',
@@ -604,8 +499,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
 
 // Extract market data based on match and league
 const extractMarketData = (selection: ParlaySelection) => {
-  console.log('🔍 Extracting market data for selection:', selection);
-  
   // Use the actual competitionId from the match data
   const competitionId = selection.competitionId || '52'; // Default to Japan Emperor Cup
   const league = selection.league || 'Football League';
@@ -628,9 +521,6 @@ const extractMarketData = (selection: ParlaySelection) => {
     : 'CP';
   
   // Additional validation to ensure we don't send "null" or "undefined" strings
-  console.log(`🔍 extractMarketData - marketBookNo before null/undefined check:`, marketBookNo);
-  console.log(`🔍 extractMarketData - marketCode before null/undefined check:`, marketCode);
-  
   if (marketBookNo === 'null' || marketBookNo === 'undefined') {
     marketBookNo = selection.matchId || '76713';
   }
@@ -640,18 +530,13 @@ const extractMarketData = (selection: ParlaySelection) => {
   }
   
   // Additional safety checks
-  console.log(`🔍 extractMarketData - marketBookNo after null/undefined check:`, marketBookNo);
-  console.log(`🔍 extractMarketData - marketCode after null/undefined check:`, marketCode);
-  
   // Ensure we have valid string values
   if (!marketBookNo || typeof marketBookNo !== 'string') {
     marketBookNo = selection.matchId || '76713';
-    console.log(`🔍 extractMarketData - marketBookNo fallback to matchId:`, marketBookNo);
   }
   
   if (!marketCode || typeof marketCode !== 'string') {
     marketCode = 'CP';
-    console.log(`🔍 extractMarketData - marketCode fallback to CP:`, marketCode);
   }
   
   const marketData = {
@@ -660,8 +545,6 @@ const extractMarketData = (selection: ParlaySelection) => {
     marketBookNo,
     marketCode
   };
-  
-  console.log('📊 Extracted market data:', marketData);
   console.log('🔍 Market Data Details:', {
     originalMarketBookNo: selection.marketBookNo,
     finalMarketBookNo: marketBookNo,
@@ -708,9 +591,6 @@ const getOptionDetails = (selection: ParlaySelection) => {
   if (selection.priceType.includes('-') && !['home', 'draw', 'away', 'over', 'under', 'btts_yes', 'btts_no'].includes(selection.priceType)) {
     const parts = selection.priceType.split('-');
     const selectionName = parts.slice(1).join('-'); // Everything after the first dash
-    
-    console.log(`🎯 Parsing All Markets selection: priceType="${selection.priceType}", extracted name="${selectionName}"`);
-    
     // Map selection names to option details
     // "2nd" -> 2nd Half, "1st" -> 1st Half, "Home" -> Home, etc.
     let optionNo = '1';
@@ -808,9 +688,6 @@ const getOptionDetails = (selection: ParlaySelection) => {
         optionName = `Draw - ${selection.awayTeam}`;
       }
     }
-    
-    console.log(`🎯 Mapped to: optionNo=${optionNo}, optionCode=${optionCode}, optionName=${optionName}, marketType=${marketType}`);
-    
     return {
       optionNo,
       optionCode,
@@ -974,21 +851,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   
   // After successful bet, extract detailed breakdown from API response
   const apiBreakdown = useMemo(() => {
-    console.log('🔍 Checking lastResult:', lastResult);
-    
     if (!lastResult || !lastResult.success || !lastResult.fullResponse) {
-      console.log('❌ No valid lastResult or fullResponse');
       return null;
     }
     
     const fullResponse = lastResult.fullResponse;
     const betList = fullResponse.betList;
-    console.log('📋 betList from fullResponse:', betList);
-    console.log('🔍 fullResponse object keys:', Object.keys(fullResponse));
-    console.log('🔍 fullResponse.taxAmount:', fullResponse.taxAmount, 'type:', typeof fullResponse.taxAmount);
-    console.log('🔍 fullResponse.bonusAmount:', fullResponse.bonusAmount, 'type:', typeof fullResponse.bonusAmount);
-    console.log('🔍 fullResponse.multiStake:', fullResponse.multiStake, 'type:', typeof fullResponse.multiStake);
-    
     // For multi-bets, betList is empty - use top-level fields
     const isMultiBet = !betList || betList.length === 0;
     
@@ -998,7 +866,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     let bonusAmount: number;
     
     if (isMultiBet) {
-      console.log('🎯 Multi-bet detected - using top-level fields');
       console.log('🔍 Raw top-level values:', {
         multiStake: fullResponse.multiStake,
         potentialPayout: fullResponse.potentialPayout,
@@ -1012,7 +879,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       taxAmount = parseFloat((fullResponse.taxAmount || '0').replace(/,/g, '')) || 0;
       bonusAmount = parseFloat((fullResponse.bonusAmount || '0').replace(/,/g, '')) || 0;
     } else {
-      console.log('🎯 Single bet detected - using betList[0]');
       const firstBet = betList[0];
       // Remove commas before parsing
       stake = parseFloat((firstBet.stake || betAmount.toString()).replace(/,/g, ''));
@@ -1020,9 +886,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       taxAmount = parseFloat((firstBet.taxAmount || '0').replace(/,/g, '')) || 0;
       bonusAmount = parseFloat((firstBet.bonusAmount || '0').replace(/,/g, '')) || 0;
     }
-    
-    console.log('✅ Parsed breakdown:', { stake, apiPotentialPayout, taxAmount, bonusAmount, isMultiBet });
-    
     return {
       stake: stake,
       tax: taxAmount,
@@ -1034,24 +897,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   }, [lastResult, betAmount]);
 
   const handlePlaceBet = async () => {
-    console.log('🎯 Place bet button clicked');
-    console.log('📊 Current selections:', selections);
-    console.log('💰 Bet amount:', betAmount);
-    console.log('📈 Total odds:', totalOdds);
-    
     // Clear previous errors before placing new bet
     selections.forEach(s => s.hasError = false);
     
     // Debug specific match data
     selections.forEach((selection, index) => {
-      console.log(`🔍 Selection ${index} DEBUG DATA:`);
-      console.log(`   Match: ${selection.homeTeam} vs ${selection.awayTeam}`);
-      console.log(`   matchId:`, selection.matchId);
-      console.log(`   marketBookNo:`, selection.marketBookNo);
-      console.log(`   marketCode:`, selection.marketCode);
-      console.log(`   competitionId:`, selection.competitionId);
-      console.log(`   priceType:`, selection.priceType);
-      console.log(`   odds:`, selection.odds);
     });
 
     // Clear previous result
@@ -1082,15 +932,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     setIsPlacing(true);
 
     try {
-      console.log('🚀 Attempting to place bet...');
-      
       // Use real booking API with selected source
       const bookingResult = await placeTotelepepBet(selections, betAmount, selectedSource);
-      
-      console.log('📄 Full Totelepep response:', bookingResult);
-      console.log('📄 betList details:', JSON.stringify(bookingResult.betList, null, 2));
-      console.log(' potentialPayout:', bookingResult.potentialPayout);
-      
       // Enhanced success checking to handle cases where ticket is generated but errors are present
       const hasTicket = bookingResult.ticketNo && bookingResult.ticketNo.trim() !== '';
       const hasErrors = (bookingResult.errorMessage && bookingResult.errorMessage.trim() !== '' && bookingResult.errorMessage !== 'None') || 
@@ -1112,8 +955,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       
       // Consider successful ONLY if we have a ticket AND no bet errors
       if (hasTicket && !hasBetErrors && !hasErrors) {
-        console.log('✅ Totelepep booking successful (has ticket, no errors):', bookingResult);
-        
         setLastResult({
           success: true,
           message: 'Booking successful!',
@@ -1125,8 +966,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         // Don't clear selections or reset bet amount - let user decide
         setIsPlacing(false);
       } else if (bookingResult.success && !hasErrors) {
-        console.log('✅ Totelepep booking successful (API reported success):', bookingResult);
-        
         setLastResult({
           success: true,
           message: 'Booking successful!',
@@ -1138,7 +977,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         // Don't clear selections or reset bet amount - let user decide
         setIsPlacing(false);
       } else {
-        console.error('❌ Totelepep booking failed:', bookingResult);
         const errorMessage = bookingResult.errorMessage || bookingResult.multiErrorMessage || 'Please try again';
         setLastResult({
           success: false,
@@ -1160,7 +998,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       }
       
     } catch (error) {
-      console.error('❌ Error placing Totelepep bet:', error);
       setLastResult({
         success: false,
         message: `Failed to connect to Totelepep: ${error instanceof Error ? error.message : 'Please try again'}`,

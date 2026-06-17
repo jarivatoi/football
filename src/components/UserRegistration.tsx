@@ -92,7 +92,6 @@ const UserRegistration: React.FC<UserRegistrationProps> = ({ onBack }) => {
       }])
       
       if (error) {
-        console.error('Insert error:', error)
         setError(error.message ?? 'Registration failed')
         return
       }
@@ -106,7 +105,6 @@ const UserRegistration: React.FC<UserRegistrationProps> = ({ onBack }) => {
       })
       
     } catch (err: any) {
-      console.error('Registration error:', err)
       setError(err?.message ?? 'Registration failed')
     } finally {
       setIsLoading(false)

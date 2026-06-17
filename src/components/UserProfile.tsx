@@ -37,11 +37,11 @@ const ProfileTab: React.FC<ProfileProps> = ({ user, onLoginSuccess, onClose }) =
   // Monitor online/offline status
   useEffect(() => {
     const handleOnline = () => {
-      console.log('🌐 Profile: User is back online');
+
     };
 
     const handleOffline = () => {
-      console.log('📡 Profile: User went offline');
+
     };
 
     window.addEventListener('online', handleOnline);
@@ -96,7 +96,7 @@ const ProfileTab: React.FC<ProfileProps> = ({ user, onLoginSuccess, onClose }) =
       setError('Profile saved successfully')
       setShowSaveModal(false)
     } catch (error) {
-      console.error('Error saving profile:', error)
+
       setError('Failed to save profile')
       setShowSaveModal(false)
     }
@@ -141,7 +141,7 @@ const ProfileTab: React.FC<ProfileProps> = ({ user, onLoginSuccess, onClose }) =
       localStorage.removeItem('last_used_id_number')
       window.location.reload()
     } catch (error) {
-      console.error('Error deleting profile:', error)
+
       setError('Failed to delete profile')
       setShowDeleteModal(false)
     }
@@ -231,7 +231,7 @@ const ProfileTab: React.FC<ProfileProps> = ({ user, onLoginSuccess, onClose }) =
       const updateResult = await supabase.from('users').update({ passcode: newPasscode }).eq('id', user.id);
       
       if (updateResult.error) {
-        console.error('Profile update error:', updateResult.error);
+
         throw updateResult.error;
       }
       
@@ -246,8 +246,7 @@ const ProfileTab: React.FC<ProfileProps> = ({ user, onLoginSuccess, onClose }) =
       
       // Also check if we can read the record directly
       const directCheck = await supabase.from('users').select('id, passcode').eq('id', user.id).single();
-      console.log('Direct record check:', directCheck);
-      
+
       setError('Passcode updated successfully')
       setForgotPasscode(false)
       setNewPasscode('')
@@ -442,13 +441,13 @@ const ProfileTab: React.FC<ProfileProps> = ({ user, onLoginSuccess, onClose }) =
           <AdminPanel 
             onBack={onClose}
             onLogout={async () => {
-              console.log('🚪 Admin logging out...');
+
               await removeUserSession();
               // Clear the session in parent App component
               onLoginSuccess({ userId: '', idNumber: '', isAdmin: false });
               // Close UserProfile to return to App, which will show login
               if (onClose) {
-                console.log('✅ Closing UserProfile, App will show login page');
+
                 onClose();
               }
             }}

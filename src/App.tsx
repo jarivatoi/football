@@ -54,9 +54,7 @@ function App() {
   const [isMaintenanceEnabled, setIsMaintenanceEnabled] = useState(false);
   
   // Add a simple test to see if the component is rendering
-  
-  
-  
+
   const [matches, setMatches] = useState<TotelepepMatch[]>([]);
   const [groupedMatches, setGroupedMatches] = useState<Record<string, TotelepepMatch[]>>({});
   const [loading, setLoading] = useState(false);
@@ -171,8 +169,7 @@ function App() {
     
     // Reload calendar with the category filter and get the first date
     const firstDate = await reloadCalendarWithFilters(categoryId, '');
-    
-    
+
     // If All Matches is active, reload all matches with new category
     if (showAllMatches) {
       
@@ -220,8 +217,7 @@ function App() {
   
   // Reload calendar with category/competition filters to update match counts
   const reloadCalendarWithFilters = async (categoryId: string, competitionId: string): Promise<string | null> => {
-    
-    
+
     // Load calendar with the filters
     await loadCalendarList(categoryId, competitionId);
     
@@ -282,15 +278,13 @@ function App() {
     registerServiceWorker();
     requestNotificationPermission();
     scheduleBackgroundSync();
-    
-    
+
   }, [selectedDate]);
   
   const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string) => {
     setLoading(true);
     setError(null);
-    
-    
+
     // targetDate === null means "no date, get all matches"
     // targetDate === undefined means "use selectedDate"
     // targetDate === string means "use this specific date"
@@ -309,10 +303,7 @@ function App() {
     const catId = categoryId !== undefined ? categoryId : selectedCategory;
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
     try {
-      
-      
-      
-      
+
       // Fetch matches DIRECTLY from Totelepep API with category/competition filters
       
       const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId);
@@ -347,22 +338,17 @@ function App() {
   const loadAllMatches = async (categoryId?: string, competitionId?: string) => {
     setLoading(true);
     setError(null);
-    
-    
-    
-    
+
     // Use provided params or fall back to state
     const catId = categoryId !== undefined ? categoryId : selectedCategory;
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
-    
-    
+
     try {
       const allMatches: TotelepepMatch[] = [];
       
       // Use calendarList which has all the dates
       const datesToFetch = calendarList.length > 0 ? calendarList : availableDates;
-      
-      
+
       // Fetch matches from each date
       for (const dateInfo of datesToFetch) {
         
@@ -374,9 +360,7 @@ function App() {
           
         }
       }
-      
-      
-      
+
       // Sort all matches by date and time
       const sortedMatches = allMatches.sort((a, b) => {
         const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
@@ -404,8 +388,7 @@ function App() {
   const loadCalendarList = async (categoryId?: string, competitionId?: string) => {
     try {
       const sourceName = selectedSource?.displayName || 'Totelepep';
-      
-      
+
       // Clear cache to ensure fresh data
       totelepepExtractor.clearCache();
       
@@ -413,10 +396,7 @@ function App() {
       // Use TODAY (not yesterday) to ensure we get the full calendar with matches
       const today = new Date();
       const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      
-      
-      
-      
+
       // Fetch with a date to get the calendar list
       const matches = await totelepepExtractor.extractMatches(dateStr, categoryId || '', competitionId || '');
       
@@ -425,19 +405,15 @@ function App() {
       
       // Get calendar list from extractor
       const calendarData = (totelepepExtractor as any).calendarList || [];
-      
-      
-      
+
       if (calendarData && calendarData.length > 0) {
-        
-        
+
         const formattedCalendar = calendarData.map((entry: any) => ({
           date: entry.entryDate,
           matchCount: entry.matchCount || 0,
           displayName: entry.displayDate || entry.entryDate
         }));
-        
-        
+
         setCalendarList(formattedCalendar);
         
         // Set the selected date to the FIRST entry from the API (which is "Today" in API's timezone)
@@ -469,14 +445,9 @@ function App() {
     }
   };
 
-
-
-
   // Load initial data on mount
   useEffect(() => {
-    
-    
-    
+
     // Clear all caches on initial load
     totelepepExtractor.clearCache();
     
@@ -497,17 +468,14 @@ function App() {
 
   // Filter matches by selected date and maintain grouping
   const filteredGroupedMatches = React.useMemo ? React.useMemo(() => {
-    
-    
+
     // Check if this is a Beyond date by checking if displayName contains "Beyond"
     const isBeyondDate = selectedDate && calendarList.find(entry => {
       return entry.date === selectedDate && (entry.displayName.includes('Beyond') || entry.displayName.includes('>>'));
     });
     
     let dateFiltered: Record<string, TotelepepMatch[]> = {};
-    
-    
-    
+
     // Check if "All Matches" mode is enabled - this takes priority over date selection
     if (showAllMatches) {
       // Show ALL matches from all dates, sorted by time
@@ -790,9 +758,7 @@ function App() {
   // Get available dates with match counts from API calendarList data
   const availableDatesWithCounts = React.useMemo ? React.useMemo(() => {
     const sourceName = selectedSource?.displayName || 'Totelepep';
-    
-    
-    
+
     // Use the calendarList data directly - this is the source of truth
     if (calendarList && calendarList.length > 0) {
       const sourceName = selectedSource?.displayName || 'Totelepep';
@@ -801,8 +767,7 @@ function App() {
     }
     
     // Fallback to local calculation if calendarList is not available
-    
-    
+
     // Get all unique dates from the matches
     const dates = new Set<string>();
     matches.forEach(match => {
@@ -836,17 +801,14 @@ function App() {
           month: 'short' 
         });
       }
-      
-      
-      
+
       return {
         date: dateString,
         matchCount,
         displayName
       };
     });
-    
-    
+
     return result;
   }, [calendarList, matches]) : [];
 
@@ -1040,7 +1002,6 @@ function App() {
           if (matchTime < new Date(now.getTime() - 5 * 60000)) {
             hasError = true;
             errorMessage = 'Match has already started';
-            console.log('❌ Match started error');
           }
         }
 
@@ -1060,12 +1021,8 @@ function App() {
           if (isDuplicate) {
             hasError = true;
             errorMessage = 'Duplicate match detected';
-            console.log('❌ Duplicate error');
           }
         }
-
-        console.log('✅ Final hasError:', hasError, errorMessage);
-
         // Use the marketBookNo and marketCode passed from the click event
         const finalMarketBookNo = (marketBookNo && marketBookNo !== 'undefined' && marketBookNo !== 'null') 
           ? marketBookNo 
@@ -1182,10 +1139,7 @@ function App() {
   };
 
   const handleDateChange = (newDate: string) => {
-    
-    
-    
-    
+
     // Turn off All Matches when a specific date is selected
     if (showAllMatches) {
       setShowAllMatches(false);
@@ -1223,12 +1177,10 @@ function App() {
   const toggleAllMatches = () => {
     const newState = !showAllMatches;
     setShowAllMatches(newState);
-    
-    
+
     if (newState) {
       // Turn ON All Matches - fetch matches from ALL dates and combine them
-      
-      
+
       // Clear current matches and show loading
       setMatches([]);
       setGroupedMatches({});
@@ -1243,11 +1195,6 @@ function App() {
       loadData(today, selectedCategory, selectedCompetition);
     }
   };
-
-
-
-
-
 
   return (
     <div className="min-h-screen bg-gray-100">

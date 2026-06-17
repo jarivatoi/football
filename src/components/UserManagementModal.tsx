@@ -56,7 +56,7 @@ export const StaffManagementModal: React.FC<UserManagementModalProps> = ({
         setCurrentUser(data);
       }
     } catch (error) {
-      console.error('Failed to load current user:', error);
+
     }
   };
 
@@ -73,7 +73,7 @@ export const StaffManagementModal: React.FC<UserManagementModalProps> = ({
       const filteredUsers = (data || []).filter(user => !user.is_admin);
       setUsers(filteredUsers);
     } catch (err: any) {
-      console.error('Failed to load users:', err);
+
     } finally {
       setLoading(false);
     }
@@ -225,7 +225,7 @@ export const StaffManagementModal: React.FC<UserManagementModalProps> = ({
       
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err: any) {
-      console.error('Failed to save user:', err);
+
       setFormErrors({ submit: err.message || 'Failed to save user' });
     } finally {
       setIsSaving(false);
@@ -250,7 +250,7 @@ export const StaffManagementModal: React.FC<UserManagementModalProps> = ({
       
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err: any) {
-      console.error('Failed to delete user:', err);
+
     } finally {
       setIsSaving(false);
     }

@@ -25,8 +25,7 @@ export function extractSurname(fullName: string): string {
   // This matches: NARAYYA(R), NARAYYA_(V.T)(R)
   // But NOT: NARAYYA_(R)
   const result = surnamePart.replace(/([A-Z])\(R\)$/, '$1');
-  
-  console.log(`📝 Extract surname: "${fullName}" → "${result}"`);
+
   return result;
 }
 
@@ -41,8 +40,7 @@ export function extractSurname(fullName: string): string {
 export function generatePlaceholderId(surname: string): string {
   const cleanSurname = extractSurname(surname);
   const placeholder = `${cleanSurname}_XXXXXXXXXXXXXX`; // 14 X's
-  
-  console.log(`🆔 Generate placeholder ID: "${surname}" → "${placeholder}"`);
+
   return placeholder;
 }
 
@@ -86,7 +84,7 @@ export function extractUniqueSurnames(names: string[]): string[] {
   });
   
   const result = Array.from(surnameSet);
-  console.log(`📋 Extracted ${result.length} unique surnames:`, result);
+
   return result;
 }
 
@@ -117,8 +115,7 @@ export function matchAnonymousUser(pdfSurname: string, dbEntry: string): boolean
   }
   
   const dbSurname = dbMatch[1]; // Everything before the ID
-  
-  console.log(`🔍 Match check: PDF="${cleanPdfSurname}" vs DB="${dbSurname}" → ${cleanPdfSurname === dbSurname}`);
+
   return cleanPdfSurname === dbSurname;
 }
 
@@ -141,7 +138,7 @@ export function convertPlaceholderToReal(placeholderId: string, realIdNumber: st
   const paddedId = realIdNumber.padStart(14, '0');
   
   const newId = `${surname}_${paddedId}`;
-  console.log(`🔄 Convert placeholder: "${placeholderId}" + "${realIdNumber}" → "${newId}"`);
+
   return newId;
 }
 
@@ -178,7 +175,7 @@ export async function createAnonymousPlaceholders(
         .single();
       
       if (existing) {
-        console.log(`⚠️ Surname ${surname} already exists, skipping`);
+
         continue;
       }
       
@@ -199,14 +196,14 @@ export async function createAnonymousPlaceholders(
         .single();
       
       if (error) {
-        console.error(`❌ Failed to create placeholder for ${surname}:`, error);
+
         errors.push({ surname, error: error.message });
       } else {
-        console.log(`✅ Created anonymous placeholder: ${surname} → ${placeholderId}`);
+
         created.push({ surname, placeholderId });
       }
     } catch (error) {
-      console.error(`❌ Error creating placeholder for ${surname}:`, error);
+
       errors.push({ 
         surname, 
         error: error instanceof Error ? error.message : 'Unknown error' 
@@ -252,7 +249,7 @@ export async function convertAnonymousToReal(
       .single();
     
     if (fetchError || !placeholder) {
-      console.log(`ℹ️ No anonymous placeholder found for ${surname}`);
+
       return { success: true, updated: false };
     }
     
@@ -273,7 +270,7 @@ export async function convertAnonymousToReal(
       .eq('id', placeholder.id);
     
     if (updateError) {
-      console.error(`❌ Failed to update placeholder:`, updateError);
+
       return { 
         success: false, 
         updated: false, 
@@ -281,8 +278,7 @@ export async function convertAnonymousToReal(
         previousPlaceholderId: placeholder.id_number
       };
     }
-    
-    console.log(`✅ Converted anonymous to real: ${placeholder.id_number} → ${newId}`);
+
     return {
       success: true,
       updated: true,
@@ -290,7 +286,7 @@ export async function convertAnonymousToReal(
       newId
     };
   } catch (error) {
-    console.error(`❌ Error converting anonymous user:`, error);
+
     return {
       success: false,
       updated: false,

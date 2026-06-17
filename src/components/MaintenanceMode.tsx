@@ -23,7 +23,7 @@ export const MaintenanceMode: React.FC<MaintenanceModeProps> = ({ isEnabled, onS
         setSequenceStarted(false);
         setBigWheelTaps(0);
         setSmallWheelTaps(0);
-        console.log('🔄 Sequence reset due to timeout');
+
       }, 3000);
     }
     
@@ -52,7 +52,7 @@ export const MaintenanceMode: React.FC<MaintenanceModeProps> = ({ isEnabled, onS
       setSequenceStarted(false);
       setBigWheelTaps(0);
       setSmallWheelTaps(0);
-      console.log('🔓 Secret sequence completed!');
+
       return;
     }
   }, [bigWheelTaps, smallWheelTaps, sequenceStarted]);
@@ -60,42 +60,38 @@ export const MaintenanceMode: React.FC<MaintenanceModeProps> = ({ isEnabled, onS
   const handleBigWheelClick = () => {
     const newCount = bigWheelTaps + 1;
     setBigWheelTaps(newCount);
-    console.log(`🔵 Big wheel tap: ${newCount}`);
+
   };
 
   const handleSmallWheelClick = () => {
     const newCount = smallWheelTaps + 1;
     setSmallWheelTaps(newCount);
-    console.log(`🟢 Small wheel tap: ${newCount}`);
+
   };
 
   const handleAuthSubmit = async () => {
     if (authCode === '5274') {
       try {
-        console.log('🔑 Attempting to disable maintenance mode...');
+
         const { supabase } = await import('../lib/supabase');
         
         if (!supabase) {
           throw new Error('Supabase not available');
         }
-        
-        console.log('💾 Updating Supabase metadata...');
+
         const { data, error } = await supabase
           .from('metadata')
           .upsert({ key: 'maintenanceMode', value: false }, { onConflict: 'key' });
-        
-        console.log('📊 Supabase response:', { data, error });
-        
+
         if (error) {
-          console.error('❌ Supabase error:', error);
+
           throw error;
         }
-        
-        console.log('✅ Maintenance mode disabled in database, forcing reload...');
+
         // Use location.href for more reliable reload
         window.location.href = window.location.origin + window.location.pathname;
       } catch (error: any) {
-        console.error('Failed to disable maintenance:', error);
+
         setAuthError(error.message || 'Failed to disable maintenance');
       }
     } else {
@@ -110,8 +106,6 @@ export const MaintenanceMode: React.FC<MaintenanceModeProps> = ({ isEnabled, onS
     setIsButtonEnabled(false);
   };
 
-  console.log('🔧 MaintenanceMode component - isEnabled:', isEnabled);
-  
   if (!isEnabled) {
     return null;
   }

@@ -103,13 +103,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
         if (error.code === 'PGRST116') {
           setIsMaintenanceEnabled(false);
         } else {
-          console.error('Error loading maintenance mode:', error);
+
         }
       } else {
         setIsMaintenanceEnabled(data?.value === true);
       }
     } catch (err) {
-      console.error('Failed to load maintenance mode:', err);
+
     }
   }
 
@@ -134,7 +134,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
         type: 'success'
       })
     } catch (err: any) {
-      console.error('Failed to toggle maintenance mode:', err)
+
       setNotification({
         message: err.message || 'Failed to toggle maintenance mode',
         type: 'error'
@@ -175,7 +175,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
         },
         (payload: any) => {
           setIsMaintenanceEnabled(payload.new?.value === true);
-          console.log('🔧 Maintenance mode changed:', payload.new?.value);
+
         }
       )
       .subscribe();

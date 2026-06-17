@@ -63,7 +63,7 @@ return null;
 
 export const fetchRosterEntries = async (): Promise<RosterEntry[]> => {
   if (!supabase) {
-    console.error('⚠️ Supabase not available - check your configuration');
+
     throw new Error('Supabase not configured. Please set up your Supabase credentials in the .env file.');
   }
 
@@ -102,13 +102,13 @@ export const fetchRosterEntries = async (): Promise<RosterEntry[]> => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('❌ Error fetching roster entries:', error);
+
       throw new Error(`Database error: ${error.message}`);
     }
 
     return data || [];
   } catch (error) {
-    console.error('❌ Network error fetching roster entries:', error);
+
     if (error instanceof Error) {
       throw error;
     }

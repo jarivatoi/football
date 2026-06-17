@@ -179,10 +179,7 @@ export async function generateRosterDisplayName(params: {
     const nameParts = name.trim().split(/\s+/);
     const firstName = nameParts[0];
     const initials = nameParts.map(p => p.charAt(0).toUpperCase()).join('.');
-    
-    console.log(`🔍 Found ${duplicates.length} duplicates with surname ${baseSurname} in ${institutionCode}`);
-    console.log(`📝 Using first name: ${firstName}, initials: ${initials}`);
-    
+
     // Check if anyone ELSE in the duplicates has the same initial
     const othersWithSameInitial = duplicates.filter((d: any) => {
       const otherNameParts = d.name.trim().split(/\s+/);
@@ -190,19 +187,15 @@ export async function generateRosterDisplayName(params: {
       
       // Try to exclude by id_number first, fall back to UUID id if id_number is unavailable
       const isCurrentPerson = d.id_number === idNumber || (!d.id_number && currentStaffId && d.id === currentStaffId);
-      
-      console.log(`  📋 Checking: ${d.name} (${d.id_number || 'no id_number'}) vs current: ${idNumber}, same initial: ${otherInitial === initials}, isCurrent: ${isCurrentPerson}`);
-      
+
       return otherInitial === initials && !isCurrentPerson;
     });
-    
-    console.log(`📊 Others with same initial '${initials}': ${othersWithSameInitial.length}`, othersWithSameInitial.map((d: any) => `${d.name}(${d.id_number || 'no id_number'})`));
-    
+
     // If others have same initial, skip initials and go straight to full name
     if (othersWithSameInitial.length > 0) {
-      console.log(`⚠️ Initial collision detected! Using full name format instead of initials...`);
+
       const candidateWithFullName = `${baseSurname}_(${firstName})_${formattedId}`;
-      console.log(`✅ Using full name format: ${candidateWithFullName}`);
+
       return candidateWithFullName;
     }
     
@@ -220,13 +213,12 @@ export async function generateRosterDisplayName(params: {
       .maybeSingle();
     
     if (!existingInitials) {
-      console.log(`✅ Using initials format: ${candidateWithInitials}`);
+
       return candidateWithInitials;
     }
     
     // Initials taken - check if it's a collision (same initial but different person)
-    console.log(`⚠️ Initials format taken (${candidateWithInitials}), trying full first name...`);
-    
+
     // Use full first name format
     const candidateWithFullName = `${baseSurname}_(${firstName})_${formattedId}`;
     
@@ -240,17 +232,17 @@ export async function generateRosterDisplayName(params: {
       .maybeSingle();
     
     if (!existingFullName) {
-      console.log(`✅ Using full name format: ${candidateWithFullName}`);
+
       return candidateWithFullName;
     }
     
     // Even full name is taken - add timestamp as final fallback
-    console.log(`⚠️ Full name format also taken, using timestamp...`);
+
     const timestamp = Date.now().toString().slice(-6);
     return `${baseSurname}_(${firstName})_${timestamp}_${formattedId}`;
     
   } catch (err) {
-    console.error('❌ Error generating roster display name:', err);
+
     // Fallback to simple format
     return `${baseSurname}_${formattedId}`;
   }
@@ -279,13 +271,11 @@ export async function updateStaffDisplayName(params: {
       idNumber,
       institutionCode
     });
-    
-    console.log(`🔄 Updating ${oldSurname} → ${newSurname}: roster_display_name now ${newDisplayName}`);
-    
+
     return newDisplayName;
     
   } catch (err) {
-    console.error('❌ Error updating staff display name:', err);
+
     throw err;
   }
 }
@@ -314,9 +304,7 @@ export async function updateDuplicateDisplayNames(params: {
     if (!staffList || staffList.length <= 1) {
       return; // Nothing to update
     }
-    
-    console.log(`🔄 Updating display names for ${staffList.length} staff with surname ${baseSurname}`);
-    
+
     // Update each staff member
     for (const staff of staffList) {
       const displayName = await generateRosterDisplayName({
@@ -331,11 +319,10 @@ export async function updateDuplicateDisplayNames(params: {
         .from('staff_users')
         .update({ roster_display_name: displayName })
         .eq('id', staff.id);
-      
-      console.log(`✅ Updated ${staff.name} ${baseSurname} → ${displayName}`);
+
     }
     
   } catch (err) {
-    console.error('❌ Error updating duplicate display names:', err);
+
   }
 }
