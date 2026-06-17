@@ -719,7 +719,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           top: 34px;
           left: 0;
           width: 100vw;
-          animation: roll 2.5s linear infinite;
+          animation: roll 4.0s linear infinite;
           font-size: clamp(36px, 10vw, 48px);
           line-height: 1;
           z-index: 2;
