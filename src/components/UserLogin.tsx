@@ -201,6 +201,12 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             const newChar = idx < nextWord.length ? (nextWord[idx] === ' ' ? '\u00A0' : nextWord[idx]) : '';
             el.textContent = newChar;
             el.style.visibility = idx < nextWord.length ? 'visible' : 'hidden';
+            // Flip the last emoji in "✨By Viraj✨"
+            if (nextWord === '✨By Viraj✨' && idx === nextWord.length - 1 && newChar === '✨') {
+              el.style.transform = 'scaleY(-1)';
+            } else {
+              el.style.transform = 'none';
+            }
             // Force hide all letters
             gsap.set(el, {
               opacity: 0,
