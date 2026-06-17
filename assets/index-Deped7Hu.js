@@ -284,10 +284,10 @@ ${y}`}class ze extends Error{constructor({message:e,code:r,cause:n,name:s}){var 
             transform: translateX(calc(-100vw - 48px)) translateY(-50%) rotate(0deg);
             opacity: 0;
           }
-          10% {
+          15% {
             opacity: 1;
           }
-          90% {
+          85% {
             opacity: 1;
           }
           100% {
