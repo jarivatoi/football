@@ -360,21 +360,14 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
 
   // Auto-expand markets based on advanced filter code
   React.useEffect(() => {
-    console.log('[AutoExpand] useEffect triggered, isExpanded:', isExpanded, 'hasMarkets:', match.allMarkets?.length, 'searchTerm:', searchTerm, 'searchMode:', searchMode);
+    console.log('[AutoExpand] useEffect triggered, isExpanded:', isExpanded, 'hasMarkets:', match.allMarkets?.length, 'searchTerm:', searchTerm, 'searchMode:', searchMode, 'activeTab:', activeMarketTab);
     
     if (isExpanded && match.allMarkets && match.allMarkets.length > 0) {
-      // If match changed, reset the auto-expand flag
-      if (!hasAutoExpandedRef.current) {
-        hasAutoExpandedRef.current = true;
-      } else {
-        // User manually switched tab, don't override
-        return;
-      }
-      
       // If no search term, collapse all auto-expanded markets
       if (!searchTerm) {
         console.log('[AutoExpand] No search term, clearing');
         setExpandedMarkets({});
+        hasAutoExpandedRef.current = false;
         return;
       }
       
@@ -393,41 +386,54 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       if (parsed) {
         // Advanced filter mode
         
-        // Auto-switch market tab based on period (only on initial expansion)
-        if (parsed.period === 'H1') {
-          setActiveMarketTab('HT');
-        } else if (parsed.period === 'H2') {
-          setActiveMarketTab('2H');
-        } else if (parsed.period === 'FT') {
-          setActiveMarketTab('FT');
-        } else if (parsed.period === 'ALL') {
-          setActiveMarketTab('ALL');
+        // Auto-switch market tab based on period (only on initial expansion, not when user manually switches)
+        if (!hasAutoExpandedRef.current) {
+          hasAutoExpandedRef.current = true;
+          if (parsed.period === 'H1') {
+            setActiveMarketTab('HT');
+          } else if (parsed.period === 'H2') {
+            setActiveMarketTab('2H');
+          } else if (parsed.period === 'FT') {
+            setActiveMarketTab('FT');
+          } else if (parsed.period === 'ALL') {
+            setActiveMarketTab('ALL');
+          }
+        }
+        
+        // Map active tab to period code for filtering
+        let activePeriod = 'ALL';
+        if (activeMarketTab === 'FT') {
+          activePeriod = 'FT';
+        } else if (activeMarketTab === 'HT') {
+          activePeriod = 'H1';
+        } else if (activeMarketTab === '2H') {
+          activePeriod = 'H2';
         }
         
         // Clear expanded markets first, then find new ones
         const newExpandedMarkets: Record<string, boolean> = {};
         
-        // Find and expand ONLY matching markets for the specified period
-        console.log(`[Filter] Total markets to check: ${match.allMarkets.length}, period: ${parsed.period}, marketType: ${parsed.marketType}`);
+        // Find and expand ONLY matching markets for the active tab period
+        console.log(`[Filter] Total markets to check: ${match.allMarkets.length}, activePeriod: ${activePeriod}, marketType: ${parsed.marketType}`);
         const matchingMarkets = match.allMarkets.filter(m => {
           if (!m.selections || m.selections.length === 0) return false;
           
-          // STRICT period check - only show markets for the specified period
+          // STRICT period check - only show markets for the active tab period
           // Note: API may use HT or H1 for first half, 2H or H2 for second half
           // For 'ALL', don't filter by period - include everything
-          if (parsed.period === 'ALL') {
+          if (activePeriod === 'ALL') {
             // Include all markets, no period filtering
-          } else if (parsed.period === 'H1' && m.periodCode !== 'H1' && m.periodCode !== 'HT') {
+          } else if (activePeriod === 'H1' && m.periodCode !== 'H1' && m.periodCode !== 'HT') {
             console.log(`[Filter] Excluding market ${m.name} - periodCode is ${m.periodCode}, need H1/HT`);
             return false;
           }
-          if (parsed.period === 'H2' && m.periodCode !== 'H2' && m.periodCode !== '2H') {
+          if (activePeriod === 'H2' && m.periodCode !== 'H2' && m.periodCode !== '2H') {
             console.log(`[Filter] Excluding market ${m.name} - periodCode is ${m.periodCode}, need H2/2H`);
             return false;
           }
           // For FT: exclude markets that have a periodCode but it's not FT
           // (markets without periodCode are assumed to be FT)
-          if (parsed.period === 'FT' && m.periodCode && m.periodCode !== 'FT') {
+          if (activePeriod === 'FT' && m.periodCode && m.periodCode !== 'FT') {
             console.log(`[Filter] Excluding market ${m.name} - periodCode is ${m.periodCode}, need FT`);
             return false;
           }
