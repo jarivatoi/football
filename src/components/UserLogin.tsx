@@ -698,7 +698,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         
         @keyframes roll {
           0% {
-            transform: translateX(-48px) translateY(-50%) rotate(0deg);
+            transform: translateX(calc(-100% - 48px)) translateY(-50%) rotate(0deg);
             opacity: 0;
           }
           10% {
@@ -708,7 +708,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             opacity: 1;
           }
           100% {
-            transform: translateX(calc(420px + 48px)) translateY(-50%) rotate(720deg);
+            transform: translateX(calc(100vw + 48px)) translateY(-50%) rotate(720deg);
             opacity: 0;
           }
         }
@@ -756,10 +756,11 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
       `}</style>
       <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 420, display: 'grid', gap: '12px', padding: '0 16px', boxSizing: 'border-box' }}>
         {/* FOOTBALL Header */}
-        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px', maxWidth: '420px', margin: '0 auto 8px auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px' }}>
+          {/* Ball spans full width to allow off-screen animation */}
+          <span className="rolling-ball" ref={ballRef}>⚽</span>
           <h1 
             style={{ 
-              margin: '0',
               fontSize: '48px',
               fontWeight: '900',
               color: '#2563eb',
@@ -769,6 +770,8 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
               position: 'relative',
               zIndex: 1,
               width: '100%',
+              maxWidth: '420px',
+              margin: '0 auto',
               textAlign: 'center',
               display: 'flex',
               justifyContent: 'center',
@@ -795,8 +798,6 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
               })}
             </span>
           </h1>
-          {/* Ball outside h1 to avoid overflow restriction */}
-          <span className="rolling-ball" ref={ballRef}>⚽</span>
         </div>
         
         {/* User Sign In - drops from FOOTBALL */}
