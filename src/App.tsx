@@ -1017,13 +1017,21 @@ function App() {
         if (match.kickoff) {
           const now = new Date();
           const [hours, minutes] = match.kickoff.split(':').map(Number);
+          
+          // Create match time using BOTH date and kickoff time
           const matchTime = new Date();
+          if (match.date) {
+            // Use match date (YYYY-MM-DD format)
+            const [year, month, day] = match.date.split('-').map(Number);
+            matchTime.setFullYear(year, month - 1, day);
+          }
           matchTime.setHours(hours, minutes, 0, 0);
           
           console.log('⏰ Time Check:', {
+            matchDate: match.date,
             kickoff: match.kickoff,
-            now: now.toLocaleTimeString(),
-            matchTime: matchTime.toLocaleTimeString(),
+            now: now.toLocaleString(),
+            matchTime: matchTime.toLocaleString(),
             isPast: matchTime < now,
             differenceMinutes: (now.getTime() - matchTime.getTime()) / 60000
           });
