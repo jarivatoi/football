@@ -51,6 +51,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
   const textRef = useRef<HTMLSpanElement>(null);
   const settingsRef = useRef<HTMLButtonElement>(null);
   const slipRef = useRef<HTMLButtonElement>(null);
+  const prevSelectionCountRef = useRef<number>(0);
 
   // Elastic snap animation on mount and when source changes
   useEffect(() => {
@@ -64,41 +65,52 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
 
   // Animate betslip and settings buttons
   useEffect(() => {
-    // Betslip button animation - slides in from right when active
-    if (slipRef.current && selectionCount > 0) {
-      gsap.fromTo(slipRef.current,
-        { x: 300, opacity: 0 },
-        { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
-      );
+    const prevCount = prevSelectionCountRef.current;
+    const currentCount = selectionCount;
+
+    // Only animate when transitioning from 0 to >0 (initial appearance)
+    if (prevCount === 0 && currentCount > 0) {
+      // Betslip button animation - slides in from right
+      if (slipRef.current) {
+        gsap.fromTo(slipRef.current,
+          { x: 300, opacity: 0 },
+          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
+        );
+      }
+
+      // Settings button animation - same elastic effect
+      if (settingsRef.current && onSettingsClick) {
+        gsap.fromTo(settingsRef.current,
+          { x: 300, opacity: 0 },
+          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
+        );
+      }
     }
 
-    // Settings button animation - same elastic effect when betslip appears
-    if (settingsRef.current && onSettingsClick && selectionCount > 0) {
-      gsap.fromTo(settingsRef.current,
-        { x: 300, opacity: 0 },
-        { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
-      );
+    // Reverse animation when transitioning from >0 to 0 (removal)
+    if (prevCount > 0 && currentCount === 0) {
+      if (slipRef.current) {
+        gsap.to(slipRef.current, {
+          x: 300,
+          opacity: 0,
+          duration: 0.8,
+          ease: "power2.in"
+        });
+      }
+
+      // Settings button: slide back to original position but stay visible
+      if (settingsRef.current && onSettingsClick) {
+        gsap.to(settingsRef.current, {
+          x: 0,
+          opacity: 1,
+          duration: 0.8,
+          ease: "power2.inOut"
+        });
+      }
     }
 
-    // Reverse animation when betslip is closed (selectionCount goes to 0)
-    if (slipRef.current && selectionCount === 0) {
-      gsap.to(slipRef.current, {
-        x: 300,
-        opacity: 0,
-        duration: 0.8,
-        ease: "power2.in"
-      });
-    }
-
-    // Settings button: slide back to original position but stay visible
-    if (settingsRef.current && onSettingsClick && selectionCount === 0) {
-      gsap.to(settingsRef.current, {
-        x: 0,
-        opacity: 1,
-        duration: 0.8,
-        ease: "power2.inOut"
-      });
-    }
+    // Update previous count
+    prevSelectionCountRef.current = currentCount;
   }, [selectionCount, onSettingsClick]);
 
   const handleSourceSelect = (source: ApiSource) => {
