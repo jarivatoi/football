@@ -68,11 +68,10 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                   isSelected ? 'text-blue-100' : 'text-gray-500'
                 }`}>
                   {!isLoading && dateStr && `${dateStr} `}
-                  {/* Show filtered count in orange if > 0 */}
-                  {filteredCount > 0 ? (
-                    <span className="text-orange-500 font-semibold">({filteredCount})</span>
-                  ) : (
-                    <span>({dateInfo.matchCount})</span>
+                  {/* Show both total count and filtered count */}
+                  <span>({dateInfo.matchCount})</span>
+                  {filteredCount > 0 && (
+                    <span className="text-black font-semibold ml-0.5">({filteredCount})</span>
                   )}
                 </div>
               </div>

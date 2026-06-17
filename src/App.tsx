@@ -87,6 +87,9 @@ function App() {
   // Loading progress for date selection
   const [loadingProgress, setLoadingProgress] = useState<{ date: string; loaded: number; total: number } | null>(null);
   
+  // Total available selections from expanded markets
+  const [expandedSelectionsCount, setExpandedSelectionsCount] = useState<number>(0);
+  
   // Category and Competition filter states
   const [categories, setCategories] = useState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
