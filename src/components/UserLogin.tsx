@@ -160,7 +160,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
   const [idNumber, setIdNumber] = useState('');
   
   // Words to alternate between
-  const words = ['FOOTBALL','By Viraj'];
+  const words = ['FOOTBALL','✨By Viraj✨'];
   const maxLetters = Math.max(...words.map(w => w.length));
   
   // Track ball position and reveal letters based on actual position
@@ -779,15 +779,19 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             <span className="football-text">
               {Array.from({ length: maxLetters }, (_, i) => {
                 const initialChar = i < words[0].length ? words[0][i] : '';
+                const isFlippedEmoji = i === words[1].length - 1 && words[1][i] === '✨';
                 return (
                   <span 
                     key={i}
-                    className="football-letter" 
+                    className="football-letter"
                     ref={(el) => { 
                       if (el && !lettersRef.current[0]) lettersRef.current[0] = []; 
                       if (el) lettersRef.current[0][i] = el;
                     }}
-                    style={{ visibility: i < words[0].length ? 'visible' : 'hidden' }}
+                    style={{ 
+                      visibility: i < words[0].length ? 'visible' : 'hidden',
+                      transform: isFlippedEmoji ? 'scaleY(-1)' : 'none'
+                    }}
                   >
                     {initialChar === ' ' ? '\u00A0' : initialChar}
                   </span>
