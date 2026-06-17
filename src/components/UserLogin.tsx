@@ -756,7 +756,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
       `}</style>
       <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 420, display: 'grid', gap: '12px', padding: '0 16px', boxSizing: 'border-box' }}>
         {/* FOOTBALL Header */}
-        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px', maxHeight: '68px', overflow: 'hidden' }}>
+        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px', maxHeight: '68px', overflow: 'hidden', width: 'calc(100vw + 96px)', marginLeft: 'calc(-50vw + 50%)', maxWidth: 'none' }}>
           <h1 
             style={{ 
               fontSize: 'clamp(32px, 9vw, 48px)',
