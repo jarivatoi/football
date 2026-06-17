@@ -281,7 +281,7 @@ ${y}`}class ze extends Error{constructor({message:e,code:r,cause:n,name:s}){var 
         
         @keyframes roll {
           0% {
-            transform: translateX(calc(-100% - 48px)) translateY(-50%) rotate(0deg);
+            transform: translateX(calc(-100vw - 48px)) translateY(-50%) rotate(0deg);
             opacity: 0;
           }
           10% {
@@ -291,7 +291,7 @@ ${y}`}class ze extends Error{constructor({message:e,code:r,cause:n,name:s}){var 
             opacity: 1;
           }
           100% {
-            transform: translateX(calc(100% + 48px)) translateY(-50%) rotate(720deg);
+            transform: translateX(calc(100vw + 48px)) translateY(-50%) rotate(720deg);
             opacity: 0;
           }
         }
