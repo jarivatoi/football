@@ -754,26 +754,26 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
       `}</style>
       <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 420, display: 'grid', gap: '12px', padding: '0 16px', boxSizing: 'border-box' }}>
         {/* FOOTBALL Header */}
-        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px', maxHeight: '68px' }}>
           <h1 
             style={{ 
               margin: '0 auto', // Center the h1
               fontSize: '48px',
               fontWeight: '900',
               color: '#2563eb',
-              letterSpacing: '4px',
+              letterSpacing: '3px',
               textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
               lineHeight: '1.2', // Increased to accommodate emojis
               position: 'relative',
               zIndex: 1,
               width: '100%', // Responsive width
-              maxWidth: '500px', // Max width for desktop
+              maxWidth: '420px', // Max width for desktop
               textAlign: 'center', // Center text
               display: 'flex', // Use flexbox
               justifyContent: 'center', // Center horizontally
               alignItems: 'center', // Center vertically
               boxSizing: 'border-box', // Include padding in width
-              overflow: 'hidden' // Clip text only, not ball
+              overflow: '' // do not clip
             }}
           >
             <span className="football-text">
