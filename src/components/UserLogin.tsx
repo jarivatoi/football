@@ -773,7 +773,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
               justifyContent: 'center', // Center horizontally
               alignItems: 'center', // Center vertically
               boxSizing: 'border-box', // Include padding in width
-              overflow: 'visible' // Allow ball animation to overflow
+              overflow: 'hidden' // Clip text only, not ball
             }}
           >
             <span className="football-text">
