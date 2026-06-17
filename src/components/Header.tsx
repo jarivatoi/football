@@ -62,11 +62,19 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
     }
   }, [selectedSource.id]);
 
-  // Animate betslip button only
+  // Animate betslip and settings buttons
   useEffect(() => {
     // Betslip button animation - slides in from right when active
     if (slipRef.current && selectionCount > 0) {
       gsap.fromTo(slipRef.current,
+        { x: 300, opacity: 0 },
+        { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
+      );
+    }
+
+    // Settings button animation - same elastic effect when betslip appears
+    if (settingsRef.current && onSettingsClick && selectionCount > 0) {
+      gsap.fromTo(settingsRef.current,
         { x: 300, opacity: 0 },
         { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
       );
@@ -81,7 +89,17 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
         ease: "power2.in"
       });
     }
-  }, [selectionCount]);
+
+    // Settings button reverse animation
+    if (settingsRef.current && onSettingsClick && selectionCount === 0) {
+      gsap.to(settingsRef.current, {
+        x: 300,
+        opacity: 0,
+        duration: 0.8,
+        ease: "power2.in"
+      });
+    }
+  }, [selectionCount, onSettingsClick]);
 
   const handleSourceSelect = (source: ApiSource) => {
     onSourceChange(source);
