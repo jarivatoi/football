@@ -757,8 +757,6 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
       <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 420, display: 'grid', gap: '12px', padding: '0 16px', boxSizing: 'border-box' }}>
         {/* FOOTBALL Header */}
         <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px' }}>
-          {/* Ball spans full width to allow off-screen animation */}
-          <span className="rolling-ball" ref={ballRef}>⚽</span>
           <h1 
             style={{ 
               fontSize: '48px',
@@ -768,7 +766,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
               textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
               lineHeight: '1.2',
               position: 'relative',
-              zIndex: 1,
+              zIndex: 2,
               width: '100%',
               maxWidth: '420px',
               margin: '0 auto',
@@ -798,6 +796,8 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
               })}
             </span>
           </h1>
+          {/* Ball spans full width to allow off-screen animation */}
+          <span className="rolling-ball" ref={ballRef}>⚽</span>
         </div>
         
         {/* User Sign In - drops from FOOTBALL */}
