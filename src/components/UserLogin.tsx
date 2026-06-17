@@ -715,8 +715,8 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         
         /* Reveal letters based on ball position using clip-path */
         .rolling-ball {
-          position: fixed;
-          top: 50%;
+          position: absolute;
+          top: 34px;
           left: 0;
           width: 100vw;
           animation: roll 2.5s linear infinite;
