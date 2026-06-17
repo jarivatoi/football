@@ -339,6 +339,9 @@ function App() {
       const grouped = totelepepService.groupMatchesByDate(sortedMatches);
       setGroupedMatches(grouped);
       
+      // Clear loading progress
+      setLoadingProgress(null);
+      
       setLastUpdated(new Date());
       
     } catch (error) {
@@ -770,6 +773,22 @@ function App() {
     return result;
   }, [groupedMatches, searchTerm, searchMode, selectedDate, calendarList, selectedCategory, selectedCompetition, showAllMatches]) : groupedMatches;
 
+  // Calculate filtered counts per date for orange highlight
+  React.useEffect(() => {
+    const counts: Record<string, number> = {};
+    
+    // Only count if there's an active search filter
+    if (searchTerm && searchMode !== 'matches') {
+      Object.entries(filteredGroupedMatches).forEach(([date, dateMatches]) => {
+        if (dateMatches && dateMatches.length > 0) {
+          counts[date] = dateMatches.length;
+        }
+      });
+    }
+    
+    setFilteredCounts(counts);
+  }, [filteredGroupedMatches, searchTerm, searchMode]);
+
   const totalAllMatchesCount = React.useMemo(() => {
     // Calculate total from filtered matches (respects category/competition filters)
     if (showAllMatches) {
@@ -1189,8 +1208,14 @@ function App() {
 
   const handleDateChange = (newDate: string) => {
     
+    // Get total match count for this date from availableDates
+    const dateInfo = availableDates.find(d => d.date === newDate);
+    const totalMatches = dateInfo?.matchCount || 0;
     
-    
+    // Set loading progress
+    if (totalMatches > 0) {
+      setLoadingProgress({ date: newDate, loaded: 0, total: totalMatches });
+    }
     
     // Turn off All Matches when a specific date is selected
     if (showAllMatches) {
@@ -1276,6 +1301,8 @@ function App() {
           showAllMatches={showAllMatches}
           onToggleAllMatches={toggleAllMatches}
           totalMatches={totalAllMatchesCount}
+          filteredCounts={filteredCounts}
+          loadingProgress={loadingProgress}
         />
         
         {/* Search Bar */}
