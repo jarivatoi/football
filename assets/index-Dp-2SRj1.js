@@ -298,10 +298,10 @@ ${y}`}class ze extends Error{constructor({message:e,code:r,cause:n,name:s}){var 
         
         /* Reveal letters based on ball position using clip-path */
         .rolling-ball {
-          position: absolute;
+          position: fixed;
           top: 50%;
           left: 0;
-          width: 100%;
+          width: 100vw;
           animation: roll 2.5s linear infinite;
           font-size: clamp(36px, 10vw, 48px);
           line-height: 1;
