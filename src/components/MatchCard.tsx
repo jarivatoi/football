@@ -13,7 +13,6 @@ interface MatchCardProps {
 }
 
 const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '', onMarketsLoaded }) => {
-  console.log('[MatchCard] Render - searchTerm:', searchTerm, 'searchMode:', searchMode, 'match:', match.homeTeam, 'vs', match.awayTeam);
   
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoadingMarkets, setIsLoadingMarkets] = useState(false);

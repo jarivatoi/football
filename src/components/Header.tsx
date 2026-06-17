@@ -108,8 +108,8 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
             </div>
             
             <div>
-              <h1 className="text-xl font-bold text-gray-900">{selectedSource.displayName} Soccer</h1>
-              <p className="text-sm text-gray-600">Global Football Odds & Data</p>
+              <h1 className="text-xl font-bold text-gray-900">{selectedSource.displayName}</h1>
+              <p className="text-xl font-bold text-gray-900">SOCCER</p>
             </div>
           </div>
           
