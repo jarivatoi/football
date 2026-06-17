@@ -66,26 +66,6 @@ function App() {
   const [searchMode, setSearchMode] = useState<'matches' | 'eq' | 'gte' | 'lte' | 'between'>('matches'); // matches, = (eq), >= (gte), <= (lte), between
   const [searchOddsValue, setSearchOddsValue] = useState<string>('');
   const [showFilterBuilder, setShowFilterBuilder] = useState(false);
-  
-  // Auto-load markets when market-type filter is detected
-  React.useEffect(() => {
-    const hasMarketType = /(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)/i.test(searchTerm);
-    if (!hasMarketType) return;
-    
-    console.log('[App] Market-type filter detected, loading markets for all matches...');
-    
-    // Load markets for all matches that don't have them
-    matches.forEach(async (match) => {
-      if (!match.allMarkets || match.allMarkets.length === 0) {
-        console.log('[App] Loading markets for:', match.homeTeam, 'vs', match.awayTeam);
-        await totelepepExtractor.fetchMarketsForMatch(match);
-        // Update match in state
-        setMatches(prev => prev.map(m => 
-          m.id === match.id ? { ...m, allMarkets: match.allMarkets } : m
-        ));
-      }
-    });
-  }, [searchTerm]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
   const [showExtractor, setShowExtractor] = useState(false);
@@ -731,16 +711,9 @@ function App() {
               // For period-specific filters (H1, H2), don't let through - wait for markets
               // For simple odds filters without period, let through
               if (periodCode) {
-                if (marketType === 'HTFT' || marketType === 'FTTS') {
-                  console.log('[App Filter]', marketType, '- Markets not loaded for', match.homeTeam, 'vs', match.awayTeam, '- returning false');
-                }
                 return false; // Wait for markets to load
               }
               return true; // No period filter, let through
-            }
-            
-            if (marketType === 'HTFT' || marketType === 'FTTS') {
-              console.log('[App Filter]', marketType, '- Markets loaded for', match.homeTeam, 'vs', match.awayTeam, '(', match.allMarkets.length, 'markets)');
             }
             
             // Debug: Log all markets for HTFT filter
@@ -1753,11 +1726,9 @@ function App() {
           searchMode={searchMode}
           searchTerm={searchTerm}
           onMarketsLoaded={(matchId, markets) => {
-            console.log('[App] onMarketsLoaded called for match:', matchId, 'with', markets.length, 'markets');
-            // Update the specific match with loaded markets to trigger re-filter
-            setMatches(prev => prev.map(match => 
-              match.id === matchId ? { ...match, allMarkets: markets } : match
-            ));
+            // Trigger re-filter by updating a dummy state
+            // This forces the useMemo to re-run with the updated allMarkets
+            setMatches(prev => [...prev]);
           }}
         />
       </div>
