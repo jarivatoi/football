@@ -698,7 +698,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         
         @keyframes roll {
           0% {
-            transform: translateX(-50px) translateY(-50%) rotate(0deg);
+            transform: translateX(-48px) translateY(-50%) rotate(0deg);
             opacity: 0;
           }
           5% {
@@ -708,7 +708,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             opacity: 1;
           }
           100% {
-            transform: translateX(470px) translateY(-50%) rotate(720deg);
+            transform: translateX(calc(100% + 48px)) translateY(-50%) rotate(720deg);
             opacity: 0;
           }
         }
