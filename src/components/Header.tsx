@@ -62,45 +62,26 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
     }
   }, [selectedSource.id]);
 
-  // Animate settings and betslip buttons
+  // Animate betslip button only
   useEffect(() => {
-    // Only animate when betslip is active
-    if (selectionCount > 0) {
-      // Settings button animation
-      if (settingsRef.current && onSettingsClick) {
-        gsap.fromTo(settingsRef.current,
-          { x: 300, opacity: 0 },
-          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
-        );
-      }
-
-      // Betslip button animation - slides in from right when active
-      if (slipRef.current) {
-        gsap.fromTo(slipRef.current,
-          { x: 300, opacity: 0 },
-          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
-        );
-      }
-    } else {
-      // Reverse animation when betslip is closed (selectionCount goes to 0)
-      if (settingsRef.current && onSettingsClick) {
-        gsap.to(settingsRef.current, {
-          x: 300,
-          opacity: 0,
-          duration: 0.8,
-          ease: "power2.in"
-        });
-      }
-      if (slipRef.current) {
-        gsap.to(slipRef.current, {
-          x: 300,
-          opacity: 0,
-          duration: 0.8,
-          ease: "power2.in"
-        });
-      }
+    // Betslip button animation - slides in from right when active
+    if (slipRef.current && selectionCount > 0) {
+      gsap.fromTo(slipRef.current,
+        { x: 300, opacity: 0 },
+        { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
+      );
     }
-  }, [selectionCount, onSettingsClick]);
+
+    // Reverse animation when betslip is closed (selectionCount goes to 0)
+    if (slipRef.current && selectionCount === 0) {
+      gsap.to(slipRef.current, {
+        x: 300,
+        opacity: 0,
+        duration: 0.8,
+        ease: "power2.in"
+      });
+    }
+  }, [selectionCount]);
 
   const handleSourceSelect = (source: ApiSource) => {
     onSourceChange(source);
