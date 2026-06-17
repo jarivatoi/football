@@ -69,7 +69,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     }
     
     // Parse period and market
-    let period = 'FT';
+    let period = 'ALL';
     let marketType: string | null = null; // null means ALL markets
     let option: string | undefined;
     let line: string | undefined;
