@@ -698,17 +698,17 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         
         @keyframes roll {
           0% {
-            transform: translateX(calc(-100% - 48px)) rotate(0deg);
+            transform: translateX(-50px) translateY(-50%) rotate(0deg);
             opacity: 0;
           }
-          10% {
+          5% {
             opacity: 1;
           }
-          90% {
+          95% {
             opacity: 1;
           }
           100% {
-            transform: translateX(calc(100% + 48px)) rotate(720deg);
+            transform: translateX(470px) translateY(-50%) rotate(720deg);
             opacity: 0;
           }
         }
@@ -719,11 +719,10 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           top: 50%;
           left: 0;
           width: 100%;
-          animation: roll 4.0s linear infinite;
+          animation: roll 4.0s ease-in-out infinite;
           font-size: clamp(32px, 9vw, 48px);
           line-height: 1;
           z-index: 2;
-          margin-top: -24px; /* Half of ball size for centering */
           pointer-events: none;
         }
         
@@ -756,26 +755,26 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
       `}</style>
       <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 420, display: 'grid', gap: '12px', padding: '0 16px', boxSizing: 'border-box' }}>
         {/* FOOTBALL Header */}
-        <div style={{ position: 'relative', padding: '10px 0', minHeight: '68px', maxHeight: '68px', overflow: 'visible', width: '100%', margin: '0 0 8px 0' }}>
+        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px' }}>
           <h1 
             style={{ 
-              fontSize: 'clamp(32px, 9vw, 48px)',
+              margin: '0 auto', // Center the h1
+              fontSize: '48px',
               fontWeight: '900',
               color: '#2563eb',
               letterSpacing: '4px',
               textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
-              lineHeight: '1.2',
+              lineHeight: '1.2', // Increased to accommodate emojis
               position: 'relative',
-              zIndex: 2,
-              width: '100%',
-              maxWidth: '100%',
-              margin: '0 auto',
-              textAlign: 'center',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              boxSizing: 'border-box',
-              height: '48px'
+              zIndex: 1,
+              width: '100%', // Responsive width
+              maxWidth: '420px', // Max width for desktop
+              textAlign: 'center', // Center text
+              display: 'flex', // Use flexbox
+              justifyContent: 'center', // Center horizontally
+              alignItems: 'center', // Center vertically
+              boxSizing: 'border-box', // Include padding in width
+              overflow: 'visible' // Allow ball animation to overflow
             }}
           >
             <span className="football-text">
@@ -796,9 +795,8 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
                 );
               })}
             </span>
+            <span className="rolling-ball" ref={ballRef}>⚽</span>
           </h1>
-          {/* Ball spans full width to allow off-screen animation */}
-          <span className="rolling-ball" ref={ballRef}>⚽</span>
         </div>
         
         {/* User Sign In - drops from FOOTBALL */}
