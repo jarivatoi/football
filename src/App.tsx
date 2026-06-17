@@ -624,10 +624,10 @@ function App() {
               targetOddsMax = targetOddsMax / 100;
             }
             
-            // Validate: left number must be less than right number
+            // Validate: left number must be strictly less than right number
             if (targetOddsMin >= targetOddsMax) {
               filteredDateMatches = [];
-              // Skip filtering - invalid range
+              // Skip filtering - invalid range (can't be equal or greater)
               return filtered;
             }
           }
