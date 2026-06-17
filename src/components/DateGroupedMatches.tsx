@@ -87,6 +87,7 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
                   searchMode={searchMode}
                   searchTerm={searchTerm}
                   onMarketsLoaded={onMarketsLoaded}
+                  onSelectionCountChange={onSelectionsFound ? (matchId, date, count) => onSelectionsFound(date, count) : undefined}
                 />
               ))}
             </div>

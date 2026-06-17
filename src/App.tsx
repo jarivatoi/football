@@ -791,6 +791,23 @@ function App() {
     
     setFilteredCounts(counts);
   }, [filteredGroupedMatches, searchTerm, searchMode]);
+  
+  // Handle selection count changes from expanded markets
+  const handleSelectionCountChange = React.useCallback((date: string, count: number) => {
+    setExpandedSelectionsCount(prev => {
+      // This is a simplified version - we need to track per date
+      return count;
+    });
+    
+    // Update filtered counts to include expanded selections
+    setFilteredCounts(prev => {
+      const updated = { ...prev };
+      if (count > 0) {
+        updated[date] = count;
+      }
+      return updated;
+    });
+  }, []);
 
   const totalAllMatchesCount = React.useMemo(() => {
     // Calculate total from filtered matches (respects category/competition filters)
@@ -1447,6 +1464,7 @@ function App() {
             // This forces the useMemo to re-run with the updated allMarkets
             setMatches(prev => [...prev]);
           }}
+          onSelectionsFound={handleSelectionCountChange}
         />
       </div>
       

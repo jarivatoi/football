@@ -10,9 +10,10 @@ interface MatchCardProps {
   searchMode?: 'matches' | 'eq' | 'gte' | 'lte' | 'between'; // Search filter mode
   searchTerm?: string; // Search term for odds highlighting
   onMarketsLoaded?: (matchId: string, markets: any[]) => void; // Callback when markets load
+  onSelectionCountChange?: (matchId: string, date: string, count: number) => void; // Callback when selection count changes
 }
 
-const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '', onMarketsLoaded }) => {
+const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '', onMarketsLoaded, onSelectionCountChange }) => {
   
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoadingMarkets, setIsLoadingMarkets] = useState(false);
@@ -559,9 +560,45 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         
         console.log(`[Filter] Total expanded markets: ${Object.keys(newExpandedMarkets).length}`);
         setExpandedMarkets(newExpandedMarkets);
+        
+        // Count total matching selections across expanded markets
+        let totalSelections = 0;
+        for (const market of matchingMarkets) {
+          if (newExpandedMarkets[market.marketBookNo]) {
+            market.selections.forEach((sel: any) => {
+              const selOdds = parseFloat(String(sel.odds));
+              if (isNaN(selOdds)) return;
+              
+              // Check if matches search criteria
+              if (parsed && searchMode !== 'matches') {
+                if (searchMode === 'eq' && Math.abs(selOdds - parsed.odds) < 0.001) {
+                  totalSelections++;
+                } else if (searchMode === 'gte' && selOdds >= parsed.odds) {
+                  totalSelections++;
+                } else if (searchMode === 'lte' && selOdds <= parsed.odds) {
+                  totalSelections++;
+                } else if (searchMode === 'between' && parsed.oddsMin !== undefined && parsed.oddsMax !== undefined) {
+                  if (selOdds >= parsed.oddsMin && selOdds <= parsed.oddsMax) {
+                    totalSelections++;
+                  }
+                }
+              }
+            });
+          }
+        }
+        
+        // Report selection count to parent
+        if (onSelectionCountChange) {
+          onSelectionCountChange(match.id, match.date || '', totalSelections);
+        }
       } else {
         // Fall back to old behavior for simple odds filtering
         setExpandedMarkets({});
+        
+        // Reset selection count
+        if (onSelectionCountChange) {
+          onSelectionCountChange(match.id, match.date || '', 0);
+        }
       }
     }
   }, [isExpanded, match.allMarkets, searchTerm, searchMode, activeMarketTab]);
