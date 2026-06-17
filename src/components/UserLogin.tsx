@@ -698,7 +698,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         
         @keyframes roll {
           0% {
-            transform: translateX(calc(-100vw - 48px)) translateY(-50%) rotate(0deg);
+            transform: translateX(calc(-100% - 48px)) translateY(-50%) rotate(0deg);
             opacity: 0;
           }
           10% {
@@ -708,7 +708,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             opacity: 1;
           }
           100% {
-            transform: translateX(calc(100vw + 48px)) translateY(-50%) rotate(720deg);
+            transform: translateX(calc(100% + 48px)) translateY(-50%) rotate(720deg);
             opacity: 0;
           }
         }
@@ -718,7 +718,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           position: absolute;
           top: 50%;
           left: 0;
-          width: 100vw;
+          width: 100%;
           animation: roll 4.0s linear infinite;
           font-size: clamp(32px, 9vw, 48px);
           line-height: 1;
@@ -756,7 +756,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
       `}</style>
       <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 420, display: 'grid', gap: '12px', padding: '0 16px', boxSizing: 'border-box' }}>
         {/* FOOTBALL Header */}
-        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px', maxHeight: '68px', overflow: 'hidden', width: 'calc(100vw + 96px)', marginLeft: 'calc(-50vw + 50%)', maxWidth: 'none' }}>
+        <div style={{ position: 'relative', padding: '10px 0', minHeight: '68px', maxHeight: '68px', overflow: 'hidden', width: '100%', margin: '0 0 8px 0' }}>
           <h1 
             style={{ 
               fontSize: 'clamp(32px, 9vw, 48px)',
