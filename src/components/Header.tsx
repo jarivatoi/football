@@ -90,13 +90,13 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
       });
     }
 
-    // Settings button reverse animation
+    // Settings button: slide back to original position but stay visible
     if (settingsRef.current && onSettingsClick && selectionCount === 0) {
       gsap.to(settingsRef.current, {
-        x: 300,
-        opacity: 0,
+        x: 0,
+        opacity: 1,
         duration: 0.8,
-        ease: "power2.in"
+        ease: "power2.inOut"
       });
     }
   }, [selectionCount, onSettingsClick]);
