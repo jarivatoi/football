@@ -623,6 +623,13 @@ function App() {
             if (!isNaN(targetOddsMax) && targetOddsMax > 10) {
               targetOddsMax = targetOddsMax / 100;
             }
+            
+            // Validate: left number must be less than right number
+            if (targetOddsMin >= targetOddsMax) {
+              filteredDateMatches = [];
+              // Skip filtering - invalid range
+              return filtered;
+            }
           }
         }
         
