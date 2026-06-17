@@ -299,7 +299,7 @@ ${y}`}class ze extends Error{constructor({message:e,code:r,cause:n,name:s}){var 
         /* Reveal letters based on ball position using clip-path */
         .rolling-ball {
           position: absolute;
-          top: 34px;
+          top: 50%;
           left: 0;
           width: 100vw;
           animation: roll 4.0s linear infinite;
