@@ -720,7 +720,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           left: 0;
           width: 100vw;
           animation: roll 4.0s linear infinite;
-          font-size: clamp(36px, 10vw, 48px);
+          font-size: clamp(32px, 9vw, 48px);
           line-height: 1;
           z-index: 2;
           transform: translateY(-50%); /* Center vertically */
@@ -756,10 +756,10 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
       `}</style>
       <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 420, display: 'grid', gap: '12px', padding: '0 16px', boxSizing: 'border-box' }}>
         {/* FOOTBALL Header */}
-        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '0', overflow: 'visible' }}>
+        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px', maxHeight: '68px', overflow: 'hidden' }}>
           <h1 
             style={{ 
-              fontSize: 'clamp(36px, 10vw, 48px)',
+              fontSize: 'clamp(32px, 9vw, 48px)',
               fontWeight: '900',
               color: '#2563eb',
               letterSpacing: '4px',
@@ -768,14 +768,15 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
               position: 'relative',
               zIndex: 2,
               width: '100%',
-              maxWidth: '420px',
+              maxWidth: '100%',
               margin: '0 auto',
               textAlign: 'center',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
               boxSizing: 'border-box',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              height: '48px'
             }}
           >
             <span className="football-text">
