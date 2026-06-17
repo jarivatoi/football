@@ -708,7 +708,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             opacity: 1;
           }
           100% {
-            transform: translateX(calc(100% + 48px)) translateY(-50%) rotate(720deg);
+            transform: translateX(calc(100vw + 48px)) translateY(-50%) rotate(720deg);
             opacity: 0;
           }
         }
@@ -718,11 +718,13 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           position: absolute;
           top: 50%;
           left: 0;
+          width: 100%;
           animation: roll 2.5s linear infinite;
           font-size: 48px;
           line-height: 1;
           z-index: 2;
           transform: translateY(-50%); /* Center vertically */
+          pointer-events: none;
         }
         
         .football-text {
@@ -754,7 +756,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
       `}</style>
       <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 420, display: 'grid', gap: '12px', padding: '0 16px', boxSizing: 'border-box' }}>
         {/* FOOTBALL Header */}
-        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px', overflow: 'hidden' }}>
+        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px' }}>
           <h1 
             style={{ 
               margin: '0',
@@ -771,8 +773,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              boxSizing: 'border-box',
-              overflow: 'hidden' // Prevent emoji overflow
+              boxSizing: 'border-box'
             }}
           >
             <span className="football-text">
@@ -793,8 +794,9 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
                 );
               })}
             </span>
-            <span className="rolling-ball" ref={ballRef}>⚽</span>
           </h1>
+          {/* Ball outside h1 to avoid overflow restriction */}
+          <span className="rolling-ball" ref={ballRef}>⚽</span>
         </div>
         
         {/* User Sign In - drops from FOOTBALL */}
