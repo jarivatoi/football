@@ -752,28 +752,28 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           opacity: 1;
         }
       `}</style>
-      <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 420, display: 'grid', gap: '12px', padding: '0 16px', boxSizing: 'border-box' }}>
-        {/* FOOTBALL Header */}
-        <div style={{ textAlign: 'center', marginBottom: '8px', position: 'relative', padding: '10px 0', minHeight: '68px', maxHeight: '68px' }}>
+      {/* FOOTBALL Header - Separate container from form */}
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+        <div style={{ textAlign: 'center', position: 'relative', padding: '10px 0', minHeight: '68px', maxHeight: '68px', width: '100%', maxWidth: '500px' }}>
           <h1 
             style={{ 
-              margin: '0 auto', // Center the h1
-              fontSize: '45px',
+              margin: '0 auto',
+              fontSize: '48px',
               fontWeight: '900',
               color: '#2563eb',
-              letterSpacing: '3px',
+              letterSpacing: '4px',
               textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
-              lineHeight: '1.2', // Increased to accommodate emojis
+              lineHeight: '1.2',
               position: 'relative',
               zIndex: 1,
-              width: '100%', // Responsive width
-              maxWidth: '420px', // Max width for desktop
-              textAlign: 'center', // Center text
-              display: 'flex', // Use flexbox
-              justifyContent: 'center', // Center horizontally
-              alignItems: 'center', // Center vertically
-              boxSizing: 'border-box', // Include padding in width
-              overflow: 'visible' // do not clip
+              width: '100%',
+              maxWidth: '500px',
+              textAlign: 'center',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              boxSizing: 'border-box',
+              overflow: 'visible'
             }}
           >
             <span className="football-text">
@@ -797,6 +797,8 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             <span className="rolling-ball" ref={ballRef}>⚽</span>
           </h1>
         </div>
+      </div>
+      <form onSubmit={handleLogin} style={{ width: '100%', maxWidth: 420, display: 'grid', gap: '12px', padding: '0 16px', boxSizing: 'border-box', margin: '0 auto' }}>
         
         {/* User Sign In - drops from FOOTBALL */}
         <h2 
