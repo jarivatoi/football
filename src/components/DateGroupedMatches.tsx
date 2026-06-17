@@ -12,7 +12,7 @@ interface DateGroupedMatchesProps {
   searchMode?: 'matches' | 'eq' | 'gte' | 'lte' | 'between'; // Search filter mode
   searchTerm?: string; // Search term for odds highlighting
   onMarketsLoaded?: (matchId: string, markets: any[]) => void; // Callback when markets load
-  onSelectionsFound?: (date: string, count: number) => void; // Callback when filtered selections found
+  onSelectionsFound?: (matchId: string, date: string, count: number) => void; // Callback when filtered selections found
 }
 
 const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({ 
@@ -87,7 +87,7 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
                   searchMode={searchMode}
                   searchTerm={searchTerm}
                   onMarketsLoaded={onMarketsLoaded}
-                  onSelectionCountChange={onSelectionsFound ? (matchId, date, count) => onSelectionsFound(date, count) : undefined}
+                  onSelectionCountChange={onSelectionsFound ? (matchId, date, count) => onSelectionsFound(matchId, date, count) : undefined}
                 />
               ))}
             </div>

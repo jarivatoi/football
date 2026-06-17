@@ -88,7 +88,7 @@ function App() {
   const [loadingProgress, setLoadingProgress] = useState<{ date: string; loaded: number; total: number } | null>(null);
   
   // Total available selections from expanded markets
-  const [expandedSelectionsCount, setExpandedSelectionsCount] = useState<number>(0);
+  const [expandedSelectionsCount, setExpandedSelectionsCount] = useState<Record<string, number>>({}); // track per matchId
   
   // Category and Competition filter states
   const [categories, setCategories] = useState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
@@ -793,21 +793,56 @@ function App() {
   }, [filteredGroupedMatches, searchTerm, searchMode]);
   
   // Handle selection count changes from expanded markets
-  const handleSelectionCountChange = React.useCallback((date: string, count: number) => {
+  const handleSelectionCountChange = React.useCallback((matchId: string, date: string, count: number) => {
     setExpandedSelectionsCount(prev => {
-      // This is a simplified version - we need to track per date
-      return count;
-    });
-    
-    // Update filtered counts to include expanded selections
-    setFilteredCounts(prev => {
       const updated = { ...prev };
       if (count > 0) {
-        updated[date] = count;
+        updated[matchId] = count;
+      } else {
+        delete updated[matchId];
       }
       return updated;
     });
-  }, []);
+    
+    // Recalculate total per date
+    setFilteredCounts(prev => {
+      const updated = { ...prev };
+      
+      // Get base filtered match count for this date
+      const baseCount = filteredGroupedMatches[date]?.length || 0;
+      
+      // Sum all expanded selections for this date
+      let expandedTotal = 0;
+      Object.entries(expandedSelectionsCount).forEach(([id, cnt]) => {
+        // Find which date this matchId belongs to
+        for (const [d, matches] of Object.entries(filteredGroupedMatches)) {
+          if (d === date && matches.some((m: any) => m.id === matchId || id.includes(matchId))) {
+            expandedTotal += count;
+            break;
+          }
+        }
+      });
+      
+      // Add selections from the current update
+      const allSelectionsForDate = Object.entries(expandedSelectionsCount).reduce((sum, [id, cnt]) => {
+        // Check if this matchId belongs to this date
+        const matchInDate = filteredGroupedMatches[date]?.some((m: any) => m.id === id);
+        if (matchInDate) {
+          return sum + cnt;
+        }
+        return sum;
+      }, 0);
+      
+      // If there are expanded selections, use that count, otherwise use base match count
+      if (allSelectionsForDate > 0) {
+        updated[date] = allSelectionsForDate;
+      } else if (searchTerm && searchMode !== 'matches') {
+        updated[date] = baseCount;
+      }
+      
+      return updated;
+    });
+  }, [filteredGroupedMatches, searchTerm, searchMode, expandedSelectionsCount]);
 
   const totalAllMatchesCount = React.useMemo(() => {
     // Calculate total from filtered matches (respects category/competition filters)
