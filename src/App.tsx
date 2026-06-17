@@ -81,6 +81,12 @@ function App() {
   const [calendarList, setCalendarList] = useState<Array<{date: string, matchCount: number, displayName: string}>>([]);
   const [showParlayBuilder, setShowParlayBuilder] = useState(false);
   
+  // Filtered counts per date (for orange highlight)
+  const [filteredCounts, setFilteredCounts] = useState<Record<string, number>>({});
+  
+  // Loading progress for date selection
+  const [loadingProgress, setLoadingProgress] = useState<{ date: string; loaded: number; total: number } | null>(null);
+  
   // Category and Competition filter states
   const [categories, setCategories] = useState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');

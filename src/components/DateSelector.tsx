@@ -7,6 +7,8 @@ interface DateSelectorProps {
   showAllMatches?: boolean;
   onToggleAllMatches?: () => void;
   totalMatches?: number;
+  filteredCounts?: Record<string, number>; // Count of matches matching filter per date
+  loadingProgress?: { date: string; loaded: number; total: number } | null; // Loading progress for current date
 }
 
 const DateSelector: React.FC<DateSelectorProps> = ({ 
@@ -15,7 +17,9 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   availableDates = [],
   showAllMatches = false,
   onToggleAllMatches,
-  totalMatches = 0
+  totalMatches = 0,
+  filteredCounts = {},
+  loadingProgress = null
 }) => {
   // Use API data directly - show exact names from totelepep
   const datesToShow = availableDates.length > 0 ? availableDates.slice(0, 8) : [];
@@ -26,7 +30,6 @@ const DateSelector: React.FC<DateSelectorProps> = ({
       {/* Horizontal Scrolling Row */}
       <div className="flex gap-2 overflow-x-auto px-3 py-0 max-w-3xl mx-auto scrollbar-hide">
         {datesToShow.map((dateInfo) => {
-          // When All Matches is active, no date should be selected
           const isSelected = showAllMatches ? false : dateInfo.date === selectedDate;
           
           // Extract date number and month for display
@@ -37,6 +40,13 @@ const DateSelector: React.FC<DateSelectorProps> = ({
             const month = dateObj.toLocaleDateString('en-GB', { month: 'short' });
             dateStr = `${day} ${month}`;
           }
+          
+          // Get filtered count for this date
+          const filteredCount = filteredCounts[dateInfo.date] || 0;
+          
+          // Check if this date is currently loading
+          const isLoading = loadingProgress && loadingProgress.date === dateInfo.date;
+          const loadingPercent = isLoading ? Math.round((loadingProgress.loaded / loadingProgress.total) * 100) : 0;
           
           return (
             <button
@@ -52,12 +62,18 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                 <div className={`font-semibold ${
                   isSelected ? 'text-white' : 'text-gray-900'
                 }`}>
-                  {dateInfo.displayName}
+                  {isLoading ? `${loadingPercent}%` : dateInfo.displayName}
                 </div>
                 <div className={`text-[10px] ${
                   isSelected ? 'text-blue-100' : 'text-gray-500'
                 }`}>
-                  {dateStr && `${dateStr} `}({dateInfo.matchCount})
+                  {!isLoading && dateStr && `${dateStr} `}
+                  {/* Show filtered count in orange if > 0 */}
+                  {filteredCount > 0 ? (
+                    <span className="text-orange-500 font-semibold">({filteredCount})</span>
+                  ) : (
+                    <span>({dateInfo.matchCount})</span>
+                  )}
                 </div>
               </div>
             </button>
