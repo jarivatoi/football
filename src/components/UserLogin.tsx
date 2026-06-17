@@ -767,7 +767,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
               position: 'relative',
               zIndex: 1,
               width: '100%', // Responsive width
-              maxWidth: '420px', // Max width for desktop
+              maxWidth: '500px', // Max width for desktop
               textAlign: 'center', // Center text
               display: 'flex', // Use flexbox
               justifyContent: 'center', // Center horizontally
