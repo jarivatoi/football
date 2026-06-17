@@ -701,14 +701,14 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             transform: translateX(-48px) translateY(-50%) rotate(0deg);
             opacity: 0;
           }
-          5% {
+          10% {
             opacity: 1;
           }
-          95% {
+          90% {
             opacity: 1;
           }
           100% {
-            transform: translateX(calc(100vw + 48px)) translateY(-50%) rotate(720deg);
+            transform: translateX(calc(420px + 48px)) translateY(-50%) rotate(720deg);
             opacity: 0;
           }
         }
