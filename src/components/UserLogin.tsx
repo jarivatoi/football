@@ -708,7 +708,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             opacity: 1;
           }
           100% {
-            transform: translateX(calc(100vw + 48px)) translateY(-50%) rotate(720deg);
+            transform: translateX(calc(100% + 48px)) translateY(-50%) rotate(720deg);
             opacity: 0;
           }
         }
