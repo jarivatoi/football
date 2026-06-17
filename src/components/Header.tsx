@@ -57,8 +57,8 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
   useEffect(() => {
     if (textRef.current) {
       gsap.fromTo(textRef.current, 
-        { x: -300, opacity: 0 },
-        { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
+        { x: -50, opacity: 0 },
+        { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.4)" }
       );
     }
   }, [selectedSource.id]);
@@ -73,16 +73,16 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
       // Betslip button animation - slides in from right
       if (slipRef.current) {
         gsap.fromTo(slipRef.current,
-          { x: 300, opacity: 0 },
-          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
+          { x: 100, opacity: 0 },
+          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.6)" }
         );
       }
 
       // Settings button animation - same elastic effect
       if (settingsRef.current && onSettingsClick) {
         gsap.fromTo(settingsRef.current,
-          { x: 300, opacity: 0 },
-          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
+          { x: 100, opacity: 0 },
+          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.6)" }
         );
       }
     }
