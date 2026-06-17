@@ -54,7 +54,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
   useEffect(() => {
     if (textRef.current) {
       gsap.fromTo(textRef.current, 
-        { x: 300, opacity: 0 },
+        { x: -300, opacity: 0 },
         { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
       );
     }
