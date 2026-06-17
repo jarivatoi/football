@@ -19,6 +19,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   const [expandedMarkets, setExpandedMarkets] = useState<Record<string, boolean>>({});
   const [activeMarketTab, setActiveMarketTab] = useState<string>('ALL'); // ALL, FT, HT, 2H
   const hasClearedRef = React.useRef(false); // Track if we've already handled the clear
+  const hasAutoExpandedRef = React.useRef(false); // Track if we've already auto-expanded for this expansion
 
   // Parse advanced filter code (e.g., 120FT, 150H1BTTS, 120FTUO2.5, 150-180H1BTTS)
   const parseFilterCode = (code: string) => {
@@ -362,6 +363,14 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     console.log('[AutoExpand] useEffect triggered, isExpanded:', isExpanded, 'hasMarkets:', match.allMarkets?.length, 'searchTerm:', searchTerm, 'searchMode:', searchMode);
     
     if (isExpanded && match.allMarkets && match.allMarkets.length > 0) {
+      // If match changed, reset the auto-expand flag
+      if (!hasAutoExpandedRef.current) {
+        hasAutoExpandedRef.current = true;
+      } else {
+        // User manually switched tab, don't override
+        return;
+      }
+      
       // If no search term, collapse all auto-expanded markets
       if (!searchTerm) {
         console.log('[AutoExpand] No search term, clearing');
@@ -384,7 +393,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       if (parsed) {
         // Advanced filter mode
         
-        // Auto-switch market tab based on period
+        // Auto-switch market tab based on period (only on initial expansion)
         if (parsed.period === 'H1') {
           setActiveMarketTab('HT');
         } else if (parsed.period === 'H2') {
@@ -613,6 +622,9 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   const toggleExpand = async () => {
     const newState = !isExpanded;
     setIsExpanded(newState);
+    
+    // Reset auto-expand flag when toggling
+    hasAutoExpandedRef.current = false;
     
     // When collapsing, reset all expanded markets
     if (!newState) {
