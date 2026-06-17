@@ -758,7 +758,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           <h1 
             style={{ 
               margin: '0 auto', // Center the h1
-              fontSize: '48px',
+              fontSize: '45px',
               fontWeight: '900',
               color: '#2563eb',
               letterSpacing: '3px',
