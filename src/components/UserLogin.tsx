@@ -201,12 +201,6 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             const newChar = idx < nextWord.length ? (nextWord[idx] === ' ' ? '\u00A0' : nextWord[idx]) : '';
             el.textContent = newChar;
             el.style.visibility = idx < nextWord.length ? 'visible' : 'hidden';
-            // Flip the last emoji in "✨By Viraj✨"
-            if (nextWord === '✨By Viraj✨' && idx === nextWord.length - 1 && newChar === '✨') {
-              el.style.transform = 'scaleY(-1)';
-            } else {
-              el.style.transform = 'none';
-            }
             // Force hide all letters
             gsap.set(el, {
               opacity: 0,
@@ -785,19 +779,15 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             <span className="football-text">
               {Array.from({ length: maxLetters }, (_, i) => {
                 const initialChar = i < words[0].length ? words[0][i] : '';
-                const isFlippedEmoji = i === words[1].length - 1 && words[1][i] === '✨';
                 return (
                   <span 
                     key={i}
-                    className="football-letter"
+                    className="football-letter" 
                     ref={(el) => { 
                       if (el && !lettersRef.current[0]) lettersRef.current[0] = []; 
                       if (el) lettersRef.current[0][i] = el;
                     }}
-                    style={{ 
-                      visibility: i < words[0].length ? 'visible' : 'hidden',
-                      transform: isFlippedEmoji ? 'scaleY(-1)' : 'none'
-                    }}
+                    style={{ visibility: i < words[0].length ? 'visible' : 'hidden' }}
                   >
                     {initialChar === ' ' ? '\u00A0' : initialChar}
                   </span>
