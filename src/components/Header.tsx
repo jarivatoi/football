@@ -89,12 +89,12 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
             <div className="relative flex items-center gap-2" data-source-dropdown>
               <button
                 onClick={() => setShowSourceDropdown(!showSourceDropdown)}
-                className="flex items-center gap-2 p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                className="flex items-center gap-2 p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors relative z-10"
               >
                 <TrendingUp className="w-6 h-6 text-white" />
                 <ChevronDown className="w-4 h-4 text-white" />
               </button>
-              <span ref={textRef} className="text-xl font-bold text-gray-900">{selectedSource.displayName}</span>
+              <span ref={textRef} className="text-xl font-bold text-gray-900 relative z-0">{selectedSource.displayName}</span>
 
               {showSourceDropdown && (
                 <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[180px]">
