@@ -74,7 +74,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
       if (slipRef.current) {
         gsap.fromTo(slipRef.current,
           { x: 100, opacity: 0 },
-          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.6)" }
+          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.4)" }
         );
       }
 
@@ -82,7 +82,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
       if (settingsRef.current && onSettingsClick) {
         gsap.fromTo(settingsRef.current,
           { x: 100, opacity: 0 },
-          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.6)" }
+          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.4)" }
         );
       }
     }
