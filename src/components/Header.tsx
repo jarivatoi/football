@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TrendingUp, Ticket, ChevronDown, Settings } from 'lucide-react';
+import { gsap } from 'gsap';
 import OfflineIndicator from './OfflineIndicator';
 
 export interface ApiSource {
@@ -47,6 +48,19 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = false, onSlipClick, selectedSource, onSourceChange, onSettingsClick }) => {
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
+  const textRef = useRef<HTMLSpanElement>(null);
+
+  // Elastic snap animation on mount
+  useEffect(() => {
+    if (textRef.current) {
+      gsap.from(textRef.current, {
+        x: -300,
+        opacity: 0,
+        duration: 1.5,
+        ease: "elastic.out(1, 0.3)"
+      });
+    }
+  }, []);
 
   const handleSourceSelect = (source: ApiSource) => {
     onSourceChange(source);
@@ -82,7 +96,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
                 <TrendingUp className="w-6 h-6 text-white" />
                 <ChevronDown className="w-4 h-4 text-white" />
               </button>
-              <span className="text-xl font-bold text-gray-900">{selectedSource.displayName}</span>
+              <span ref={textRef} className="text-xl font-bold text-gray-900">{selectedSource.displayName}</span>
 
               {showSourceDropdown && (
                 <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[180px]">
