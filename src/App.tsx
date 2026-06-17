@@ -81,15 +81,6 @@ function App() {
   const [calendarList, setCalendarList] = useState<Array<{date: string, matchCount: number, displayName: string}>>([]);
   const [showParlayBuilder, setShowParlayBuilder] = useState(false);
   
-  // Filtered counts per date (for orange highlight)
-  const [filteredCounts, setFilteredCounts] = useState<Record<string, number>>({});
-  
-  // Loading progress for date selection
-  const [loadingProgress, setLoadingProgress] = useState<{ date: string; loaded: number; total: number } | null>(null);
-  
-  // Total available selections from expanded markets
-  const [expandedSelectionsCount, setExpandedSelectionsCount] = useState<Record<string, number>>({}); // track per matchId
-  
   // Category and Competition filter states
   const [categories, setCategories] = useState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -341,9 +332,6 @@ function App() {
       // Group matches by date
       const grouped = totelepepService.groupMatchesByDate(sortedMatches);
       setGroupedMatches(grouped);
-      
-      // Clear loading progress
-      setLoadingProgress(null);
       
       setLastUpdated(new Date());
       
@@ -776,74 +764,6 @@ function App() {
     return result;
   }, [groupedMatches, searchTerm, searchMode, selectedDate, calendarList, selectedCategory, selectedCompetition, showAllMatches]) : groupedMatches;
 
-  // Calculate filtered counts per date for orange highlight
-  React.useEffect(() => {
-    const counts: Record<string, number> = {};
-    
-    // Only count if there's an active search filter
-    if (searchTerm && searchMode !== 'matches') {
-      Object.entries(filteredGroupedMatches).forEach(([date, dateMatches]) => {
-        if (dateMatches && dateMatches.length > 0) {
-          counts[date] = dateMatches.length;
-        }
-      });
-    }
-    
-    setFilteredCounts(counts);
-  }, [filteredGroupedMatches, searchTerm, searchMode]);
-  
-  // Handle selection count changes from expanded markets
-  const handleSelectionCountChange = React.useCallback((matchId: string, date: string, count: number) => {
-    setExpandedSelectionsCount(prev => {
-      const updated = { ...prev };
-      if (count > 0) {
-        updated[matchId] = count;
-      } else {
-        delete updated[matchId];
-      }
-      return updated;
-    });
-    
-    // Recalculate total per date
-    setFilteredCounts(prev => {
-      const updated = { ...prev };
-      
-      // Get base filtered match count for this date
-      const baseCount = filteredGroupedMatches[date]?.length || 0;
-      
-      // Sum all expanded selections for this date
-      let expandedTotal = 0;
-      Object.entries(expandedSelectionsCount).forEach(([id, cnt]) => {
-        // Find which date this matchId belongs to
-        for (const [d, matches] of Object.entries(filteredGroupedMatches)) {
-          if (d === date && matches.some((m: any) => m.id === matchId || id.includes(matchId))) {
-            expandedTotal += count;
-            break;
-          }
-        }
-      });
-      
-      // Add selections from the current update
-      const allSelectionsForDate = Object.entries(expandedSelectionsCount).reduce((sum, [id, cnt]) => {
-        // Check if this matchId belongs to this date
-        const matchInDate = filteredGroupedMatches[date]?.some((m: any) => m.id === id);
-        if (matchInDate) {
-          return sum + cnt;
-        }
-        return sum;
-      }, 0);
-      
-      // If there are expanded selections, use that count, otherwise use base match count
-      if (allSelectionsForDate > 0) {
-        updated[date] = allSelectionsForDate;
-      } else if (searchTerm && searchMode !== 'matches') {
-        updated[date] = baseCount;
-      }
-      
-      return updated;
-    });
-  }, [filteredGroupedMatches, searchTerm, searchMode, expandedSelectionsCount]);
-
   const totalAllMatchesCount = React.useMemo(() => {
     // Calculate total from filtered matches (respects category/competition filters)
     if (showAllMatches) {
@@ -1263,14 +1183,8 @@ function App() {
 
   const handleDateChange = (newDate: string) => {
     
-    // Get total match count for this date from availableDates
-    const dateInfo = availableDates.find(d => d.date === newDate);
-    const totalMatches = dateInfo?.matchCount || 0;
     
-    // Set loading progress
-    if (totalMatches > 0) {
-      setLoadingProgress({ date: newDate, loaded: 0, total: totalMatches });
-    }
+    
     
     // Turn off All Matches when a specific date is selected
     if (showAllMatches) {
@@ -1356,8 +1270,6 @@ function App() {
           showAllMatches={showAllMatches}
           onToggleAllMatches={toggleAllMatches}
           totalMatches={totalAllMatchesCount}
-          filteredCounts={filteredCounts}
-          loadingProgress={loadingProgress}
         />
         
         {/* Search Bar */}
@@ -1499,7 +1411,6 @@ function App() {
             // This forces the useMemo to re-run with the updated allMarkets
             setMatches(prev => [...prev]);
           }}
-          onSelectionsFound={handleSelectionCountChange}
         />
       </div>
       
