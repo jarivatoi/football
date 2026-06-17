@@ -49,6 +49,8 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = false, onSlipClick, selectedSource, onSourceChange, onSettingsClick }) => {
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
   const textRef = useRef<HTMLSpanElement>(null);
+  const settingsRef = useRef<HTMLButtonElement>(null);
+  const slipRef = useRef<HTMLButtonElement>(null);
 
   // Elastic snap animation on mount and when source changes
   useEffect(() => {
@@ -59,6 +61,35 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
       );
     }
   }, [selectedSource.id]);
+
+  // Animate settings and betslip buttons
+  useEffect(() => {
+    // Settings button animation
+    if (settingsRef.current && onSettingsClick) {
+      gsap.fromTo(settingsRef.current,
+        { x: 300, opacity: 0 },
+        { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
+      );
+    }
+
+    // Betslip button animation - slides in from right when active
+    if (slipRef.current && selectionCount > 0) {
+      gsap.fromTo(slipRef.current,
+        { x: 300, opacity: 0 },
+        { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
+      );
+    }
+
+    // Reverse animation when betslip is closed (selectionCount goes to 0)
+    if (slipRef.current && selectionCount === 0) {
+      gsap.to(slipRef.current, {
+        x: 300,
+        opacity: 0,
+        duration: 0.8,
+        ease: "power2.in"
+      });
+    }
+  }, [selectionCount, onSettingsClick]);
 
   const handleSourceSelect = (source: ApiSource) => {
     onSourceChange(source);
@@ -125,6 +156,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
             {/* Settings Button */}
             {onSettingsClick && (
               <button
+                ref={settingsRef}
                 onClick={onSettingsClick}
                 className="flex items-center justify-center bg-gray-600 hover:bg-gray-700 text-white p-2 rounded-lg transition-colors"
               >
@@ -135,6 +167,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
             {/* Slip Counter Button */}
             {selectionCount > 0 && (
               <button
+                ref={slipRef}
                 onClick={onSlipClick}
                 className={`relative flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-colors ${
                   hasInvalidSelections
