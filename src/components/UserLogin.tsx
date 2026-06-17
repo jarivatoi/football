@@ -698,7 +698,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         
         @keyframes roll {
           0% {
-            transform: translateX(calc(-100% - 48px)) translateY(-50%) rotate(0deg);
+            transform: translateX(calc(-100% - 48px)) rotate(0deg);
             opacity: 0;
           }
           10% {
@@ -708,7 +708,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
             opacity: 1;
           }
           100% {
-            transform: translateX(calc(100% + 48px)) translateY(-50%) rotate(720deg);
+            transform: translateX(calc(100% + 48px)) rotate(720deg);
             opacity: 0;
           }
         }
@@ -723,7 +723,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           font-size: clamp(32px, 9vw, 48px);
           line-height: 1;
           z-index: 2;
-          transform: translateY(-50%); /* Center vertically */
+          margin-top: -24px; /* Half of ball size for centering */
           pointer-events: none;
         }
         
