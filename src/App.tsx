@@ -23,6 +23,7 @@ import { MaintenanceMode } from './components/MaintenanceMode';
 import { totelepepService } from './services/totelepepService';
 import { totelepepExtractor } from './services/totelepepExtractor';
 import type { TotelepepMatch } from './services/totelepepExtractor';
+import { saveBetslip, loadBetslip, clearBetslip } from './utils/matchCache';
 import { registerServiceWorker, requestNotificationPermission, scheduleBackgroundSync } from './utils/pwaUtils';
 import { getUserSession, removeUserSession } from './utils/userSessionDB';
 import { supabase } from './lib/supabase';
@@ -469,6 +470,13 @@ function App() {
     // Clear all caches on initial load
     totelepepExtractor.clearCache();
     
+    // Load saved betslip from IndexedDB
+    loadBetslip().then(savedSelections => {
+      if (savedSelections && savedSelections.length > 0) {
+        setParlaySelections(savedSelections);
+      }
+    });
+    
     // Load calendar first - it will set the correct selected date from the API
     loadCalendarList().then(() => {
       // After calendar is loaded, load matches for the first date
@@ -479,6 +487,16 @@ function App() {
       }
     });
   }, []); // Only run once on mount
+  
+  // Save betslip to IndexedDB when selections change
+  useEffect(() => {
+    if (parlaySelections.length > 0) {
+      saveBetslip(parlaySelections);
+    } else {
+      // Clear betslip if no selections
+      clearBetslip();
+    }
+  }, [parlaySelections]);
   
   // NOTE: Removed the useEffect that loaded data when selectedDate changed
   // This was causing race conditions with handleCategoryChange/handleCompetitionChange
@@ -1285,6 +1303,7 @@ function App() {
 
   const handleClearAll = () => {
     setParlaySelections([]);
+    clearBetslip(); // Clear from IndexedDB
     setShowParlayBuilder(false); // Close parlay builder when clearing all
   };
   const handleDataExtracted = (extractedData: any[]) => {

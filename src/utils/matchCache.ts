@@ -7,6 +7,7 @@
 const DB_NAME = 'TotelepepMatchCache';
 const DB_VERSION = 1;
 const STORE_NAME = 'matches';
+const BETSLIP_STORE_NAME = 'betslip'; // Betslip persistence
 const CHUNK_SIZE = 100; // Load and save in chunks of 100 matches
 const CACHE_EXPIRY = 10 * 60 * 1000; // 10 minutes - refresh odds data
 
@@ -330,5 +331,85 @@ export const updateMatchesInCache = async (
     console.log(`[Cache Update] Updated ${matches.length} matches in cache`);
   } catch (error) {
     console.error('Failed to update matches in cache:', error);
+  }
+};
+
+// ========================================
+// BETSLIP PERSISTENCE
+// ========================================
+
+// Save betslip selections to IndexedDB
+export const saveBetslip = async (selections: any[]): Promise<void> => {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(BETSLIP_STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(BETSLIP_STORE_NAME);
+    
+    // Clear existing selections
+    store.clear();
+    
+    // Save new selections
+    selections.forEach((selection, index) => {
+      store.put({
+        id: `selection_${index}`,
+        ...selection,
+        timestamp: Date.now()
+      });
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+
+    console.log(`[Betslip] Saved ${selections.length} selections to IndexedDB`);
+  } catch (error) {
+    console.error('Failed to save betslip:', error);
+  }
+};
+
+// Load betslip selections from IndexedDB
+export const loadBetslip = async (): Promise<any[]> => {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(BETSLIP_STORE_NAME, 'readonly');
+    const store = transaction.objectStore(BETSLIP_STORE_NAME);
+    
+    const request = store.getAll();
+    
+    return new Promise<any[]>((resolve, reject) => {
+      request.onsuccess = () => {
+        const selections = request.result
+          .sort((a, b) => a.id.localeCompare(b.id)) // Maintain order
+          .map(({ id, timestamp, ...selection }) => selection); // Remove metadata
+        
+        console.log(`[Betslip] Loaded ${selections.length} selections from IndexedDB`);
+        resolve(selections);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error('Failed to load betslip:', error);
+    return [];
+  }
+};
+
+// Clear betslip from IndexedDB
+export const clearBetslip = async (): Promise<void> => {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(BETSLIP_STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(BETSLIP_STORE_NAME);
+    
+    store.clear();
+
+    await new Promise<void>((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+
+    console.log('[Betslip] Cleared from IndexedDB');
+  } catch (error) {
+    console.error('Failed to clear betslip:', error);
   }
 };
