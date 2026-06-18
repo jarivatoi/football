@@ -8,6 +8,7 @@ const DB_NAME = 'TotelepepMatchCache';
 const DB_VERSION = 1;
 const STORE_NAME = 'matches';
 const CHUNK_SIZE = 100; // Load and save in chunks of 100 matches
+const CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes - refresh odds data
 
 interface MatchCacheEntry {
   id: string;
@@ -128,7 +129,28 @@ export const getCachedMatches = async (cacheKey: string): Promise<{
       matchesRequest.onerror = () => reject(matchesRequest.error);
     });
 
-    return { matches, metadata };
+    // Filter out past matches (kickoff time has passed)
+    const now = new Date();
+    const validMatches = matches.filter(match => {
+      if (!match.date || !match.kickoff) return true; // Keep if missing data
+      
+      try {
+        // Parse match datetime (e.g., "2026-06-18" + "13:59")
+        const matchDateTime = new Date(`${match.date}T${match.kickoff}`);
+        return matchDateTime > now; // Keep only future matches
+      } catch {
+        return true; // Keep if can't parse
+      }
+    });
+
+    // If we filtered out matches, update the cache
+    if (validMatches.length < matches.length) {
+      console.log(`[Cache Cleanup] Removed ${matches.length - validMatches.length} past matches`);
+      // Note: We don't delete here to avoid write transaction on read
+      // Deletion will happen when new data is saved
+    }
+
+    return { matches: validMatches, metadata };
   } catch (error) {
     console.error('Failed to get cached matches:', error);
     return { matches: [], metadata: null };
@@ -150,6 +172,63 @@ export const getCacheMetadata = async (cacheKey: string): Promise<CacheMetadata 
   } catch (error) {
     console.error('Failed to get cache metadata:', error);
     return null;
+  }
+};
+
+// Check if cache is expired (older than 30 minutes)
+export const isCacheExpired = async (cacheKey: string): Promise<boolean> => {
+  const metadata = await getCacheMetadata(cacheKey);
+  if (!metadata) return true; // No cache = expired
+  
+  const age = Date.now() - metadata.lastUpdated;
+  return age > CACHE_EXPIRY;
+};
+
+// Delete past matches from IndexedDB
+export const deletePastMatches = async (cacheKey: string): Promise<number> => {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction(STORE_NAME, 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    
+    const index = store.index('cacheKey');
+    const matchesRequest = index.getAll(cacheKey);
+    
+    let deletedCount = 0;
+    const now = new Date();
+    
+    matchesRequest.onsuccess = () => {
+      const entries: MatchCacheEntry[] = matchesRequest.result;
+      
+      entries.forEach(entry => {
+        const match = entry.match;
+        if (!match.date || !match.kickoff) return;
+        
+        try {
+          const matchDateTime = new Date(`${match.date}T${match.kickoff}`);
+          if (matchDateTime <= now) {
+            store.delete(entry.id);
+            deletedCount++;
+          }
+        } catch {
+          // Skip if can't parse
+        }
+      });
+    };
+    
+    await new Promise<void>((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+    
+    if (deletedCount > 0) {
+      console.log(`[Cache Cleanup] Deleted ${deletedCount} past matches from IndexedDB`);
+    }
+    
+    return deletedCount;
+  } catch (error) {
+    console.error('Failed to delete past matches:', error);
+    return 0;
   }
 };
 

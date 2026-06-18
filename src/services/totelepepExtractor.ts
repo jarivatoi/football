@@ -1,4 +1,4 @@
-import { saveMatchesChunk, getCachedMatches, getCacheMetadata, getChunkSize } from '../utils/matchCache';
+import { saveMatchesChunk, getCachedMatches, getCacheMetadata, getChunkSize, isCacheExpired, deletePastMatches } from '../utils/matchCache';
 
 interface TotelepepMatch {
   id: string;
@@ -143,13 +143,29 @@ class TotelepepExtractor {
       
       // Try IndexedDB cache first
       const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
-      if (cachedMatches && cachedMatches.length > 0 && metadata?.isComplete) {
-        console.log(`[IndexedDB Cache] Loaded ${cachedMatches.length} matches from cache`);
+      
+      // Check if cache is valid (not expired and has data)
+      const cacheExpired = await isCacheExpired(cacheKey);
+      
+      if (cachedMatches && cachedMatches.length > 0 && metadata?.isComplete && !cacheExpired) {
+        console.log(`[IndexedDB Cache] Loaded ${cachedMatches.length} matches from cache (${Math.round((Date.now() - metadata.lastUpdated) / 60000)}min old)`);
+        
+        // Delete past matches in background (non-blocking)
+        deletePastMatches(cacheKey).then(deleted => {
+          if (deleted > 0) {
+            console.log(`[Cache] Cleaned up ${deleted} past matches`);
+          }
+        }).catch(err => console.error('Failed to cleanup past matches:', err));
         
         // Also store in memory cache for fast access
         this.setCachedData(cachedMatches, cacheKey);
         
         return cachedMatches;
+      }
+      
+      // Cache expired or incomplete - fetch fresh data
+      if (cacheExpired) {
+        console.log('[Cache] Data expired (>30min), fetching fresh data from API');
       }
       
       // Check in-memory cache
