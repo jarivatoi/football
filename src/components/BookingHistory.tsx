@@ -178,7 +178,7 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
 
       {/* Full Booking Details Modal */}
       {selectedBooking && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-end sm:items-center justify-center">
           <div className="bg-white w-full max-w-md max-h-[90vh] rounded-t-lg sm:rounded-lg overflow-hidden flex flex-col">
             {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4">
@@ -220,9 +220,9 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                           <div className="text-xs text-gray-600 font-medium mt-1">
                             {selection?.homeTeam} v {selection?.awayTeam}
                           </div>
-                          {selection?.competitionName && (
+                          {(selection?.competitionName || selection?.league) && (
                             <div className="text-xs text-gray-500 font-medium mt-1">
-                              ⚽ {selection.competitionName}
+                              ⚽ {selection.competitionName || selection.league}
                             </div>
                           )}
                           {selection?.matchDate && (
@@ -311,18 +311,26 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
               </div>
             </div>
             
-            {/* Delete Button */}
+            {/* Delete and Close Buttons */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
-              <button
-                onClick={() => {
-                  deleteBooking(selectedBooking.id);
-                  setSelectedBooking(null);
-                }}
-                className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-              >
-                <Trash2 className="w-5 h-5" />
-                Delete Booking
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedBooking(null)}
+                  className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    deleteBooking(selectedBooking.id);
+                    setSelectedBooking(null);
+                  }}
+                  className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         </div>
