@@ -229,35 +229,30 @@ class TotelepepExtractor {
         const chunkSize = getChunkSize();
         const totalMatches = matches.length;
         
+        // Return matches immediately (don't wait for market fetching)
+        // Market fetching will happen in background for lazy loading
+        
+        // Save basic match data to IndexedDB quickly (without allMarkets)
         for (let i = 0; i < totalMatches; i += chunkSize) {
           const chunk = matches.slice(i, i + chunkSize);
           const loadedCount = Math.min(i + chunkSize, totalMatches);
           const isComplete = loadedCount >= totalMatches;
           
-          // Fetch ALL markets (FT, H1, 2H) for this chunk before saving
-          console.log(`[Chunk ${Math.floor(i/chunkSize) + 1}] Fetching all markets for ${chunk.length} matches...`);
-          
-          // Fetch markets with rate limiting
-          for (const match of chunk) {
-            await this.enforceRateLimit(); // Respect rate limit between each match
-            await this.fetchMarketsForMatch(match);
-          }
-          
-          // Save chunk to IndexedDB (now includes allMarkets)
+          // Save chunk to IndexedDB (basic data only, fast)
           await saveMatchesChunk(chunk, cacheKey, loadedCount, totalMatches, isComplete);
           
           // Report progress
           if (onProgress) {
             onProgress(loadedCount, totalMatches);
           }
-          
-          // Small delay to prevent blocking UI
-          if (i + chunkSize < totalMatches) {
-            await new Promise(resolve => setTimeout(resolve, 10));
-          }
         }
         
-        console.log(`[IndexedDB] Saved ${totalMatches} matches with ALL markets (FT, H1, 2H)`);
+        console.log(`[IndexedDB] Saved ${totalMatches} matches (basic data)`);
+        
+        // Fetch ALL markets in background (non-blocking, rate limited)
+        // This will update the cache progressively as markets are loaded
+        this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
+        
         return matches;
       }
 
@@ -304,19 +299,61 @@ class TotelepepExtractor {
         
         return;
       }
-      
+
       const data = await response.json();
-      const allMarkets = this.parseAllMarkets(data, match.id);
       
-      if (allMarkets && allMarkets.length > 0) {
+      // Parse all markets
+      const allMarkets = this.parseAllMarkets(data, match.id);
+      if (allMarkets) {
         match.allMarkets = allMarkets;
         match.marketCount = allMarkets.length;
-        match.availableMarkets = allMarkets.map(m => m.name);
-
+        match.availableMarkets = [...new Set(allMarkets.map(m => m.name))];
       }
     } catch (error) {
       
+      match.marketCount = 1;
+      match.availableMarkets = ['1X2'];
     }
+  }
+
+  // Fetch markets for all matches in background (non-blocking)
+  private async fetchMarketsInBackground(
+    matches: TotelepepMatch[],
+    cacheKey: string,
+    totalMatches: number,
+    chunkSize: number
+  ): Promise<void> {
+    // Run in background - don't await this
+    (async () => {
+      console.log(`[Background] Starting market fetch for ${totalMatches} matches...`);
+      
+      for (let i = 0; i < totalMatches; i += chunkSize) {
+        const chunk = matches.slice(i, i + chunkSize);
+        
+        console.log(`[Background Chunk ${Math.floor(i/chunkSize) + 1}] Fetching markets for ${chunk.length} matches...`);
+        
+        // Fetch markets with rate limiting
+        for (const match of chunk) {
+          try {
+            await this.enforceRateLimit();
+            await this.fetchMarketsForMatch(match);
+          } catch (error) {
+            console.error(`[Background] Failed to fetch markets for match ${match.id}:`, error);
+          }
+        }
+        
+        // Update this chunk in IndexedDB with markets
+        const { updateMatchesInCache } = await import('../utils/matchCache');
+        await updateMatchesInCache(chunk, cacheKey, totalMatches);
+        
+        // Delay between chunks
+        if (i + chunkSize < totalMatches) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+      
+      console.log(`[Background] Completed market fetch for all ${totalMatches} matches`);
+    })(); // Self-executing async function
   }
 
   // Fetch all markets for all matches - OPTIMIZED WITH PARALLEL REQUESTS
