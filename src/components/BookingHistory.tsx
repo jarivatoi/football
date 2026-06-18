@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Trash2, History, X } from 'lucide-react';
 import { SavedBooking, getAllBookingsFromDB, deleteBookingFromDB, clearAllBookingsFromDB } from '../utils/bookingStorage';
+import { createPortal } from 'react-dom';
 
 // Helper function to format currency
 const formatCurrency = (amount: number): string => {
@@ -176,8 +177,9 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
         </div>
       </div>
 
-      {/* Full Booking Details Modal */}
-      {selectedBooking && (
+      {/* Full Booking Details Modal - Rendered at document body to avoid z-index issues */}
+      {selectedBooking && createPortal(
+        <>
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-end sm:items-center justify-center"
           onClick={() => {
@@ -343,7 +345,8 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
             </div>
           </div>
         </div>
-      )}
+        </>
+      , document.body)}
     </>
   );
 };
