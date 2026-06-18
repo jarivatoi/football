@@ -1,5 +1,5 @@
-import React from 'react';
-import { Calendar, Clock } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Calendar, Clock, Loader } from 'lucide-react';
 import type { TotelepepMatch } from '../services/totelepepExtractor';
 import MatchCard from './MatchCard';
 
@@ -12,6 +12,8 @@ interface DateGroupedMatchesProps {
   searchMode?: 'matches' | 'eq' | 'gte' | 'lte' | 'between'; // Search filter mode
   searchTerm?: string; // Search term for odds highlighting
   onMarketsLoaded?: (matchId: string, markets: any[]) => void; // Callback when markets load
+  initialLoadCount?: number; // Number of matches to show initially
+  loadMoreCount?: number; // Number of matches to load each time
 }
 
 const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
@@ -22,7 +24,9 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
   apiSourceName = 'Totelepep', // Default to Totelepep if not provided
   searchMode = 'matches',
   searchTerm = '',
-  onMarketsLoaded
+  onMarketsLoaded,
+  initialLoadCount = 50, // Show 50 matches initially
+  loadMoreCount = 50 // Load 50 more each time
 }) => {
   const formatDateHeader = (dateString: string): string => {
     const date = new Date(dateString);
@@ -37,6 +41,77 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
   };
 
   const sortedDates = Object.keys(groupedMatches).sort();
+
+  // Flatten all matches with date info for pagination
+  const allMatchesWithDates = React.useMemo(() => {
+    const flat: Array<{ match: TotelepepMatch; date: string; globalIndex: number }> = [];
+    let index = 0;
+    
+    sortedDates.forEach(date => {
+      groupedMatches[date].forEach(match => {
+        flat.push({ match, date, globalIndex: index++ });
+      });
+    });
+    
+    return flat;
+  }, [groupedMatches, sortedDates]);
+
+  // Pagination state
+  const [displayCount, setDisplayCount] = useState(initialLoadCount);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const loadMoreTriggered = useRef(false);
+
+  // Get visible matches based on pagination
+  const displayedMatches = allMatchesWithDates.slice(0, displayCount);
+  const hasMoreMatches = displayCount < allMatchesWithDates.length;
+
+  // Regroup displayed matches by date for rendering
+  const displayedGroupedMatches = React.useMemo(() => {
+    const grouped: Record<string, TotelepepMatch[]> = {};
+    
+    displayedMatches.forEach(({ match, date }) => {
+      if (!grouped[date]) {
+        grouped[date] = [];
+      }
+      grouped[date].push(match);
+    });
+    
+    return grouped;
+  }, [displayedMatches]);
+
+  // Handle scroll for infinite loading
+  const handleScroll = useCallback(() => {
+    if (!scrollContainerRef.current || !hasMoreMatches || isLoadingMore || loadMoreTriggered.current) {
+      return;
+    }
+
+    const container = scrollContainerRef.current;
+    const scrollTop = container.scrollTop;
+    const scrollHeight = container.scrollHeight;
+    const clientHeight = container.clientHeight;
+
+    // Trigger load more when user is within 500px of bottom
+    const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+    
+    if (distanceFromBottom < 500) {
+      loadMoreTriggered.current = true;
+      setIsLoadingMore(true);
+      
+      // Simulate small delay for UX (show loading indicator)
+      setTimeout(() => {
+        setDisplayCount(prev => Math.min(prev + loadMoreCount, allMatchesWithDates.length));
+        setIsLoadingMore(false);
+        loadMoreTriggered.current = false;
+      }, 300);
+    }
+  }, [hasMoreMatches, isLoadingMore, loadMoreCount, allMatchesWithDates.length]);
+
+  // Reset pagination when matches change
+  useEffect(() => {
+    setDisplayCount(initialLoadCount);
+    loadMoreTriggered.current = false;
+  }, [groupedMatches, initialLoadCount]);
 
   if (loading && sortedDates.length === 0) {
     return (
@@ -62,9 +137,14 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
   }
 
   return (
-    <div className="space-y-8">
-      {sortedDates.map((date) => {
-        const matches = groupedMatches[date];
+    <div 
+      ref={scrollContainerRef}
+      onScroll={handleScroll}
+      className="space-y-8 pb-4"
+      style={{ maxHeight: 'calc(100vh - 250px)', overflowY: 'auto' }}
+    >
+      {Object.keys(displayedGroupedMatches).map((date) => {
+        const matches = displayedGroupedMatches[date];
         const dateHeader = formatDateHeader(date);
 
         return (
@@ -91,6 +171,25 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
           </div>
         );
       })}
+
+      {/* Loading more indicator */}
+      {isLoadingMore && (
+        <div className="flex flex-col items-center justify-center py-8">
+          <Loader className="w-8 h-8 animate-spin text-blue-600" />
+          <p className="mt-3 text-gray-600 font-medium">Loading more matches...</p>
+        </div>
+      )}
+
+      {/* End of matches indicator */}
+      {!hasMoreMatches && displayedMatches.length > 0 && (
+        <div className="text-center py-8">
+          <div className="inline-block px-6 py-3 bg-gray-100 rounded-full">
+            <p className="text-gray-600 font-medium">
+              All {displayedMatches.length} matches loaded
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
