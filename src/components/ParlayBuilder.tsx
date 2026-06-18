@@ -1141,16 +1141,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           fullResponse: bookingResult
         });
         
-        // Auto-save booking to IndexedDB with direct data
-        const totalOdds = selections.reduce((acc, selection) => {
-          const odds = typeof selection.odds === 'string' ? parseFloat(selection.odds) : selection.odds;
-          return acc * odds;
-        }, 1);
+        // Auto-save booking to IndexedDB with API response data
         saveBooking({
           ticketNo: bookingResult.ticketNo || '',
           selections: [...selections],
           stake: betAmount,
-          potentialWin: betAmount * totalOdds
+          potentialWin: bookingResult.potentialPayout || betAmount
         });
         
         // Don't clear selections or reset bet amount - let user decide
@@ -1164,16 +1160,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           fullResponse: bookingResult
         });
         
-        // Auto-save booking to IndexedDB with direct data
-        const totalOdds = selections.reduce((acc, selection) => {
-          const odds = typeof selection.odds === 'string' ? parseFloat(selection.odds) : selection.odds;
-          return acc * odds;
-        }, 1);
+        // Auto-save booking to IndexedDB with API response data
         saveBooking({
           ticketNo: bookingResult.ticketNo || '',
           selections: [...selections],
           stake: betAmount,
-          potentialWin: betAmount * totalOdds
+          potentialWin: bookingResult.potentialPayout || betAmount
         });
         
         // Don't clear selections or reset bet amount - let user decide
