@@ -179,20 +179,31 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
       {/* Full Booking Details Modal */}
       {selectedBooking && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-end sm:items-center justify-center"
-          onClick={() => setSelectedBooking(null)}
+          className="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-end sm:items-center justify-center"
+          onClick={() => {
+            console.log('Backdrop clicked, closing modal');
+            setSelectedBooking(null);
+          }}
+          style={{ pointerEvents: 'auto' }}
         >
           <div 
             className="bg-white w-full max-w-md max-h-[90vh] rounded-t-lg sm:rounded-lg overflow-hidden flex flex-col"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            style={{ pointerEvents: 'auto' }}
           >
             {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-gray-800">Saved Booking</h3>
                 <button
-                  onClick={() => setSelectedBooking(null)}
+                  onClick={() => {
+                    console.log('X button clicked, closing modal');
+                    setSelectedBooking(null);
+                  }}
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  style={{ pointerEvents: 'auto', cursor: 'pointer' }}
                 >
                   <X className="w-5 h-5" />
                 </button>
