@@ -1636,6 +1636,100 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         </button>
         </div>
       </div>
+
+      {/* Booking History Modal */}
+      {showBookingHistory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end sm:items-center justify-center">
+          <div className="bg-white w-full max-w-lg max-h-[80vh] rounded-t-lg sm:rounded-lg overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <History className="w-5 h-5 text-blue-600" />
+                  <h3 className="text-xl font-bold text-gray-800">Saved Bookings</h3>
+                </div>
+                <button
+                  onClick={() => setShowBookingHistory(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Bookings List */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {savedBookings.length === 0 ? (
+                <div className="text-center py-12">
+                  <History className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">No saved bookings yet</p>
+                  <p className="text-sm text-gray-400 mt-2">Long press the Parlay Builder to save bookings</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {savedBookings.map((booking) => (
+                    <div key={booking.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                      {/* Booking Header */}
+                      <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                        <div className="text-sm text-gray-600">{booking.formattedDateTime}</div>
+                      </div>
+                      
+                      {/* Booking Details */}
+                      <div className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="text-lg font-bold text-gray-800">
+                            Booking Ref# {booking.bookingRef}
+                          </div>
+                          <div className="text-sm text-gray-600 font-medium">
+                            {booking.selections.length} {booking.selections.length === 1 ? 'Match' : 'Matches'}
+                          </div>
+                        </div>
+                        
+                        {booking.apiSource && (
+                          <div className="text-xs text-gray-500 mb-3 text-center bg-gray-50 p-1 rounded">
+                            {booking.apiSource}
+                          </div>
+                        )}
+                        
+                        {/* Action Buttons */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => saveBooking()}
+                            className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
+                          >
+                            <Save className="w-4 h-4" />
+                            <span>Save Image</span>
+                          </button>
+                          <button
+                            onClick={() => deleteBooking(booking.id)}
+                            className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Clear All Button */}
+            {savedBookings.length > 0 && (
+              <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
+                <button
+                  onClick={clearAllBookings}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  Clear All Bookings
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
