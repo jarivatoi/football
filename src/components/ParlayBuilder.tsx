@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Trash2, Calculator, DollarSign, CheckCircle, AlertCircle, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Trash2, Calculator, DollarSign, CheckCircle, AlertCircle, X, Save, History } from 'lucide-react';
 import { ApiSource } from './Header';
+import { SavedBooking, saveBookingToDB, getAllBookingsFromDB, deleteBookingFromDB, clearAllBookingsFromDB } from '../utils/bookingStorage';
 
 // Helper function to format currency - remove .00 for whole numbers
 const formatCurrency = (amount: number): string => {
@@ -793,6 +794,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   const [showNewBetButton, setShowNewBetButton] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [smsPressTimer, setSmsPressTimer] = useState<NodeJS.Timeout | null>(null);
+  
+  // Booking history states
+  const [savedBookings, setSavedBookings] = useState<SavedBooking[]>([]);
+  const [showBookingHistory, setShowBookingHistory] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const parlayBuilderRef = useRef<HTMLDivElement>(null);
 
   // Effect to show the "Place New Bet" button after a successful booking
   useEffect(() => {
@@ -806,6 +813,20 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       setShowNewBetButton(false);
     }
   }, [lastResult]);
+
+  // Load saved bookings from IndexedDB on mount
+  useEffect(() => {
+    const loadBookings = async () => {
+      try {
+        const bookings = await getAllBookingsFromDB();
+        setSavedBookings(bookings);
+      } catch (error) {
+        console.error('Failed to load bookings:', error);
+      }
+    };
+    
+    loadBookings();
+  }, []);
 
   // SMS Bet functionality with long press
   const handleSmsPressStart = () => {
@@ -838,6 +859,94 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     if (smsPressTimer) {
       clearTimeout(smsPressTimer);
       setSmsPressTimer(null);
+    }
+  };
+
+  // Format timestamp to readable date/time
+  const formatBookingDateTime = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    const day = days[date.getDay()];
+    const dateNum = date.getDate().toString().padStart(2, '0');
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    
+    return `${day} ${dateNum}-${month}-${year} @ ${hours}:${minutes}`;
+  };
+
+  // Save current booking to IndexedDB
+  const saveBooking = useCallback(async () => {
+    if (!lastResult?.ticketNo || !lastResult?.success) return;
+    
+    // Calculate potential win at time of saving
+    const currentTotalOdds = selections.reduce((acc, selection) => {
+      const odds = typeof selection.odds === 'string' ? parseFloat(selection.odds) : selection.odds;
+      return acc * odds;
+    }, 1);
+    const currentPotentialWin = betAmount * currentTotalOdds;
+    
+    const newBooking: SavedBooking = {
+      id: Date.now().toString(),
+      bookingRef: lastResult.ticketNo,
+      selections: [...selections],
+      stake: betAmount,
+      potentialWin: currentPotentialWin,
+      timestamp: Date.now(),
+      formattedDateTime: formatBookingDateTime(Date.now()),
+      apiSource: selectedSource?.displayName
+    };
+    
+    try {
+      await saveBookingToDB(newBooking);
+      setSavedBookings(prev => [newBooking, ...prev]);
+      setToast('Booking saved successfully!');
+      setTimeout(() => setToast(null), 3000);
+    } catch (error) {
+      console.error('Failed to save booking:', error);
+      setToast('Failed to save booking');
+      setTimeout(() => setToast(null), 3000);
+    }
+  }, [lastResult, selections, betAmount, selectedSource]);
+
+  // Delete a specific booking
+  const deleteBooking = useCallback(async (bookingId: string) => {
+    try {
+      await deleteBookingFromDB(bookingId);
+      setSavedBookings(prev => prev.filter(b => b.id !== bookingId));
+    } catch (error) {
+      console.error('Failed to delete booking:', error);
+    }
+  }, []);
+
+  // Clear all bookings
+  const clearAllBookings = useCallback(async () => {
+    try {
+      await clearAllBookingsFromDB();
+      setSavedBookings([]);
+      setToast('All bookings cleared');
+      setTimeout(() => setToast(null), 3000);
+    } catch (error) {
+      console.error('Failed to clear bookings:', error);
+    }
+  }, []);
+
+  // Long press handler for parlay builder
+  const handleParlayLongPressStart = () => {
+    const timer = setTimeout(() => {
+      setShowBookingHistory(true);
+    }, 3000); // 3 seconds
+    
+    setLongPressTimer(timer);
+  };
+
+  const handleParlayLongPressEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
     }
   };
 
@@ -1027,7 +1136,15 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md h-full flex flex-col overflow-hidden">
+    <div 
+      ref={parlayBuilderRef}
+      className="bg-white rounded-lg shadow-md h-full flex flex-col overflow-hidden"
+      onMouseDown={handleParlayLongPressStart}
+      onMouseUp={handleParlayLongPressEnd}
+      onMouseLeave={handleParlayLongPressEnd}
+      onTouchStart={handleParlayLongPressStart}
+      onTouchEnd={handleParlayLongPressEnd}
+    >
       {/* Toast Notification */}
       {toast && (
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg animate-slide-down">

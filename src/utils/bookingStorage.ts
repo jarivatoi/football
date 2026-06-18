@@ -1,0 +1,103 @@
+// IndexedDB helper for storing parlay booking history
+
+const DB_NAME = 'ParlayBookingsDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'bookings';
+
+export interface SavedBooking {
+  id: string;
+  bookingRef: string;
+  selections: any[];
+  stake: number;
+  potentialWin: number;
+  timestamp: number;
+  formattedDateTime: string;
+  apiSource?: string;
+}
+
+// Open database
+const openDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onerror = () => {
+      reject(new Error('Failed to open IndexedDB'));
+    };
+
+    request.onsuccess = () => {
+      resolve(request.result);
+    };
+
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        store.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+    };
+  });
+};
+
+// Save booking to IndexedDB
+export const saveBookingToDB = async (booking: SavedBooking): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.add(booking);
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(new Error('Failed to save booking'));
+  });
+};
+
+// Get all bookings from IndexedDB
+export const getAllBookingsFromDB = async (): Promise<SavedBooking[]> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readonly');
+    const store = transaction.objectStore(STORE_NAME);
+    const index = store.index('timestamp');
+    const request = index.openCursor(null, 'prev'); // Descending order (newest first)
+
+    const bookings: SavedBooking[] = [];
+
+    request.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+      if (cursor) {
+        bookings.push(cursor.value);
+        cursor.continue();
+      } else {
+        resolve(bookings);
+      }
+    };
+
+    request.onerror = () => reject(new Error('Failed to get bookings'));
+  });
+};
+
+// Delete booking from IndexedDB
+export const deleteBookingFromDB = async (bookingId: string): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.delete(bookingId);
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(new Error('Failed to delete booking'));
+  });
+};
+
+// Clear all bookings from IndexedDB
+export const clearAllBookingsFromDB = async (): Promise<void> => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.clear();
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(new Error('Failed to clear bookings'));
+  });
+};
