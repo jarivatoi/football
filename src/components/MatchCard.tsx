@@ -751,7 +751,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       {/* Match Header - Compact View */}
       <div 
         onClick={toggleExpand}
-        className="px-3 py-3 cursor-pointer hover:bg-gray-50 transition-colors bg-gray-100"
+        className="px-3 py-3 cursor-pointer hover:bg-gray-50 transition-colors bg-gray-300"
       >
         {/* League and Markets Button */}
         <div className="flex items-center justify-between mb-2">
