@@ -1362,7 +1362,14 @@ function App() {
       </div>
       
       {/* Parlay Builder - Slide in from right */}
-      <div className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${showParlayBuilder ? 'translate-x-0' : 'translate-x-full'}`}>
+      {showParlayBuilder && (
+        <>
+          {/* Backdrop to prevent background scroll */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            onClick={() => setShowParlayBuilder(false)}
+          />
+          <div className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${showParlayBuilder ? 'translate-x-0' : 'translate-x-full'}`}>
         {parlaySelections.length > 0 ? (
           <ParlayBuilder
             selections={parlaySelections}
@@ -1385,7 +1392,9 @@ function App() {
             </button>
           </div>
         )}
-      </div>
+          </div>
+        </>
+      )}
       
       <PWAInstallPrompt />
     </div>
