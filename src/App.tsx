@@ -563,19 +563,23 @@ function App() {
         );
       } else {
         // Quick 1X2 odds filtering (e.g., 130H, 150D, 200A, 110-125H)
+        // OR advanced filter (e.g., 130ALL, 150H1BTTS)
         let targetOdds = parseFloat(searchTerm);
         let positionFilter: 'home' | 'draw' | 'away' | null = null;
         
         // Check for position suffix (H=Home, D=Draw, A=Away)
         const upperSearch = searchTerm.toUpperCase().trim();
         
-        if (upperSearch.endsWith('H')) {
+        // Detect if this is an advanced filter (has period code like ALL, H1, H2, FT)
+        const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
+        
+        if (upperSearch.endsWith('H') && !hasAdvancedFilter) {
           positionFilter = 'home';
           targetOdds = parseFloat(upperSearch.slice(0, -1));
-        } else if (upperSearch.endsWith('D')) {
+        } else if (upperSearch.endsWith('D') && !hasAdvancedFilter) {
           positionFilter = 'draw';
           targetOdds = parseFloat(upperSearch.slice(0, -1));
-        } else if (upperSearch.endsWith('A')) {
+        } else if (upperSearch.endsWith('A') && !hasAdvancedFilter) {
           positionFilter = 'away';
           targetOdds = parseFloat(upperSearch.slice(0, -1));
         }
@@ -624,9 +628,24 @@ function App() {
         } else {
           // Quick 1X2 filtering - check home/draw/away odds
           filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
+            // If match is outright/special, skip quick 1X2 filter
+            // Outright matches should only show with advanced filters (e.g., 130ALL)
+            if (match.isOutright && !hasAdvancedFilter) {
+              return false;
+            }
+            
             const homeOdds = parseFloat(String(match.homeOdds));
             const drawOdds = parseFloat(String(match.drawOdds));
             const awayOdds = parseFloat(String(match.awayOdds));
+            
+            // Skip matches with invalid odds (NaN) - but allow outrights with advanced filters
+            if (isNaN(homeOdds) && isNaN(drawOdds) && isNaN(awayOdds)) {
+              // Outrights with advanced filter should still pass (will be filtered by market search later)
+              if (match.isOutright && hasAdvancedFilter) {
+                return true; // Let through for advanced market filtering
+              }
+              return false;
+            }
             
             if (positionFilter) {
               // Filter by specific position (H, D, or A)
