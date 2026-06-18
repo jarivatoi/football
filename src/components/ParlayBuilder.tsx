@@ -805,7 +805,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   // Booking history states
   const [savedBookings, setSavedBookings] = useState<SavedBooking[]>([]);
   const [showBookingHistory, setShowBookingHistory] = useState(false);
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const parlayBuilderRef = useRef<HTMLDivElement>(null);
   const bookingRefRef = useRef<HTMLDivElement>(null); // Ref for booking reference section
   const [selectedBooking, setSelectedBooking] = useState<SavedBooking | null>(null); // View full booking details
@@ -1019,22 +1018,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       setTimeout(() => setToast(null), 3000);
     }
   }, [lastResult]);
-
-  // Long press handler for parlay builder
-  const handleParlayLongPressStart = () => {
-    const timer = setTimeout(() => {
-      setShowBookingHistory(true);
-    }, 3000); // 3 seconds
-    
-    setLongPressTimer(timer);
-  };
-
-  const handleParlayLongPressEnd = () => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
-    }
-  };
 
   const totalOdds = selections.reduce((acc, selection) => {
     const odds = typeof selection.odds === 'string' ? parseFloat(selection.odds) : selection.odds;

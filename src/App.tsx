@@ -13,6 +13,7 @@ import EndpointDiscovery from './components/EndpointDiscovery';
 import ResponseAnalyzer from './components/ResponseAnalyzer';
 import AlternativeSolutions from './components/AlternativeSolutions';
 import MatchSpecificTester from './components/MatchSpecificTester';
+import { getAllBookingsFromDB } from './utils/bookingStorage';
 import BetPlacementAnalyzer from './components/BetPlacementAnalyzer';
 import BookingDiscoveryGuide from './components/BookingDiscoveryGuide';
 import UserLogin from './components/UserLogin';
@@ -51,6 +52,20 @@ function App() {
   const [showBookingHistory, setShowBookingHistory] = useState(false);
   const [savedBookingsCount, setSavedBookingsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Load booking count on mount
+  useEffect(() => {
+    const loadBookingCount = async () => {
+      try {
+        const bookings = await getAllBookingsFromDB();
+        setSavedBookingsCount(bookings.length);
+      } catch (error) {
+        console.error('Failed to load booking count:', error);
+      }
+    };
+    
+    loadBookingCount();
+  }, []);
   
   // Maintenance mode state
   const [isMaintenanceEnabled, setIsMaintenanceEnabled] = useState(false);
