@@ -1238,18 +1238,20 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             <Calculator className="w-5 h-5 text-blue-600" />
             <h2 className="text-xl font-bold text-gray-800">Parlay Builder</h2>
           </div>
-          {/* History Icon with Long Press */}
-          <button
-            className="absolute right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
-            onMouseDown={handleParlayLongPressStart}
-            onMouseUp={handleParlayLongPressEnd}
-            onMouseLeave={handleParlayLongPressEnd}
-            onTouchStart={handleParlayLongPressStart}
-            onTouchEnd={handleParlayLongPressEnd}
-            title="Long press (3s) to view booking history"
-          >
-            <History className="w-5 h-5 text-gray-600" />
-          </button>
+          {/* History Icon with Long Press - Only show if there are saved bookings */}
+          {savedBookings.length > 0 && (
+            <button
+              className="absolute right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              onMouseDown={handleParlayLongPressStart}
+              onMouseUp={handleParlayLongPressEnd}
+              onMouseLeave={handleParlayLongPressEnd}
+              onTouchStart={handleParlayLongPressStart}
+              onTouchEnd={handleParlayLongPressEnd}
+              title="Long press (3s) to view booking history"
+            >
+              <History className="w-5 h-5 text-gray-600" />
+            </button>
+          )}
         </div>
         {/* Source, Badge, and Buttons */}
         <div className="flex items-center justify-between px-4 py-3">
@@ -1792,15 +1794,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                         {/* Action Buttons */}
                         <div className="flex gap-2">
                           <button
-                            onClick={saveBookingAsImage}
-                            className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
-                          >
-                            <Save className="w-4 h-4" />
-                            <span>Save Image</span>
-                          </button>
-                          <button
                             onClick={() => deleteBooking(booking.id)}
-                            className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors"
+                            className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                             <span>Delete</span>
