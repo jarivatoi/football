@@ -8,7 +8,7 @@ const DB_NAME = 'TotelepepMatchCache';
 const DB_VERSION = 1;
 const STORE_NAME = 'matches';
 const CHUNK_SIZE = 100; // Load and save in chunks of 100 matches
-const CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes - refresh odds data
+const CACHE_EXPIRY = 10 * 60 * 1000; // 10 minutes - refresh odds data
 
 interface MatchCacheEntry {
   id: string;
