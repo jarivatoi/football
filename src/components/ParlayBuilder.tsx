@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Trash2, Calculator, DollarSign, CheckCircle, AlertCircle, X, Save, History } from 'lucide-react';
 import { ApiSource } from './Header';
 import { SavedBooking, saveBookingToDB, getAllBookingsFromDB, deleteBookingFromDB, clearAllBookingsFromDB } from '../utils/bookingStorage';
+import html2canvas from 'html2canvas';
 
 // Helper function to format currency - remove .00 for whole numbers
 const formatCurrency = (amount: number): string => {
@@ -800,6 +801,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   const [showBookingHistory, setShowBookingHistory] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const parlayBuilderRef = useRef<HTMLDivElement>(null);
+  const bookingRefRef = useRef<HTMLDivElement>(null); // Ref for booking reference section
 
   // Effect to show the "Place New Bet" button after a successful booking
   useEffect(() => {
@@ -933,6 +935,52 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       console.error('Failed to clear bookings:', error);
     }
   }, []);
+
+  // Save booking as image
+  const saveBookingAsImage = useCallback(async () => {
+    if (!bookingRefRef.current) {
+      setToast('No booking to save');
+      setTimeout(() => setToast(null), 3000);
+      return;
+    }
+
+    try {
+      setToast('Generating image...');
+      
+      // Capture the booking reference section
+      const canvas = await html2canvas(bookingRefRef.current, {
+        scale: 2, // Higher quality
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        logging: false,
+      });
+
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          setToast('Failed to generate image');
+          setTimeout(() => setToast(null), 3000);
+          return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `booking-${lastResult?.ticketNo || 'parlay'}-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        setToast('Image saved successfully!');
+        setTimeout(() => setToast(null), 3000);
+      }, 'image/png');
+    } catch (error) {
+      console.error('Failed to save image:', error);
+      setToast('Failed to save image');
+      setTimeout(() => setToast(null), 3000);
+    }
+  }, [lastResult]);
 
   // Long press handler for parlay builder
   const handleParlayLongPressStart = () => {
@@ -1072,6 +1120,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           fullResponse: bookingResult
         });
         
+        // Auto-save booking to IndexedDB
+        saveBooking();
+        
         // Don't clear selections or reset bet amount - let user decide
         setIsPlacing(false);
       } else if (bookingResult.success && !hasErrors) {
@@ -1082,6 +1133,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           potentialPayout: bookingResult.potentialPayout,
           fullResponse: bookingResult
         });
+        
+        // Auto-save booking to IndexedDB
+        saveBooking();
         
         // Don't clear selections or reset bet amount - let user decide
         setIsPlacing(false);
@@ -1540,41 +1594,43 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               })}
             </div>
 
-            {/* Booking Reference */}
-            <div className="p-3 bg-green-500 text-white text-center">
-              <div className="text-xl font-bold">
-                Booking Ref# {lastResult.ticketNo}
-              </div>
-            </div>
-
-            {/* API Source */}
-            {selectedSource && (
-              <div className="p-2 bg-gray-100 text-center border-b border-gray-200">
-                <div className="text-sm font-semibold text-gray-700">
-                  {selectedSource.displayName}
+            {/* Booking Reference Section - Capture Target */}
+            <div ref={bookingRefRef} className="bg-white">
+              {/* Booking Reference */}
+              <div className="p-3 bg-green-500 text-white text-center">
+                <div className="text-xl font-bold">
+                  Booking Ref# {lastResult.ticketNo}
                 </div>
               </div>
-            )}
 
-            {/* SMS Option - Long Press 3.5s */}
-            <div 
-              className="p-3 bg-yellow-400 text-center border-t border-yellow-500 cursor-pointer select-none active:bg-yellow-500 transition-colors"
-              onMouseDown={handleSmsPressStart}
-              onMouseUp={handleSmsPressEnd}
-              onMouseLeave={handleSmsPressEnd}
-              onTouchStart={handleSmsPressStart}
-              onTouchEnd={handleSmsPressEnd}
-            >
-              <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
-                <span>📱</span>
-                <span>SMS BET{lastResult.ticketNo}</span>
+              {/* API Source */}
+              {selectedSource && (
+                <div className="p-2 bg-gray-100 text-center border-b border-gray-200">
+                  <div className="text-sm font-semibold text-gray-700">
+                    {selectedSource.displayName}
+                  </div>
+                </div>
+              )}
+
+              {/* SMS Option - Long Press 3.5s */}
+              <div 
+                className="p-3 bg-yellow-400 text-center border-t border-yellow-500 cursor-pointer select-none active:bg-yellow-500 transition-colors"
+                onMouseDown={handleSmsPressStart}
+                onMouseUp={handleSmsPressEnd}
+                onMouseLeave={handleSmsPressEnd}
+                onTouchStart={handleSmsPressStart}
+                onTouchEnd={handleSmsPressEnd}
+              >
+                <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
+                  <span>📱</span>
+                  <span>SMS BET{lastResult.ticketNo}</span>
+                </div>
               </div>
-            </div>
 
-            {/* Stake and Potential Win */}
-            <div className="flex border-t border-gray-200">
-              <div className="flex-1 p-3 text-center border-r border-gray-200">
-                <div className="text-xs text-gray-600">Win</div>
+              {/* Stake and Potential Win */}
+              <div className="flex border-t border-gray-200">
+                <div className="flex-1 p-3 text-center border-r border-gray-200">
+                  <div className="text-xs text-gray-600">Win</div>
                 <div className="text-lg font-bold text-gray-800">
                   {(() => {
                     // After successful bet, show API net payout
@@ -1591,6 +1647,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 <div className="text-lg font-bold text-gray-800">{parseInt(String(betAmount))}</div>
               </div>
             </div>
+            </div> {/* End of bookingRefRef wrapper */}
 
             {/* Place New Bet Button */}
             {showNewBetButton && (
@@ -1694,7 +1751,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                         {/* Action Buttons */}
                         <div className="flex gap-2">
                           <button
-                            onClick={() => saveBooking()}
+                            onClick={saveBookingAsImage}
                             className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
                           >
                             <Save className="w-4 h-4" />
