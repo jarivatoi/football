@@ -1430,6 +1430,15 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               </div>
             </div>
 
+            {/* API Source */}
+            {selectedSource && (
+              <div className="p-2 bg-gray-100 text-center border-b border-gray-200">
+                <div className="text-sm font-semibold text-gray-700">
+                  {selectedSource.displayName}
+                </div>
+              </div>
+            )}
+
             {/* SMS Option - Long Press 3.5s */}
             <div 
               className="p-3 bg-yellow-400 text-center border-t border-yellow-500 cursor-pointer select-none active:bg-yellow-500 transition-colors"
@@ -1453,10 +1462,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   {(() => {
                     // After successful bet, show API net payout
                     if (apiBreakdown) {
-                      return apiBreakdown.netPayout.toFixed(2);
+                      return formatCurrency(apiBreakdown.netPayout);
                     }
                     // Before bet, show simple calculation
-                    return potentialReturn.toFixed(2);
+                    return formatCurrency(potentialReturn);
                   })()}
                 </div>
               </div>
