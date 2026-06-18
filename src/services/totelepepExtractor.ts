@@ -218,7 +218,16 @@ class TotelepepExtractor {
           const loadedCount = Math.min(i + chunkSize, totalMatches);
           const isComplete = loadedCount >= totalMatches;
           
-          // Save chunk to IndexedDB
+          // Fetch ALL markets (FT, H1, 2H) for this chunk before saving
+          console.log(`[Chunk ${Math.floor(i/chunkSize) + 1}] Fetching all markets for ${chunk.length} matches...`);
+          
+          // Fetch markets with rate limiting
+          for (const match of chunk) {
+            await this.enforceRateLimit(); // Respect rate limit between each match
+            await this.fetchMarketsForMatch(match);
+          }
+          
+          // Save chunk to IndexedDB (now includes allMarkets)
           await saveMatchesChunk(chunk, cacheKey, loadedCount, totalMatches, isComplete);
           
           // Report progress
@@ -232,6 +241,7 @@ class TotelepepExtractor {
           }
         }
         
+        console.log(`[IndexedDB] Saved ${totalMatches} matches with ALL markets (FT, H1, 2H)`);
         return matches;
       }
 
