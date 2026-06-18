@@ -285,3 +285,50 @@ export const clearAllCacheMatches = async (): Promise<void> => {
 
 // Get chunk size
 export const getChunkSize = (): number => CHUNK_SIZE;
+
+// Update odds for specific matches only (for visible range updates)
+export const updateMatchesInCache = async (
+  matches: any[],
+  cacheKey: string,
+  totalCount: number
+): Promise<void> => {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction([STORE_NAME, 'metadata'], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const metadataStore = transaction.objectStore('metadata');
+
+    // Update each match
+    const entries: MatchCacheEntry[] = matches.map(match => ({
+      id: match.id,
+      cacheKey,
+      match,
+      timestamp: Date.now()
+    }));
+
+    entries.forEach(entry => {
+      store.put(entry); // Upsert: update if exists, insert if new
+    });
+
+    // Update metadata timestamp
+    const metadata = await new Promise<CacheMetadata | null>((resolve) => {
+      const req = metadataStore.get(cacheKey);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+
+    if (metadata) {
+      metadata.lastUpdated = Date.now();
+      metadataStore.put(metadata);
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+
+    console.log(`[Cache Update] Updated ${matches.length} matches in cache`);
+  } catch (error) {
+    console.error('Failed to update matches in cache:', error);
+  }
+};
