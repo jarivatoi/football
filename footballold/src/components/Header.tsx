@@ -1,0 +1,156 @@
+import React, { useState } from 'react';
+import { TrendingUp, Ticket, ChevronDown, Settings } from 'lucide-react';
+import OfflineIndicator from './OfflineIndicator';
+
+export interface ApiSource {
+  id: string;
+  name: string;
+  baseUrl: string;
+  displayName: string;
+}
+
+export const API_SOURCES: ApiSource[] = [
+  {
+    id: 'totelepep',
+    name: 'Totelepep',
+    baseUrl: 'https://www.totelepep.mu/webapi/GetSport',
+    displayName: 'Totelepep'
+  },
+  {
+    id: 'stevenhills',
+    name: 'Stevenhills',
+    baseUrl: 'https://www.stevenhills.bet/webapi/GetSport',
+    displayName: 'Stevenhills'
+  },
+  {
+    id: 'superscore',
+    name: 'Superscore',
+    baseUrl: 'https://www.superscore.mu/webapi/GetSport',
+    displayName: 'Superscore'
+  },
+  {
+    id: 'valueplus',
+    name: 'Valueplus',
+    baseUrl: 'https://www.valueplus.mu/webapi/GetSport',
+    displayName: 'Valueplus'
+  }
+];
+
+interface HeaderProps {
+  selectionCount: number;
+  hasInvalidSelections?: boolean;
+  onSlipClick: () => void;
+  selectedSource: ApiSource;
+  onSourceChange: (source: ApiSource) => void;
+  onSettingsClick?: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = false, onSlipClick, selectedSource, onSourceChange, onSettingsClick }) => {
+  const [showSourceDropdown, setShowSourceDropdown] = useState(false);
+
+  const handleSourceSelect = (source: ApiSource) => {
+    onSourceChange(source);
+    setShowSourceDropdown(false);
+  };
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('[data-source-dropdown]')) {
+        setShowSourceDropdown(false);
+      }
+    };
+
+    if (showSourceDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showSourceDropdown]);
+
+  return (
+    <header className="bg-white shadow-sm border-b border-gray-200">
+      <div className="max-w-3xl mx-auto px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* API Source Dropdown */}
+            <div className="relative" data-source-dropdown>
+              <button
+                onClick={() => setShowSourceDropdown(!showSourceDropdown)}
+                className="flex items-center gap-2 p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+              >
+                <TrendingUp className="w-6 h-6 text-white" />
+                <ChevronDown className="w-4 h-4 text-white" />
+              </button>
+
+              {showSourceDropdown && (
+                <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[180px]">
+                  {API_SOURCES.map((source) => (
+                    <button
+                      key={source.id}
+                      onClick={() => handleSourceSelect(source)}
+                      className={`w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${
+                        selectedSource.id === source.id
+                          ? 'bg-blue-50 text-blue-600 font-semibold'
+                          : 'text-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">{source.displayName}</span>
+                        {selectedSource.id === source.id && (
+                          <span className="text-blue-600">✓</span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">{selectedSource.displayName} Soccer</h1>
+              <p className="text-sm text-gray-600">Global Football Odds & Data</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            {/* Settings Button */}
+            {onSettingsClick && (
+              <button
+                onClick={onSettingsClick}
+                className="flex items-center justify-center bg-gray-600 hover:bg-gray-700 text-white p-2 rounded-lg transition-colors"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            )}
+            
+            {/* Slip Counter Button */}
+            {selectionCount > 0 && (
+              <button
+                onClick={onSlipClick}
+                className={`relative flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-colors ${
+                  hasInvalidSelections
+                    ? 'bg-red-500 hover:bg-red-600 text-white'
+                    : 'bg-yellow-400 hover:bg-yellow-500 text-gray-900'
+                }`}
+              >
+                <Ticket className="w-5 h-5" />
+                <span className="text-sm">Slip</span>
+                <span className={`absolute -top-2 -right-2 text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center ${
+                  hasInvalidSelections
+                    ? 'bg-white text-red-600 border-2 border-red-500'
+                    : 'bg-red-600 text-white'
+                }`}>
+                  {selectionCount}
+                </span>
+              </button>
+            )}
+            <OfflineIndicator />
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+export default Header;

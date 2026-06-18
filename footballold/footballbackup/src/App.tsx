@@ -7,14 +7,12 @@ import CompetitionFilter from './components/CompetitionFilter';
 import Header, { API_SOURCES, ApiSource } from './components/Header';
 import StatsCards from './components/StatsCards';
 import ParlayBuilder, { ParlaySelection } from './components/ParlayBuilder';
-import BookingHistory from './components/BookingHistory';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import DataExtractor from './components/DataExtractor';
 import EndpointDiscovery from './components/EndpointDiscovery';
 import ResponseAnalyzer from './components/ResponseAnalyzer';
 import AlternativeSolutions from './components/AlternativeSolutions';
 import MatchSpecificTester from './components/MatchSpecificTester';
-import { getAllBookingsFromDB } from './utils/bookingStorage';
 import BetPlacementAnalyzer from './components/BetPlacementAnalyzer';
 import BookingDiscoveryGuide from './components/BookingDiscoveryGuide';
 import UserLogin from './components/UserLogin';
@@ -50,29 +48,15 @@ function App() {
     name?: string;
   } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [showBookingHistory, setShowBookingHistory] = useState(false);
-  const [savedBookingsCount, setSavedBookingsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Load booking count on mount
-  useEffect(() => {
-    const loadBookingCount = async () => {
-      try {
-        const bookings = await getAllBookingsFromDB();
-        setSavedBookingsCount(bookings.length);
-      } catch (error) {
-        console.error('Failed to load booking count:', error);
-      }
-    };
-    
-    loadBookingCount();
-  }, []);
   
   // Maintenance mode state
   const [isMaintenanceEnabled, setIsMaintenanceEnabled] = useState(false);
   
   // Add a simple test to see if the component is rendering
-
+  
+  
+  
   const [matches, setMatches] = useState<TotelepepMatch[]>([]);
   const [groupedMatches, setGroupedMatches] = useState<Record<string, TotelepepMatch[]>>({});
   const [loading, setLoading] = useState(false);
@@ -187,7 +171,8 @@ function App() {
     
     // Reload calendar with the category filter and get the first date
     const firstDate = await reloadCalendarWithFilters(categoryId, '');
-
+    
+    
     // If All Matches is active, reload all matches with new category
     if (showAllMatches) {
       
@@ -235,7 +220,8 @@ function App() {
   
   // Reload calendar with category/competition filters to update match counts
   const reloadCalendarWithFilters = async (categoryId: string, competitionId: string): Promise<string | null> => {
-
+    
+    
     // Load calendar with the filters
     await loadCalendarList(categoryId, competitionId);
     
@@ -296,13 +282,15 @@ function App() {
     registerServiceWorker();
     requestNotificationPermission();
     scheduleBackgroundSync();
-
+    
+    
   }, [selectedDate]);
   
   const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string) => {
     setLoading(true);
     setError(null);
-
+    
+    
     // targetDate === null means "no date, get all matches"
     // targetDate === undefined means "use selectedDate"
     // targetDate === string means "use this specific date"
@@ -321,7 +309,10 @@ function App() {
     const catId = categoryId !== undefined ? categoryId : selectedCategory;
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
     try {
-
+      
+      
+      
+      
       // Fetch matches DIRECTLY from Totelepep API with category/competition filters
       
       const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId);
@@ -356,17 +347,22 @@ function App() {
   const loadAllMatches = async (categoryId?: string, competitionId?: string) => {
     setLoading(true);
     setError(null);
-
+    
+    
+    
+    
     // Use provided params or fall back to state
     const catId = categoryId !== undefined ? categoryId : selectedCategory;
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
-
+    
+    
     try {
       const allMatches: TotelepepMatch[] = [];
       
       // Use calendarList which has all the dates
       const datesToFetch = calendarList.length > 0 ? calendarList : availableDates;
-
+      
+      
       // Fetch matches from each date
       for (const dateInfo of datesToFetch) {
         
@@ -378,7 +374,9 @@ function App() {
           
         }
       }
-
+      
+      
+      
       // Sort all matches by date and time
       const sortedMatches = allMatches.sort((a, b) => {
         const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
@@ -406,7 +404,8 @@ function App() {
   const loadCalendarList = async (categoryId?: string, competitionId?: string) => {
     try {
       const sourceName = selectedSource?.displayName || 'Totelepep';
-
+      
+      
       // Clear cache to ensure fresh data
       totelepepExtractor.clearCache();
       
@@ -414,7 +413,10 @@ function App() {
       // Use TODAY (not yesterday) to ensure we get the full calendar with matches
       const today = new Date();
       const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-
+      
+      
+      
+      
       // Fetch with a date to get the calendar list
       const matches = await totelepepExtractor.extractMatches(dateStr, categoryId || '', competitionId || '');
       
@@ -423,15 +425,19 @@ function App() {
       
       // Get calendar list from extractor
       const calendarData = (totelepepExtractor as any).calendarList || [];
-
+      
+      
+      
       if (calendarData && calendarData.length > 0) {
-
+        
+        
         const formattedCalendar = calendarData.map((entry: any) => ({
           date: entry.entryDate,
           matchCount: entry.matchCount || 0,
           displayName: entry.displayDate || entry.entryDate
         }));
-
+        
+        
         setCalendarList(formattedCalendar);
         
         // Set the selected date to the FIRST entry from the API (which is "Today" in API's timezone)
@@ -463,9 +469,14 @@ function App() {
     }
   };
 
+
+
+
   // Load initial data on mount
   useEffect(() => {
-
+    
+    
+    
     // Clear all caches on initial load
     totelepepExtractor.clearCache();
     
@@ -486,14 +497,17 @@ function App() {
 
   // Filter matches by selected date and maintain grouping
   const filteredGroupedMatches = React.useMemo ? React.useMemo(() => {
-
+    
+    
     // Check if this is a Beyond date by checking if displayName contains "Beyond"
     const isBeyondDate = selectedDate && calendarList.find(entry => {
       return entry.date === selectedDate && (entry.displayName.includes('Beyond') || entry.displayName.includes('>>'));
     });
     
     let dateFiltered: Record<string, TotelepepMatch[]> = {};
-
+    
+    
+    
     // Check if "All Matches" mode is enabled - this takes priority over date selection
     if (showAllMatches) {
       // Show ALL matches from all dates, sorted by time
@@ -562,24 +576,53 @@ function App() {
           match.league.toLowerCase().includes(searchTerm.toLowerCase())
         );
       } else {
-        // Quick 1X2 odds filtering (e.g., 130H, 150D, 200A, 110-125H)
-        // OR advanced filter (e.g., 130ALL, 150H1BTTS)
+        // Filter by odds value
         let targetOdds = parseFloat(searchTerm);
         let positionFilter: 'home' | 'draw' | 'away' | null = null;
+        let periodFilter: 'H1' | 'H2' | null = null;
         
-        // Check for position suffix (H=Home, D=Draw, A=Away)
+        // Check for position suffix (H=Home, D=Draw, A=Away) and period (H1=1st Half, H2=2nd Half)
         const upperSearch = searchTerm.toUpperCase().trim();
         
-        // Detect if this is an advanced filter (has period code like ALL, H1, H2, FT)
-        const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
-        
-        if (upperSearch.endsWith('H') && !hasAdvancedFilter) {
+        // Check for period + position suffix FIRST (H1H, H1D, H1A, H2H, H2D, H2A)
+        if (upperSearch.endsWith('H1H') || upperSearch.endsWith('H1D') || upperSearch.endsWith('H1A')) {
+          periodFilter = 'H1';
+          const withoutPeriodAndPosition = upperSearch.slice(0, -3); // Remove H1H, H1D, or H1A (3 chars)
+          if (upperSearch.endsWith('H1H')) {
+            positionFilter = 'home';
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          } else if (upperSearch.endsWith('H1D')) {
+            positionFilter = 'draw';
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          } else if (upperSearch.endsWith('H1A')) {
+            positionFilter = 'away';
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          }
+        } else if (upperSearch.endsWith('H2H') || upperSearch.endsWith('H2D') || upperSearch.endsWith('H2A')) {
+          periodFilter = 'H2';
+          const withoutPeriodAndPosition = upperSearch.slice(0, -3); // Remove H2H, H2D, or H2A (3 chars)
+          if (upperSearch.endsWith('H2H')) {
+            positionFilter = 'home';
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          } else if (upperSearch.endsWith('H2D')) {
+            positionFilter = 'draw';
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          } else if (upperSearch.endsWith('H2A')) {
+            positionFilter = 'away';
+            targetOdds = parseFloat(withoutPeriodAndPosition);
+          }
+        } else if (upperSearch.endsWith('H1') || upperSearch.endsWith('H2')) {
+          // Incomplete period filter (e.g., "190H1" without H/D/A) - mark as invalid
+          periodFilter = upperSearch.endsWith('H1') ? 'H1' : 'H2';
+          positionFilter = null; // No position = incomplete
+          targetOdds = parseFloat(upperSearch.slice(0, -2));
+        } else if (upperSearch.endsWith('H')) {
           positionFilter = 'home';
           targetOdds = parseFloat(upperSearch.slice(0, -1));
-        } else if (upperSearch.endsWith('D') && !hasAdvancedFilter) {
+        } else if (upperSearch.endsWith('D')) {
           positionFilter = 'draw';
           targetOdds = parseFloat(upperSearch.slice(0, -1));
-        } else if (upperSearch.endsWith('A') && !hasAdvancedFilter) {
+        } else if (upperSearch.endsWith('A')) {
           positionFilter = 'away';
           targetOdds = parseFloat(upperSearch.slice(0, -1));
         }
@@ -589,7 +632,7 @@ function App() {
           targetOdds = targetOdds / 100;
         }
         
-        // Parse range for "between" mode (e.g., "100-200", "100-200H")
+        // Parse range for "between" mode (e.g., "100-200", "100-200H1", "100-200H1H")
         let targetOddsMin = targetOdds;
         let targetOddsMax = targetOdds;
         if (searchMode === 'between' && searchTerm.includes('-')) {
@@ -598,8 +641,13 @@ function App() {
             let minStr = rangeParts[0].trim();
             let maxStr = rangeParts[1].trim();
             
-            // Remove position suffix from max value
-            if (maxStr.toUpperCase().endsWith('H') || maxStr.toUpperCase().endsWith('D') || maxStr.toUpperCase().endsWith('A')) {
+            // Remove period/position suffixes from max value
+            if (maxStr.toUpperCase().endsWith('H1H') || maxStr.toUpperCase().endsWith('H1D') || maxStr.toUpperCase().endsWith('H1A') ||
+                maxStr.toUpperCase().endsWith('H2H') || maxStr.toUpperCase().endsWith('H2D') || maxStr.toUpperCase().endsWith('H2A')) {
+              maxStr = maxStr.slice(0, -3);
+            } else if (maxStr.toUpperCase().endsWith('H1') || maxStr.toUpperCase().endsWith('H2')) {
+              maxStr = maxStr.slice(0, -2);
+            } else if (maxStr.toUpperCase().endsWith('H') || maxStr.toUpperCase().endsWith('D') || maxStr.toUpperCase().endsWith('A')) {
               maxStr = maxStr.slice(0, -1);
             }
             
@@ -613,47 +661,91 @@ function App() {
             if (!isNaN(targetOddsMax) && targetOddsMax > 10) {
               targetOddsMax = targetOddsMax / 100;
             }
-            
-            // Validate: left number must be strictly less than right number
-            if (targetOddsMin >= targetOddsMax) {
-              filteredDateMatches = [];
-              // Skip filtering - invalid range (can't be equal or greater)
-              return filtered;
-            }
           }
         }
         
         if (isNaN(targetOdds) && searchMode !== 'between') {
           filteredDateMatches = [];
-        } else if (!hasAdvancedFilter) {
-          // Quick 1X2 filtering ONLY - not for advanced filters
-          // Advanced filters (H1, H2, FT, ALL) should pass through and be filtered by MatchCard
+        } else {
           filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
-            // If match is outright/special, skip quick 1X2 filter
-            // Outright matches should only show with advanced filters (e.g., 130ALL)
-            if (match.isOutright && !hasAdvancedFilter) {
-              return false;
-            }
-            
+            // Check if any of the match's odds match the filter
             const homeOdds = parseFloat(String(match.homeOdds));
             const drawOdds = parseFloat(String(match.drawOdds));
             const awayOdds = parseFloat(String(match.awayOdds));
             
-            // Skip matches with invalid odds (NaN) - but allow outrights with advanced filters
-            if (isNaN(homeOdds) && isNaN(drawOdds) && isNaN(awayOdds)) {
-              // Outrights with advanced filter should still pass (will be filtered by market search later)
-              if (match.isOutright && hasAdvancedFilter) {
-                return true; // Let through for advanced market filtering
+            // If period filter is specified (H1 or H2) but no position, it means ANY position in that period
+            // Check allMarkets if available
+            if (periodFilter && !positionFilter) {
+              if (match.allMarkets && match.allMarkets.length > 0) {
+                // Try both '2H' and 'H2' for second half
+                const possiblePeriodCodes = periodFilter === 'H1' ? ['H1'] : ['2H', 'H2'];
+                
+                // Check ALL markets in the specified period for matching odds
+                for (const periodCode of possiblePeriodCodes) {
+                  const periodMarkets = match.allMarkets.filter(m => 
+                    m.periodCode === periodCode && m.selections && m.selections.length > 0
+                  );
+                  
+                  for (const market of periodMarkets) {
+                    const hasMatchingOdds = market.selections.some((sel: any) => {
+                      const selOdds = parseFloat(String(sel.odds));
+                      if (searchMode === 'between') {
+                        return selOdds >= targetOddsMin && selOdds <= targetOddsMax;
+                      }
+                      return selOdds === targetOdds;
+                    });
+                    
+                    if (hasMatchingOdds) return true;
+                  }
+                }
+                
+                // No matching odds found in any period market
+                return false;
               }
+              // allMarkets not loaded yet - show match and let it load
+              return true;
+            }
+            
+            // If period filter is specified with position, check allMarkets if available
+            if (periodFilter && positionFilter) {
+              // Try to check allMarkets if available
+              if (match.allMarkets && match.allMarkets.length > 0) {
+                // Try both '2H' and 'H2' for second half
+                const possiblePeriodCodes = periodFilter === 'H1' ? ['H1'] : ['2H', 'H2'];
+                let periodMarket = null;
+                
+                for (const periodCode of possiblePeriodCodes) {
+                  periodMarket = match.allMarkets.find(m => 
+                    (m.name === '1 X 2' || m.name === '1X2' || m.marketCode === 'CP') && 
+                    m.periodCode === periodCode
+                  );
+                  if (periodMarket) break;
+                }
+                
+                if (periodMarket && periodMarket.selections) {
+                  // Find the specific position selection
+                  const positionIndex = positionFilter === 'home' ? 0 : positionFilter === 'draw' ? 1 : 2;
+                  const selection = periodMarket.selections[positionIndex];
+                  
+                  if (selection) {
+                    const selOdds = parseFloat(String(selection.odds));
+                    if (searchMode === 'eq') return selOdds === targetOdds;
+                    if (searchMode === 'gte') return selOdds >= targetOdds;
+                    if (searchMode === 'lte') return selOdds <= targetOdds;
+                    if (searchMode === 'between') return selOdds >= targetOddsMin && selOdds <= targetOddsMax;
+                  }
+                }
+              }
+              // If allMarkets not available or no match, don't show
               return false;
             }
             
             if (positionFilter) {
               // Filter by specific position (H, D, or A)
               if (searchMode === 'eq') {
-                if (positionFilter === 'home') return Math.abs(homeOdds - targetOdds) < 0.001;
-                if (positionFilter === 'draw') return Math.abs(drawOdds - targetOdds) < 0.001;
-                if (positionFilter === 'away') return Math.abs(awayOdds - targetOdds) < 0.001;
+                if (positionFilter === 'home') return homeOdds === targetOdds;
+                if (positionFilter === 'draw') return drawOdds === targetOdds;
+                if (positionFilter === 'away') return awayOdds === targetOdds;
               } else if (searchMode === 'gte') {
                 if (positionFilter === 'home') return homeOdds >= targetOdds;
                 if (positionFilter === 'draw') return drawOdds >= targetOdds;
@@ -670,144 +762,21 @@ function App() {
             } else {
               // Filter any position (no suffix)
               if (searchMode === 'eq') {
-                return Math.abs(homeOdds - targetOdds) < 0.001 || 
-                       Math.abs(drawOdds - targetOdds) < 0.001 || 
-                       Math.abs(awayOdds - targetOdds) < 0.001;
+                // = (equal to)
+                return homeOdds === targetOdds || drawOdds === targetOdds || awayOdds === targetOdds;
               } else if (searchMode === 'gte') {
+                // >= (greater than or equal)
                 return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
               } else if (searchMode === 'lte') {
+                // <= (less than or equal)
                 return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
               } else if (searchMode === 'between') {
+                // In between range
                 return (homeOdds >= targetOddsMin && homeOdds <= targetOddsMax) ||
                        (drawOdds >= targetOddsMin && drawOdds <= targetOddsMax) ||
                        (awayOdds >= targetOddsMin && awayOdds <= targetOddsMax);
               }
             }
-            
-            return false;
-          });
-        } else {
-          // Advanced filter (H1, H2, FT, ALL) - filter matches based on expanded markets
-          // This ensures matches without matching markets are filtered out
-          filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
-            // If match doesn't have allMarkets loaded yet, let it through
-            // (MatchCard will load and filter it)
-            if (!match.allMarkets || match.allMarkets.length === 0) {
-              // For outrights without markets, filter them out (same as quick 1X2)
-              if (match.isOutright) {
-                return false;
-              }
-              return true; // Regular match without markets yet, let through
-            }
-            
-            // Parse the advanced filter code to extract criteria
-            const upperSearch = searchTerm.toUpperCase().trim();
-            const oddsMatch = upperSearch.match(/^(\d{2,3})/);
-            if (!oddsMatch) return true; // Can't parse, let through
-            
-            let targetOdds = parseFloat(oddsMatch[1]);
-            if (targetOdds > 10) targetOdds = targetOdds / 100;
-            
-            // Extract period (H1, H2, FT, ALL)
-            let targetPeriod = 'ALL';
-            if (upperSearch.includes('H1')) targetPeriod = 'H1';
-            else if (upperSearch.includes('H2') || upperSearch.includes('2H')) targetPeriod = 'H2';
-            else if (upperSearch.includes('FT')) targetPeriod = 'FT';
-            
-            // Extract market type (UO, BTTS, DC, etc.)
-            let targetMarketType: string | null = null;
-            if (upperSearch.includes('UO')) targetMarketType = 'UO';
-            else if (upperSearch.includes('BTTS')) targetMarketType = 'BTTS';
-            else if (upperSearch.includes('DC')) targetMarketType = 'DC';
-            else if (upperSearch.includes('AH')) targetMarketType = 'AH';
-            else if (upperSearch.includes('CS')) targetMarketType = 'CS';
-            
-            // Extract line for UO/AH markets (e.g., +1.5, -0.5, 2.5)
-            let targetLine: string | null = null;
-            const lineMatch = upperSearch.match(/UO([+-]?\d+\.?\d*)/);
-            if (lineMatch) {
-              targetLine = lineMatch[1];
-            }
-            
-            // Extract option (O=Over, U=Under, Y=Yes, N=No)
-            let targetOption: string | null = null;
-            if (upperSearch.includes('UO+')) targetOption = 'O';
-            else if (upperSearch.includes('UO-')) targetOption = 'U';
-            else if (upperSearch.includes('BTTSY') || upperSearch.includes('BTTSYES')) targetOption = 'Y';
-            else if (upperSearch.includes('BTTSN') || upperSearch.includes('BTTSNO')) targetOption = 'N';
-            
-            // Check if match has ANY market matching the criteria
-            const hasMatchingMarket = match.allMarkets.some(market => {
-              // Check period
-              if (targetPeriod !== 'ALL') {
-                if (targetPeriod === 'H1' && market.periodCode !== 'H1' && market.periodCode !== 'HT') {
-                  return false;
-                }
-                if (targetPeriod === 'H2' && market.periodCode !== 'H2' && market.periodCode !== '2H') {
-                  return false;
-                }
-                if (targetPeriod === 'FT' && market.periodCode && market.periodCode !== 'FT' && 
-                    market.periodCode !== 'H1' && market.periodCode !== 'H2') {
-                  return false;
-                }
-              }
-              
-              // Check market type
-              if (targetMarketType) {
-                const marketName = (market.name || '').toUpperCase();
-                if (targetMarketType === 'UO' && !marketName.includes('OVER') && !marketName.includes('UNDER') && !marketName.includes('UO')) {
-                  return false;
-                }
-                if (targetMarketType === 'BTTS' && !marketName.includes('BTTS') && !marketName.includes('BOTH')) {
-                  return false;
-                }
-              }
-              
-              // Check line for UO markets
-              if (targetMarketType === 'UO' && targetLine) {
-                const marketLine = market.marketLine || '';
-                // Normalize line comparison (remove +/- prefix for matching)
-                const normalizedTarget = targetLine.replace(/[+-]/, '');
-                const normalizedMarket = String(marketLine).replace(/[+-]/, '');
-                if (normalizedMarket !== normalizedTarget) {
-                  return false;
-                }
-              }
-              
-              // Check if any selection has matching odds
-              if (market.selections && market.selections.length > 0) {
-                return market.selections.some(sel => {
-                  const selOdds = parseFloat(String(sel.odds));
-                  if (isNaN(selOdds)) return false;
-                  
-                  // Check option (Over/Under, Yes/No)
-                  if (targetOption) {
-                    const selName = (sel.name || '').toUpperCase();
-                    if (targetOption === 'O' && !selName.includes('OVER')) return false;
-                    if (targetOption === 'U' && !selName.includes('UNDER')) return false;
-                    if (targetOption === 'Y' && !selName.includes('YES')) return false;
-                    if (targetOption === 'N' && !selName.includes('NO')) return false;
-                  }
-                  
-                  // Check odds based on searchMode
-                  if (searchMode === 'eq') {
-                    return Math.abs(selOdds - targetOdds) < 0.001;
-                  } else if (searchMode === 'gte') {
-                    return selOdds >= targetOdds;
-                  } else if (searchMode === 'lte') {
-                    return selOdds <= targetOdds;
-                  } else if (searchMode === 'between') {
-                    return selOdds >= targetOddsMin && selOdds <= targetOddsMax;
-                  }
-                  
-                  return false;
-                });
-              }
-              
-              return false;
-            });
-            
-            return hasMatchingMarket;
           });
         }
       }
@@ -919,7 +888,9 @@ function App() {
   // Get available dates with match counts from API calendarList data
   const availableDatesWithCounts = React.useMemo ? React.useMemo(() => {
     const sourceName = selectedSource?.displayName || 'Totelepep';
-
+    
+    
+    
     // Use the calendarList data directly - this is the source of truth
     if (calendarList && calendarList.length > 0) {
       const sourceName = selectedSource?.displayName || 'Totelepep';
@@ -928,7 +899,8 @@ function App() {
     }
     
     // Fallback to local calculation if calendarList is not available
-
+    
+    
     // Get all unique dates from the matches
     const dates = new Set<string>();
     matches.forEach(match => {
@@ -962,14 +934,17 @@ function App() {
           month: 'short' 
         });
       }
-
+      
+      
+      
       return {
         date: dateString,
         matchCount,
         displayName
       };
     });
-
+    
+    
     return result;
   }, [calendarList, matches]) : [];
 
@@ -1066,14 +1041,6 @@ function App() {
   const handleCloseSettings = () => {
     setShowSettings(false);
   };
-
-  const handleHistoryClick = () => {
-    setShowBookingHistory(true);
-  };
-
-  const handleCloseBookingHistory = () => {
-    setShowBookingHistory(false);
-  };
   
   // ========================================
   // EARLY RETURNS (AFTER ALL HOOKS AND HANDLERS)
@@ -1148,21 +1115,13 @@ function App() {
         if (match.kickoff) {
           const now = new Date();
           const [hours, minutes] = match.kickoff.split(':').map(Number);
-          
-          // Create match time using BOTH date and kickoff time
           const matchTime = new Date();
-          if (match.date) {
-            // Use match date (YYYY-MM-DD format)
-            const [year, month, day] = match.date.split('-').map(Number);
-            matchTime.setFullYear(year, month - 1, day);
-          }
           matchTime.setHours(hours, minutes, 0, 0);
           
           console.log('⏰ Time Check:', {
-            matchDate: match.date,
             kickoff: match.kickoff,
-            now: now.toLocaleString(),
-            matchTime: matchTime.toLocaleString(),
+            now: now.toLocaleTimeString(),
+            matchTime: matchTime.toLocaleTimeString(),
             isPast: matchTime < now,
             differenceMinutes: (now.getTime() - matchTime.getTime()) / 60000
           });
@@ -1171,6 +1130,7 @@ function App() {
           if (matchTime < new Date(now.getTime() - 5 * 60000)) {
             hasError = true;
             errorMessage = 'Match has already started';
+            console.log('❌ Match started error');
           }
         }
 
@@ -1190,8 +1150,12 @@ function App() {
           if (isDuplicate) {
             hasError = true;
             errorMessage = 'Duplicate match detected';
+            console.log('❌ Duplicate error');
           }
         }
+
+        console.log('✅ Final hasError:', hasError, errorMessage);
+
         // Use the marketBookNo and marketCode passed from the click event
         const finalMarketBookNo = (marketBookNo && marketBookNo !== 'undefined' && marketBookNo !== 'null') 
           ? marketBookNo 
@@ -1308,7 +1272,10 @@ function App() {
   };
 
   const handleDateChange = (newDate: string) => {
-
+    
+    
+    
+    
     // Turn off All Matches when a specific date is selected
     if (showAllMatches) {
       setShowAllMatches(false);
@@ -1346,10 +1313,12 @@ function App() {
   const toggleAllMatches = () => {
     const newState = !showAllMatches;
     setShowAllMatches(newState);
-
+    
+    
     if (newState) {
       // Turn ON All Matches - fetch matches from ALL dates and combine them
-
+      
+      
       // Clear current matches and show loading
       setMatches([]);
       setGroupedMatches({});
@@ -1365,6 +1334,11 @@ function App() {
     }
   };
 
+
+
+
+
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Combined Sticky Header: Header + Date Selector + Search */}
@@ -1376,8 +1350,6 @@ function App() {
           selectedSource={selectedSource}
           onSourceChange={handleSourceChange}
           onSettingsClick={handleSettingsClick}
-          onHistoryClick={handleHistoryClick}
-          hasSavedBookings={savedBookingsCount > 0}
         />
         
         {/* Date Selector */}
@@ -1398,12 +1370,9 @@ function App() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder={loading ? 'Loading markets...' : searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A, 130H1H' : 'Enter odds (e.g., 130H, 150H2A)...'}
+                placeholder={searchMode === 'matches' ? 'Search matches...' : searchMode === 'eq' ? 'e.g., 130H, 130D, 130A, 130H1H' : 'Enter odds (e.g., 130H, 150H2A)...'}
                 value={searchTerm}
-                disabled={loading}
-                className={`w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 onChange={(e) => {
-                  if (loading) return; // Don't allow input while loading
                   const value = e.target.value;
                   setSearchTerm(value);
                   
@@ -1413,6 +1382,7 @@ function App() {
                     setSearchOddsValue('');
                   }
                 }}
+                className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               {searchTerm && (
                 <button
@@ -1449,10 +1419,7 @@ function App() {
               {(() => {
                 const hasDash = searchTerm.includes('-');
                 // Check if it's a valid range: two numbers (3+ digits each) separated by -
-                // But NOT if it's ONLY a market line prefix (e.g., UO-2.5, AH-0.5)
-                // Allow ranges WITH market lines: 130-155FTUO-2.5
                 const rangeMatch = searchTerm.match(/^(\d{3,})-(\d{3,})/);
-                const isOnlyMarketLineWithDash = /^(\d{2,3})(FT|H1|H2|2H|ALL)(UO|AH)-/i.test(searchTerm);
                 const isValidRange = rangeMatch !== null;
                 
                 // Auto-switch searchMode based on pattern
@@ -1470,9 +1437,8 @@ function App() {
                   setSearchMode('between');
                 }
                 
-                if (hasDash && !isValidRange && !isOnlyMarketLineWithDash) {
+                if (hasDash && !isValidRange) {
                   // Has dash but invalid range (e.g., "55-130") - show nothing except Matches
-                  // But NOT for market lines like UO-2.5 or AH-0.5
                   return null;
                 } else if (isValidRange) {
                   // Valid range (e.g., "120-155H") - show only "In Between"
@@ -1524,23 +1490,11 @@ function App() {
           apiSourceName={selectedSource.displayName}
           searchMode={searchMode}
           searchTerm={searchTerm}
-          onMarketsLoaded={(matchId, markets) => {
-            // Trigger re-filter by updating a dummy state
-            // This forces the useMemo to re-run with the updated allMarkets
-            setMatches(prev => [...prev]);
-          }}
         />
       </div>
       
       {/* Parlay Builder - Slide in from right */}
-      {showParlayBuilder && (
-        <>
-          {/* Backdrop to prevent background scroll */}
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => setShowParlayBuilder(false)}
-          />
-          <div className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${showParlayBuilder ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div className={`fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${showParlayBuilder ? 'translate-x-0' : 'translate-x-full'}`}>
         {parlaySelections.length > 0 ? (
           <ParlayBuilder
             selections={parlaySelections}
@@ -1548,9 +1502,6 @@ function App() {
             onClearAll={handleClearAll}
             onClose={() => setShowParlayBuilder(false)}
             selectedSource={selectedSource}
-            showHistoryModal={showBookingHistory}
-            onHideHistoryModal={handleCloseBookingHistory}
-            onBookingsCountChange={setSavedBookingsCount}
           />
         ) : (
           // Show empty state when no selections but panel is still open
@@ -1566,18 +1517,9 @@ function App() {
             </button>
           </div>
         )}
-          </div>
-        </>
-      )}
+      </div>
       
       <PWAInstallPrompt />
-      
-      {/* Booking History Modal */}
-      <BookingHistory
-        showHistory={showBookingHistory}
-        onClose={handleCloseBookingHistory}
-        onBookingsCountChange={setSavedBookingsCount}
-      />
     </div>
   );
 }

@@ -1,0 +1,16 @@
+name: Keep Supabase Proxy Active
+
+on:
+  schedule:
+    # Run every 6 days at midnight UTC
+    - cron: '0 0 */6 * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  ping-proxy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Edge Function
+        run: |
+          curl -f "https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=https://httpbin.org/get" \
+            || echo "Proxy ping failed, but that's okay"

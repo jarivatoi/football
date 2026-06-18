@@ -1,0 +1,46 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#667eea" rx="80"/>
+  
+  <!-- Calendar Icon -->
+  <rect x="96" y="128" width="320" height="256" fill="white" rx="24"/>
+  
+  <!-- Calendar Header -->
+  <rect x="96" y="128" width="320" height="64" fill="#4f46e5" rx="24"/>
+  <rect x="96" y="168" width="320" height="24" fill="#4f46e5"/>
+  
+  <!-- Calendar Rings -->
+  <circle cx="160" cy="96" r="12" fill="white"/>
+  <circle cx="352" cy="96" r="12" fill="white"/>
+  <rect x="148" y="64" width="24" height="64" fill="white" rx="12"/>
+  <rect x="340" y="64" width="24" height="64" fill="white" rx="12"/>
+  
+  <!-- Calendar Grid -->
+  <g fill="#667eea">
+    <circle cx="144" cy="224" r="8"/>
+    <circle cx="192" cy="224" r="8"/>
+    <circle cx="240" cy="224" r="8"/>
+    <circle cx="288" cy="224" r="8"/>
+    <circle cx="336" cy="224" r="8"/>
+    
+    <circle cx="144" cy="272" r="8"/>
+    <circle cx="192" cy="272" r="8"/>
+    <circle cx="240" cy="272" r="8"/>
+    <circle cx="288" cy="272" r="8"/>
+    <circle cx="336" cy="272" r="8"/>
+    
+    <circle cx="144" cy="320" r="8"/>
+    <circle cx="192" cy="320" r="8"/>
+    <circle cx="240" cy="320" r="8"/>
+    <circle cx="288" cy="320" r="8"/>
+    <circle cx="336" cy="320" r="8"/>
+  </g>
+  
+  <!-- Highlight Today -->
+  <circle cx="240" cy="272" r="16" fill="#ef4444" opacity="0.8"/>
+  <circle cx="240" cy="272" r="8" fill="white"/>
+  
+  <!-- Work Schedule Text -->
+  <text x="256" y="440" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="24" font-weight="bold">WORK</text>
+  <text x="256" y="470" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="20">SCHEDULE</text>
+</svg>

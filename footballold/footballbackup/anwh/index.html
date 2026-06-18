@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>X-ray ANWH</title>
+    
+    <!-- Prevent white screen on startup -->
+    <style>
+      /* Critical CSS to prevent white screen */
+      #root {
+        min-height: 100vh;
+        background: white !important;
+      }
+      
+      /* Ensure body and html are white from start */
+      html, body {
+        background: white !important;
+        background-color: white !important;
+      }
+      
+      /* Loading screen styles */
+      .app-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: white !important;
+        color: #374151;
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        text-align: center;
+        padding: 20px;
+      }
+      
+      .loading-content h1 {
+        font-size: 24px;
+        margin-bottom: 20px;
+        font-weight: 600;
+        color: #1f2937;
+      }
+      
+      .loading-content p {
+        font-size: 16px;
+        margin-bottom: 30px;
+        color: #6b7280;
+      }
+      
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(99, 102, 241, 0.3);
+        border-top: 4px solid #6366f1;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="X-ray ANWH">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    
+    <!-- iPhone fullscreen support -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-touch-fullscreen" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    
+    <!-- Additional iPhone status bar control -->
+    <meta name="msapplication-navbutton-color" content="#000000">
+    <meta name="msapplication-TileColor" content="#000000">
+    
+    <!-- Prevent white bars and ensure full coverage -->
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    
+    <!-- Prevent automatic network requests and caching -->
+    
+    <!-- PWA Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://jarivatoi.github.io/anwh/icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="https://jarivatoi.github.io/anwh/icon.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="https://jarivatoi.github.io/anwh/icon.png">
+    <link rel="apple-touch-icon" href="https://jarivatoi.github.io/anwh/icon.png">
+    <link rel="icon" type="image/png" href="https://jarivatoi.github.io/anwh/icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="https://jarivatoi.github.io/anwh/icon.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="https://jarivatoi.github.io/anwh/icon.png">
+  </head>
+  <body>
+    <div id="root">
+      <!-- Empty root - React will handle all loading -->
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      // Service worker registration is now handled by updateManager.ts
+      console.log('Service worker will be registered by UpdateManager');
+      
+      // Prevent iOS Safari from showing white screen
+      window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+          // Page was loaded from cache, ensure React app is running
+          console.log('Page loaded from cache');
+        }
+      });
+    </script>
+    
+    <!-- Prevent native context menu on Android long press -->
+    <script>
+      // Global contextmenu prevention for Android (only prevent default, don't block scrolling)
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+      }, true);
+    </script>
+  </body>
+</html>
