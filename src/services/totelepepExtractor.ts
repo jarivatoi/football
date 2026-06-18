@@ -1,3 +1,5 @@
+import { saveMatchesChunk, getCachedMatches, getCacheMetadata, getChunkSize } from '../utils/matchCache';
+
 interface TotelepepMatch {
   id: string;
   homeTeam: string;
@@ -125,7 +127,12 @@ class TotelepepExtractor {
     return this.teamBasedCompetitionMap[teamKey] || null;
   }
   
-  async extractMatches(targetDate?: string, categoryId?: string, competitionId?: string): Promise<TotelepepMatch[]> {
+  async extractMatches(
+    targetDate?: string, 
+    categoryId?: string, 
+    competitionId?: string,
+    onProgress?: (loaded: number, total: number) => void
+  ): Promise<TotelepepMatch[]> {
     try {
       // Check cache first
       // Include baseUrl in cache key to prevent mixing data from different sources
@@ -133,6 +140,19 @@ class TotelepepExtractor {
                        this.baseUrl.includes('stevenhills') ? 'stevenhills' : 
                        this.baseUrl.includes('valueplus') ? 'valueplus' : 'totelepep';
       const cacheKey = targetDate ? `date_${targetDate}_${categoryId || 'all'}_${competitionId || 'all'}_${sourceId}` : `all_dates_${new Date().toISOString().split('T')[0]}_${sourceId}`;
+      
+      // Try IndexedDB cache first
+      const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
+      if (cachedMatches && cachedMatches.length > 0 && metadata?.isComplete) {
+        console.log(`[IndexedDB Cache] Loaded ${cachedMatches.length} matches from cache`);
+        
+        // Also store in memory cache for fast access
+        this.setCachedData(cachedMatches, cacheKey);
+        
+        return cachedMatches;
+      }
+      
+      // Check in-memory cache
       const cached = this.getCachedData(cacheKey);
       if (cached) {
         
@@ -188,6 +208,30 @@ class TotelepepExtractor {
       if (matches.length > 0) {
         
         this.setCachedData(matches, cacheKey);
+        
+        // Save to IndexedDB in chunks for persistence and memory management
+        const chunkSize = getChunkSize();
+        const totalMatches = matches.length;
+        
+        for (let i = 0; i < totalMatches; i += chunkSize) {
+          const chunk = matches.slice(i, i + chunkSize);
+          const loadedCount = Math.min(i + chunkSize, totalMatches);
+          const isComplete = loadedCount >= totalMatches;
+          
+          // Save chunk to IndexedDB
+          await saveMatchesChunk(chunk, cacheKey, loadedCount, totalMatches, isComplete);
+          
+          // Report progress
+          if (onProgress) {
+            onProgress(loadedCount, totalMatches);
+          }
+          
+          // Small delay to prevent blocking UI
+          if (i + chunkSize < totalMatches) {
+            await new Promise(resolve => setTimeout(resolve, 10));
+          }
+        }
+        
         return matches;
       }
 
