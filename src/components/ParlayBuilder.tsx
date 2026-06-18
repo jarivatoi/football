@@ -1222,9 +1222,15 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     >
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg animate-slide-down">
+        <div className={`fixed top-20 left-1/2 transform -translate-x-1/2 z-50 text-white px-6 py-3 rounded-lg shadow-lg animate-slide-down ${
+          toast.includes('saved successfully') || toast.includes('cleared') ? 'bg-green-600' : 'bg-red-600'
+        }`}>
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5" />
+            {toast.includes('saved successfully') || toast.includes('cleared') ? (
+              <CheckCircle className="w-5 h-5" />
+            ) : (
+              <AlertCircle className="w-5 h-5" />
+            )}
             <span className="font-medium">{toast}</span>
           </div>
         </div>
