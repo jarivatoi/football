@@ -28,9 +28,9 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== STATIC_CACHE && cacheName !== DATA_CACHE) {
-            return caches.delete(cacheName);
-          }
+          // Delete ALL old caches on activation (except IndexedDB data)
+          // This prevents memory buildup from stale cached API responses
+          return caches.delete(cacheName);
         })
       );
     }).then(() => {
@@ -142,5 +142,23 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil(
       clients.openWindow('/')
     );
+  }
+});
+
+// Message handler for cache clearing
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          return caches.delete(cacheName);
+        })
+      );
+    }).then(() => {
+      // Re-cache static files after clearing
+      return caches.open(STATIC_CACHE).then((cache) => {
+        return cache.addAll(STATIC_FILES);
+      });
+    });
   }
 });
