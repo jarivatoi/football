@@ -178,8 +178,14 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
 
       {/* Full Booking Details Modal */}
       {selectedBooking && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-end sm:items-center justify-center">
-          <div className="bg-white w-full max-w-md max-h-[90vh] rounded-t-lg sm:rounded-lg overflow-hidden flex flex-col">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-end sm:items-center justify-center"
+          onClick={() => setSelectedBooking(null)}
+        >
+          <div 
+            className="bg-white w-full max-w-md max-h-[90vh] rounded-t-lg sm:rounded-lg overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4">
               <div className="flex items-center justify-between">
@@ -311,26 +317,18 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
               </div>
             </div>
             
-            {/* Delete and Close Buttons */}
+            {/* Delete Button */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSelectedBooking(null)}
-                  className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => {
-                    deleteBooking(selectedBooking.id);
-                    setSelectedBooking(null);
-                  }}
-                  className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-5 h-5" />
-                  Delete
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  deleteBooking(selectedBooking.id);
+                  setSelectedBooking(null);
+                }}
+                className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+              >
+                <Trash2 className="w-5 h-5" />
+                Delete Booking
+              </button>
             </div>
           </div>
         </div>
