@@ -1146,7 +1146,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           ticketNo: bookingResult.ticketNo || '',
           selections: [...selections],
           stake: betAmount,
-          potentialWin: bookingResult.potentialPayout || betAmount
+          potentialWin: bookingResult.potentialPayout
         });
         
         // Don't clear selections or reset bet amount - let user decide
@@ -1165,7 +1165,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           ticketNo: bookingResult.ticketNo || '',
           selections: [...selections],
           stake: betAmount,
-          potentialWin: bookingResult.potentialPayout || betAmount
+          potentialWin: bookingResult.potentialPayout
         });
         
         // Don't clear selections or reset bet amount - let user decide

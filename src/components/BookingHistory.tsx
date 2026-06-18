@@ -4,11 +4,13 @@ import { SavedBooking, getAllBookingsFromDB, deleteBookingFromDB, clearAllBookin
 import { createPortal } from 'react-dom';
 
 // Helper function to format currency
-const formatCurrency = (amount: number): string => {
-  if (Number.isInteger(amount)) {
-    return amount.toString();
+const formatCurrency = (amount: number | string): string => {
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(numAmount)) return '0';
+  if (Number.isInteger(numAmount)) {
+    return numAmount.toString();
   }
-  return amount.toFixed(2);
+  return numAmount.toFixed(2);
 };
 
 interface BookingHistoryProps {
