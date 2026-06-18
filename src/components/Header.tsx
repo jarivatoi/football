@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { TrendingUp, Ticket, ChevronDown, Settings } from 'lucide-react';
+import { TrendingUp, Ticket, ChevronDown, Settings, History } from 'lucide-react';
 import { gsap } from 'gsap';
 import OfflineIndicator from './OfflineIndicator';
 
@@ -44,12 +44,15 @@ interface HeaderProps {
   selectedSource: ApiSource;
   onSourceChange: (source: ApiSource) => void;
   onSettingsClick?: () => void;
+  onHistoryClick?: () => void;
+  hasSavedBookings?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = false, onSlipClick, selectedSource, onSourceChange, onSettingsClick }) => {
+const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = false, onSlipClick, selectedSource, onSourceChange, onSettingsClick, onHistoryClick, hasSavedBookings = false }) => {
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
   const textRef = useRef<HTMLSpanElement>(null);
   const settingsRef = useRef<HTMLButtonElement>(null);
+  const historyRef = useRef<HTMLButtonElement>(null);
   const slipRef = useRef<HTMLButtonElement>(null);
   const prevSelectionCountRef = useRef<number>(0);
 
@@ -63,7 +66,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
     }
   }, [selectedSource.id]);
 
-  // Animate betslip and settings buttons
+  // Animate betslip, settings, and history buttons
   useEffect(() => {
     const prevCount = prevSelectionCountRef.current;
     const currentCount = selectionCount;
@@ -81,6 +84,14 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
       // Settings button animation - same elastic effect
       if (settingsRef.current && onSettingsClick) {
         gsap.fromTo(settingsRef.current,
+          { x: 100, opacity: 0 },
+          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.4)" }
+        );
+      }
+
+      // History button animation - same elastic effect
+      if (historyRef.current && onHistoryClick && hasSavedBookings) {
+        gsap.fromTo(historyRef.current,
           { x: 100, opacity: 0 },
           { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.4)" }
         );
@@ -107,11 +118,21 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
           ease: "power2.inOut"
         });
       }
+
+      // History button: slide back to original position but stay visible
+      if (historyRef.current && onHistoryClick && hasSavedBookings) {
+        gsap.to(historyRef.current, {
+          x: 0,
+          opacity: 1,
+          duration: 0.8,
+          ease: "power2.inOut"
+        });
+      }
     }
 
     // Update previous count
     prevSelectionCountRef.current = currentCount;
-  }, [selectionCount, onSettingsClick]);
+  }, [selectionCount, onSettingsClick, onHistoryClick, hasSavedBookings]);
 
   const handleSourceSelect = (source: ApiSource) => {
     onSourceChange(source);
@@ -175,6 +196,18 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
           </div>
           
           <div className="flex items-center gap-3">
+            {/* History Button - Only show if there are saved bookings */}
+            {onHistoryClick && hasSavedBookings && (
+              <button
+                ref={historyRef}
+                onClick={onHistoryClick}
+                className="flex items-center justify-center bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-lg transition-colors"
+                title="View booking history"
+              >
+                <History className="w-5 h-5" />
+              </button>
+            )}
+            
             {/* Settings Button */}
             {onSettingsClick && (
               <button

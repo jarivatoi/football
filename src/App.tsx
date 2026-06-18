@@ -48,6 +48,8 @@ function App() {
     name?: string;
   } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showBookingHistory, setShowBookingHistory] = useState(false);
+  const [savedBookingsCount, setSavedBookingsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   
   // Maintenance mode state
@@ -905,6 +907,14 @@ function App() {
   const handleCloseSettings = () => {
     setShowSettings(false);
   };
+
+  const handleHistoryClick = () => {
+    setShowBookingHistory(true);
+  };
+
+  const handleCloseBookingHistory = () => {
+    setShowBookingHistory(false);
+  };
   
   // ========================================
   // EARLY RETURNS (AFTER ALL HOOKS AND HANDLERS)
@@ -1207,6 +1217,8 @@ function App() {
           selectedSource={selectedSource}
           onSourceChange={handleSourceChange}
           onSettingsClick={handleSettingsClick}
+          onHistoryClick={handleHistoryClick}
+          hasSavedBookings={savedBookingsCount > 0}
         />
         
         {/* Date Selector */}
@@ -1377,6 +1389,9 @@ function App() {
             onClearAll={handleClearAll}
             onClose={() => setShowParlayBuilder(false)}
             selectedSource={selectedSource}
+            showHistoryModal={showBookingHistory}
+            onHideHistoryModal={handleCloseBookingHistory}
+            onBookingsCountChange={setSavedBookingsCount}
           />
         ) : (
           // Show empty state when no selections but panel is still open

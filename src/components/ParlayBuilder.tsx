@@ -774,6 +774,9 @@ interface ParlayBuilderProps {
   onClearAll: () => void;
   onClose?: () => void;  // Optional close button handler
   selectedSource?: ApiSource;  // API source to use for placing bets
+  showHistoryModal?: boolean;  // Trigger to show booking history
+  onHideHistoryModal?: () => void;  // Callback to hide history modal
+  onBookingsCountChange?: (count: number) => void;  // Notify parent of booking count changes
 }
 
 const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
@@ -781,7 +784,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   onRemoveSelection,
   onClearAll,
   onClose,
-  selectedSource
+  selectedSource,
+  showHistoryModal = false,
+  onHideHistoryModal,
+  onBookingsCountChange
 }) => {
   const [betAmount, setBetAmount] = useState<number>(50);
   const [isPlacing, setIsPlacing] = useState(false);
@@ -823,13 +829,26 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       try {
         const bookings = await getAllBookingsFromDB();
         setSavedBookings(bookings);
+        if (onBookingsCountChange) {
+          onBookingsCountChange(bookings.length);
+        }
       } catch (error) {
         console.error('Failed to load bookings:', error);
       }
     };
     
     loadBookings();
-  }, []);
+  }, [onBookingsCountChange]);
+
+  // Show history modal when triggered from parent
+  useEffect(() => {
+    if (showHistoryModal) {
+      setShowBookingHistory(true);
+      if (onHideHistoryModal) {
+        onHideHistoryModal();
+      }
+    }
+  }, [showHistoryModal, onHideHistoryModal]);
 
   // SMS Bet functionality with long press
   const handleSmsPressStart = () => {
@@ -912,7 +931,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     
     try {
       await saveBookingToDB(newBooking);
-      setSavedBookings(prev => [newBooking, ...prev]);
+      const updatedBookings = [newBooking, ...savedBookings];
+      setSavedBookings(updatedBookings);
+      if (onBookingsCountChange) {
+        onBookingsCountChange(updatedBookings.length);
+      }
       setToast('Booking saved successfully!');
       setTimeout(() => setToast(null), 3000);
     } catch (error) {
@@ -926,23 +949,30 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   const deleteBooking = useCallback(async (bookingId: string) => {
     try {
       await deleteBookingFromDB(bookingId);
-      setSavedBookings(prev => prev.filter(b => b.id !== bookingId));
+      const updatedBookings = savedBookings.filter(b => b.id !== bookingId);
+      setSavedBookings(updatedBookings);
+      if (onBookingsCountChange) {
+        onBookingsCountChange(updatedBookings.length);
+      }
     } catch (error) {
       console.error('Failed to delete booking:', error);
     }
-  }, []);
+  }, [savedBookings, onBookingsCountChange]);
 
   // Clear all bookings
   const clearAllBookings = useCallback(async () => {
     try {
       await clearAllBookingsFromDB();
       setSavedBookings([]);
+      if (onBookingsCountChange) {
+        onBookingsCountChange(0);
+      }
       setToast('All bookings cleared');
       setTimeout(() => setToast(null), 3000);
     } catch (error) {
       console.error('Failed to clear bookings:', error);
     }
-  }, []);
+  }, [onBookingsCountChange]);
 
   // Save booking as image
   const saveBookingAsImage = useCallback(async () => {
@@ -1244,20 +1274,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             <Calculator className="w-5 h-5 text-blue-600" />
             <h2 className="text-xl font-bold text-gray-800">Parlay Builder</h2>
           </div>
-          {/* History Icon with Long Press - Only show if there are saved bookings */}
-          {savedBookings.length > 0 && (
-            <button
-              className="absolute right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
-              onMouseDown={handleParlayLongPressStart}
-              onMouseUp={handleParlayLongPressEnd}
-              onMouseLeave={handleParlayLongPressEnd}
-              onTouchStart={handleParlayLongPressStart}
-              onTouchEnd={handleParlayLongPressEnd}
-              title="Long press (3s) to view booking history"
-            >
-              <History className="w-5 h-5 text-gray-600" />
-            </button>
-          )}
         </div>
         {/* Source, Badge, and Buttons */}
         <div className="flex items-center justify-between px-4 py-3">
