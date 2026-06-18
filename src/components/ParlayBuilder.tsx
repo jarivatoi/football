@@ -1631,7 +1631,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               {/* API Source - Above Booking Reference */}
               {selectedSource && (
                 <div className="p-2 bg-blue-50 text-center border-b border-blue-200">
-                  <div className="text-sm font-semibold text-blue-700">
+                  <div className="text-xl font-bold text-blue-700">
                     {selectedSource.displayName}
                   </div>
                 </div>
