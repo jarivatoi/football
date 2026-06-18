@@ -881,22 +881,29 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   };
 
   // Save current booking to IndexedDB
-  const saveBooking = useCallback(async () => {
-    if (!lastResult?.ticketNo || !lastResult?.success) return;
-    
-    // Calculate potential win at time of saving
-    const currentTotalOdds = selections.reduce((acc, selection) => {
+  const saveBooking = useCallback(async (bookingData?: { ticketNo: string; selections: any[]; stake: number; potentialWin: number }) => {
+    // If bookingData is provided, use it (for auto-save after bet)
+    // Otherwise, use state (for manual save from history)
+    const ticketNo = bookingData?.ticketNo || lastResult?.ticketNo;
+    const selectionsToSave = bookingData?.selections || selections;
+    const stakeToSave = bookingData?.stake || betAmount;
+    const potentialWinToSave = bookingData?.potentialWin || betAmount * selections.reduce((acc, selection) => {
       const odds = typeof selection.odds === 'string' ? parseFloat(selection.odds) : selection.odds;
       return acc * odds;
     }, 1);
-    const currentPotentialWin = betAmount * currentTotalOdds;
     
+    if (!ticketNo) {
+      console.log('No ticket number available for saving');
+      return;
+    }
+    
+    // Create booking object
     const newBooking: SavedBooking = {
       id: Date.now().toString(),
-      bookingRef: lastResult.ticketNo,
-      selections: [...selections],
-      stake: betAmount,
-      potentialWin: currentPotentialWin,
+      bookingRef: ticketNo,
+      selections: [...selectionsToSave],
+      stake: stakeToSave,
+      potentialWin: potentialWinToSave,
       timestamp: Date.now(),
       formattedDateTime: formatBookingDateTime(Date.now()),
       apiSource: selectedSource?.displayName
@@ -1120,8 +1127,17 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           fullResponse: bookingResult
         });
         
-        // Auto-save booking to IndexedDB
-        saveBooking();
+        // Auto-save booking to IndexedDB with direct data
+        const totalOdds = selections.reduce((acc, selection) => {
+          const odds = typeof selection.odds === 'string' ? parseFloat(selection.odds) : selection.odds;
+          return acc * odds;
+        }, 1);
+        saveBooking({
+          ticketNo: bookingResult.ticketNo || '',
+          selections: [...selections],
+          stake: betAmount,
+          potentialWin: betAmount * totalOdds
+        });
         
         // Don't clear selections or reset bet amount - let user decide
         setIsPlacing(false);
@@ -1134,8 +1150,17 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           fullResponse: bookingResult
         });
         
-        // Auto-save booking to IndexedDB
-        saveBooking();
+        // Auto-save booking to IndexedDB with direct data
+        const totalOdds = selections.reduce((acc, selection) => {
+          const odds = typeof selection.odds === 'string' ? parseFloat(selection.odds) : selection.odds;
+          return acc * odds;
+        }, 1);
+        saveBooking({
+          ticketNo: bookingResult.ticketNo || '',
+          selections: [...selections],
+          stake: betAmount,
+          potentialWin: betAmount * totalOdds
+        });
         
         // Don't clear selections or reset bet amount - let user decide
         setIsPlacing(false);
