@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React from 'react';
 import { Calendar, Clock } from 'lucide-react';
 import type { TotelepepMatch } from '../services/totelepepExtractor';
 import MatchCard from './MatchCard';
-import { VirtualScrollManager } from '../utils/virtualScroll';
 
 interface DateGroupedMatchesProps {
   groupedMatches: Record<string, TotelepepMatch[]>;
@@ -25,56 +24,6 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
   searchTerm = '',
   onMarketsLoaded
 }) => {
-  // Virtualization state
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [scrollTop, setScrollTop] = useState(0);
-  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight - 200 : 800; // Subtract header height
-  
-  // Create virtual scroll manager
-  const scrollManagerRef = useRef<VirtualScrollManager | null>(null);
-  if (!scrollManagerRef.current) {
-    scrollManagerRef.current = new VirtualScrollManager({
-      itemHeight: 150, // Average height of match card (px)
-      viewportHeight,
-      bufferSize: 5 // Load 5 extra above/below viewport
-    });
-  }
-
-  // Flatten all matches with date info
-  const allMatchesWithDates = React.useMemo(() => {
-    const sortedDates = Object.keys(groupedMatches).sort();
-    const flat: Array<{ match: TotelepepMatch; date: string; globalIndex: number }> = [];
-    let index = 0;
-    
-    sortedDates.forEach(date => {
-      groupedMatches[date].forEach(match => {
-        flat.push({ match, date, globalIndex: index++ });
-      });
-    });
-    
-    // Update scroll manager with total count
-    scrollManagerRef.current?.setTotalItems(flat.length);
-    
-    return flat;
-  }, [groupedMatches]);
-
-  // Handle scroll event
-  const handleScroll = useCallback(() => {
-    if (scrollContainerRef.current) {
-      const newScrollTop = scrollContainerRef.current.scrollTop;
-      setScrollTop(newScrollTop);
-      scrollManagerRef.current?.handleScroll(newScrollTop);
-    }
-  }, []);
-
-  // Get visible matches
-  const visibleRange = scrollManagerRef.current?.getVisibleRange() || { start: 0, end: 20 };
-  const visibleMatches = allMatchesWithDates.slice(visibleRange.start, visibleRange.end + 1);
-  
-  // Calculate total height for scrollbar
-  const totalHeight = scrollManagerRef.current?.getTotalHeight() || 0;
-  const startOffset = visibleRange.start * 150; // itemHeight
-
   const formatDateHeader = (dateString: string): string => {
     const date = new Date(dateString);
     
@@ -113,37 +62,35 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
   }
 
   return (
-    <div 
-      ref={scrollContainerRef}
-      onScroll={handleScroll}
-      style={{ height: viewportHeight, overflowY: 'auto', position: 'relative' }}
-      className="bg-white rounded-xl shadow-lg"
-    >
-      {/* Total height spacer for scrollbar */}
-      <div style={{ height: totalHeight, position: 'relative' }}>
-        {/* Visible matches only */}
-        <div style={{ transform: `translateY(${startOffset}px)` }}>
-          {visibleMatches.map(({ match, date, globalIndex }) => (
-            <MatchCard
-              key={`${date}-${match.id}-${globalIndex}`}
-              match={match}
-              onPriceClick={onPriceClick}
-              selectedPrices={selectedPrices}
-              searchMode={searchMode}
-              searchTerm={searchTerm}
-              onMarketsLoaded={onMarketsLoaded}
-            />
-          ))}
-        </div>
-      </div>
-      
-      {/* Loading indicator at bottom */}
-      {loading && (
-        <div className="p-8 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading more matches...</p>
-        </div>
-      )}
+    <div className="space-y-8">
+      {sortedDates.map((date) => {
+        const matches = groupedMatches[date];
+        const dateHeader = formatDateHeader(date);
+
+        return (
+          <div key={date}>
+            {/* Date Header - Sticky */}
+            <div className="sticky top-0 z-10 bg-blue-600 text-white px-3 py-2 text-sm font-medium shadow-md" style={{top: 'var(--header-height, 180px)'}}>
+              {dateHeader}
+            </div>
+
+            {/* Match Cards */}
+            <div>
+              {matches.map((match, index) => (
+                <MatchCard
+                  key={`${date}-${match.id}-${index}`}
+                  match={match}
+                  onPriceClick={onPriceClick}
+                  selectedPrices={selectedPrices}
+                  searchMode={searchMode}
+                  searchTerm={searchTerm}
+                  onMarketsLoaded={onMarketsLoaded}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
