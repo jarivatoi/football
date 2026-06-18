@@ -7,6 +7,7 @@ import CompetitionFilter from './components/CompetitionFilter';
 import Header, { API_SOURCES, ApiSource } from './components/Header';
 import StatsCards from './components/StatsCards';
 import ParlayBuilder, { ParlaySelection } from './components/ParlayBuilder';
+import BookingHistory from './components/BookingHistory';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import DataExtractor from './components/DataExtractor';
 import EndpointDiscovery from './components/EndpointDiscovery';
@@ -1427,6 +1428,13 @@ function App() {
       )}
       
       <PWAInstallPrompt />
+      
+      {/* Booking History Modal */}
+      <BookingHistory
+        showHistory={showBookingHistory}
+        onClose={handleCloseBookingHistory}
+        onBookingsCountChange={setSavedBookingsCount}
+      />
     </div>
   );
 }
