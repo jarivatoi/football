@@ -802,6 +802,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const parlayBuilderRef = useRef<HTMLDivElement>(null);
   const bookingRefRef = useRef<HTMLDivElement>(null); // Ref for booking reference section
+  const [selectedBooking, setSelectedBooking] = useState<SavedBooking | null>(null); // View full booking details
 
   // Effect to show the "Place New Bet" button after a successful booking
   useEffect(() => {
@@ -1218,11 +1219,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     <div 
       ref={parlayBuilderRef}
       className="bg-white rounded-lg shadow-md h-full flex flex-col overflow-hidden"
-      onMouseDown={handleParlayLongPressStart}
-      onMouseUp={handleParlayLongPressEnd}
-      onMouseLeave={handleParlayLongPressEnd}
-      onTouchStart={handleParlayLongPressStart}
-      onTouchEnd={handleParlayLongPressEnd}
     >
       {/* Toast Notification */}
       {toast && (
@@ -1235,13 +1231,25 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       )}
       
       {/* Header - Sticky */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 z-10">
+      <div className="sticky top-0 bg-white border-b border-gray-200 z-10 relative">
         {/* Centered Title */}
         <div className="flex items-center justify-center py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <Calculator className="w-5 h-5 text-blue-600" />
             <h2 className="text-xl font-bold text-gray-800">Parlay Builder</h2>
           </div>
+          {/* History Icon with Long Press */}
+          <button
+            className="absolute right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+            onMouseDown={handleParlayLongPressStart}
+            onMouseUp={handleParlayLongPressEnd}
+            onMouseLeave={handleParlayLongPressEnd}
+            onTouchStart={handleParlayLongPressStart}
+            onTouchEnd={handleParlayLongPressEnd}
+            title="Long press (3s) to view booking history"
+          >
+            <History className="w-5 h-5 text-gray-600" />
+          </button>
         </div>
         {/* Source, Badge, and Buttons */}
         <div className="flex items-center justify-between px-4 py-3">
@@ -1621,21 +1629,21 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
             {/* Booking Reference Section - Capture Target */}
             <div ref={bookingRefRef} className="bg-white">
+              {/* API Source - Above Booking Reference */}
+              {selectedSource && (
+                <div className="p-2 bg-blue-50 text-center border-b border-blue-200">
+                  <div className="text-sm font-semibold text-blue-700">
+                    {selectedSource.displayName}
+                  </div>
+                </div>
+              )}
+
               {/* Booking Reference */}
               <div className="p-3 bg-green-500 text-white text-center">
                 <div className="text-xl font-bold">
                   Booking Ref# {lastResult.ticketNo}
                 </div>
               </div>
-
-              {/* API Source */}
-              {selectedSource && (
-                <div className="p-2 bg-gray-100 text-center border-b border-gray-200">
-                  <div className="text-sm font-semibold text-gray-700">
-                    {selectedSource.displayName}
-                  </div>
-                </div>
-              )}
 
               {/* SMS Option - Long Press 3.5s */}
               <div 
@@ -1751,27 +1759,35 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 <div className="space-y-4">
                   {savedBookings.map((booking) => (
                     <div key={booking.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                      {/* Booking Header */}
-                      <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                      {/* Booking Header - Clickable */}
+                      <div 
+                        className="bg-gray-50 px-4 py-2 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => setSelectedBooking(booking)}
+                      >
                         <div className="text-sm text-gray-600">{booking.formattedDateTime}</div>
                       </div>
                       
                       {/* Booking Details */}
                       <div className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="text-lg font-bold text-gray-800">
-                            Booking Ref# {booking.bookingRef}
+                        <div 
+                          className="cursor-pointer"
+                          onClick={() => setSelectedBooking(booking)}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="text-lg font-bold text-gray-800">
+                              Booking Ref# {booking.bookingRef}
+                            </div>
+                            <div className="text-sm text-gray-600 font-medium">
+                              {booking.selections.length} {booking.selections.length === 1 ? 'Match' : 'Matches'}
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-600 font-medium">
-                            {booking.selections.length} {booking.selections.length === 1 ? 'Match' : 'Matches'}
-                          </div>
+                          
+                          {booking.apiSource && (
+                            <div className="text-xs text-gray-500 mb-3 text-center bg-gray-50 p-1 rounded">
+                              {booking.apiSource}
+                            </div>
+                          )}
                         </div>
-                        
-                        {booking.apiSource && (
-                          <div className="text-xs text-gray-500 mb-3 text-center bg-gray-50 p-1 rounded">
-                            {booking.apiSource}
-                          </div>
-                        )}
                         
                         {/* Action Buttons */}
                         <div className="flex gap-2">
@@ -1809,6 +1825,110 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Full Booking Details Modal */}
+      {selectedBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end sm:items-center justify-center">
+          <div className="bg-white w-full max-w-2xl max-h-[90vh] rounded-t-lg sm:rounded-lg overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Booking Details</h3>
+                  <p className="text-sm text-gray-600">{selectedBooking.formattedDateTime}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedBooking(null)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Booking Content */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {/* Booking Ref and Summary */}
+              <div className="mb-4 p-3 bg-green-500 text-white text-center rounded-lg">
+                <div className="text-xl font-bold">Booking Ref# {selectedBooking.bookingRef}</div>
+              </div>
+              
+              {selectedBooking.apiSource && (
+                <div className="mb-4 p-2 bg-blue-50 text-center rounded-lg">
+                  <div className="text-sm font-semibold text-blue-700">{selectedBooking.apiSource}</div>
+                </div>
+              )}
+              
+              {/* Summary */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="p-3 bg-gray-50 rounded-lg text-center">
+                  <div className="text-xs text-gray-600">Stake</div>
+                  <div className="text-lg font-bold text-gray-800">{selectedBooking.stake}</div>
+                </div>
+                <div className="p-3 bg-blue-50 rounded-lg text-center">
+                  <div className="text-xs text-blue-600">Potential Win</div>
+                  <div className="text-lg font-bold text-blue-700">{selectedBooking.potentialWin.toFixed(2)}</div>
+                </div>
+              </div>
+              
+              {/* Matches */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-gray-800">Matches ({selectedBooking.selections.length})</h4>
+                {selectedBooking.selections.map((selection, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-800 mb-1">
+                          {selection.homeTeam} vs {selection.awayTeam}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {selection.competitionName && `${selection.competitionName} • `}
+                          {selection.kickoffTime || selection.date}
+                        </div>
+                        <div className="mt-2 text-sm font-medium text-gray-700">
+                          Selection: {selection.selectionName || selection.priceType}
+                        </div>
+                      </div>
+                      <div className="text-lg font-bold text-blue-600 ml-3">
+                        {typeof selection.odds === 'string' ? selection.odds : selection.odds.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    // Restore this booking to current selections
+                    onClearAll();
+                    // You would need to pass selections back to parent here
+                    setSelectedBooking(null);
+                    setToast('Booking loaded (feature coming soon)');
+                    setTimeout(() => setToast(null), 3000);
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                >
+                  Load Booking
+                </button>
+                <button
+                  onClick={() => {
+                    deleteBooking(selectedBooking.id);
+                    setSelectedBooking(null);
+                  }}
+                  className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  Delete
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
