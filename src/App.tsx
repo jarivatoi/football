@@ -97,6 +97,7 @@ function App() {
   const [availableDates, setAvailableDates] = useState<Array<{date: string, matchCount: number, displayName: string}>>([]);
   const [calendarList, setCalendarList] = useState<Array<{date: string, matchCount: number, displayName: string}>>([]);
   const [showParlayBuilder, setShowParlayBuilder] = useState(false);
+  const [showClearAllModal, setShowClearAllModal] = useState(false); // Confirmation modal
   
   // Market loading progress per date
   const [dateProgress, setDateProgress] = useState<Record<string, {
@@ -152,9 +153,12 @@ function App() {
     // Clear cache to fetch fresh data from new source
     totelepepExtractor.clearCache();
     
-    // Clear current matches immediately to show loading state
-    setMatches([]);
-    setGroupedMatches({});
+    // Set loading state FIRST (prevents "No matches" flash)
+    setLoading(true);
+    
+    // Keep old matches visible while loading (don't clear them)
+    // setMatches([]);  ← REMOVED
+    // setGroupedMatches({});  ← REMOVED
     
     // Reset both category and competition filters when switching sources
     // Each source has its own IDs, so start fresh
@@ -1604,9 +1608,21 @@ function App() {
   };
 
   const handleClearAll = () => {
+    // Show confirmation modal instead of clearing immediately
+    setShowClearAllModal(true);
+  };
+  
+  // Execute clear all after confirmation
+  const confirmClearAll = () => {
     setParlaySelections([]);
     clearBetslip(); // Clear from IndexedDB
     setShowParlayBuilder(false); // Close parlay builder when clearing all
+    setShowClearAllModal(false); // Close modal
+  };
+  
+  // Cancel clear all
+  const cancelClearAll = () => {
+    setShowClearAllModal(false);
   };
   const handleDataExtracted = (extractedData: any[]) => {
     // Convert extracted data to TotelepepMatch format
