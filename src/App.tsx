@@ -1660,6 +1660,37 @@ function App() {
     }
   };
   
+  // Handle long-press to clear cache for a specific date
+  const handleClearCache = async (date: string) => {
+    console.log(`[Clear Cache] Long press detected for ${date}`);
+    
+    const { clearCacheMatches, isCacheExpired } = await import('./utils/matchCache');
+    const cacheKey = `date_${date}_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_totelepep`;
+    
+    // Clear cache for this date
+    await clearCacheMatches(cacheKey);
+    console.log(`[Clear Cache] Cleared IndexedDB cache for ${date}`);
+    
+    // Reset progress for this date
+    setDateProgress(prev => ({
+      ...prev,
+      [date]: {
+        loaded: 0,
+        total: 0,
+        isComplete: false
+      }
+    }));
+    
+    // Reload data from API
+    if (selectedDate === date) {
+      console.log(`[Clear Cache] Reloading ${date} from API...`);
+      loadData(date, selectedCategory, selectedCompetition);
+    }
+    
+    // Show feedback
+    alert(`Cache cleared for ${date}. Reloading from API...`);
+  };
+  
   const toggleParlayBuilder = () => {
     setShowParlayBuilder(prev => !prev);
   };
@@ -1711,6 +1742,7 @@ function App() {
           totalMatches={totalAllMatchesCount}
           dateProgress={dateProgress}
           allMatchesProgress={allMatchesProgress || undefined}
+          onClearCache={handleClearCache}
         />
         
         {/* Search Bar */}

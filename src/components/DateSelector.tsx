@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface DateSelectorProps {
   selectedDate: string;
@@ -18,6 +18,7 @@ interface DateSelectorProps {
     isComplete: boolean;
     percentage: number;
   };
+  onClearCache?: (date: string) => void; // Long-press callback
 }
 
 const DateSelector: React.FC<DateSelectorProps> = ({ 
@@ -28,10 +29,36 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   onToggleAllMatches,
   totalMatches = 0,
   dateProgress = {},
-  allMatchesProgress
+  allMatchesProgress,
+  onClearCache
 }) => {
+  // Long-press state
+  const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [longPressDate, setLongPressDate] = useState<string | null>(null);
+  
   // Use API data directly - show exact names from totelepep
   const datesToShow = availableDates.length > 0 ? availableDates.slice(0, 8) : [];
+  
+  // Long-press handlers
+  const handlePressStart = (date: string) => {
+    setLongPressDate(date);
+    const timer = setTimeout(() => {
+      // Long press detected (3 seconds)
+      if (onClearCache) {
+        onClearCache(date);
+      }
+      setLongPressDate(null);
+    }, 3000);
+    setPressTimer(timer);
+  };
+  
+  const handlePressEnd = () => {
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      setPressTimer(null);
+    }
+    setLongPressDate(null);
+  };
   
 
   return (
@@ -60,13 +87,18 @@ const DateSelector: React.FC<DateSelectorProps> = ({
             <button
               key={dateInfo.date}
               onClick={() => onDateChange(dateInfo.date)}
+              onTouchStart={() => handlePressStart(dateInfo.date)}
+              onTouchEnd={handlePressEnd}
+              onMouseDown={() => handlePressStart(dateInfo.date)}
+              onMouseUp={handlePressEnd}
+              onMouseLeave={handlePressEnd}
               className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all min-w-[70px] relative overflow-hidden ${
                 isSelected && isComplete
                   ? 'bg-green-600 text-white shadow-md' // ✅ Complete - GREEN
                   : isSelected
                     ? 'bg-blue-600 text-white shadow-md' // Selected, loading - BLUE
                     : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-              }`}
+              } ${longPressDate === dateInfo.date ? 'animate-pulse' : ''}`}
             >
               <div className="text-center">
                 <div className={`font-semibold ${
