@@ -516,54 +516,44 @@ function App() {
       // Quick check: Initialize progress state for all dates (from IndexedDB only, no fetching)
       const calendarList = (totelepepExtractor as any).calendarList || [];
       
-      // Process all dates in parallel (just checking cache, not fetching)
-      const progressChecks = calendarList.map(async (dateEntry: any) => {
+      // Process dates SEQUENTIALLY (not in parallel!)
+      const newProgress: Record<string, {loaded: number, total: number, isComplete: boolean}> = {};
+      
+      for (const dateEntry of calendarList) {
         const cacheKey = `date_${dateEntry.entryDate}_all_all_totelepep`;
-        const { getCachedMatches } = await import('./utils/matchCache');
+        const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
         const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
+        const expired = await isCacheExpired(cacheKey);
         
-        if (cachedMatches && cachedMatches.length > 0) {
+        if (cachedMatches && cachedMatches.length > 0 && !expired && metadata?.isComplete) {
+          // Has valid cache - count markets
           const matchesWithMarkets = cachedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
           const isComplete = matchesWithMarkets === cachedMatches.length;
           
-          return {
-            date: dateEntry.entryDate,
+          newProgress[dateEntry.entryDate] = {
             loaded: matchesWithMarkets,
             total: cachedMatches.length,
-            isComplete,
-            hasCache: true
+            isComplete
           };
+          
+          console.log(`[Cache Check] ${dateEntry.entryDate}: ${matchesWithMarkets}/${cachedMatches.length} (${Math.round((matchesWithMarkets/cachedMatches.length)*100)}%)`);
+        } else {
+          // No valid cache - show 0%
+          newProgress[dateEntry.entryDate] = {
+            loaded: 0,
+            total: dateEntry.matchCount || 0,
+            isComplete: false
+          };
+          
+          console.log(`[Cache Check] ${dateEntry.entryDate}: No cache (will load on-demand)`);
         }
-        return {
-          date: dateEntry.entryDate,
-          loaded: 0,
-          total: dateEntry.matchCount || 0,
-          isComplete: false,
-          hasCache: false
-        };
-      });
+      }
       
-      // Wait for all dates to be checked
-      Promise.all(progressChecks).then(results => {
-        // Build progress object for ALL dates at once
-        const newProgress: Record<string, {loaded: number, total: number, isComplete: boolean}> = {};
-        
-        results.forEach(result => {
-          if (result) {
-            newProgress[result.date] = {
-              loaded: result.loaded,
-              total: result.total,
-              isComplete: result.isComplete
-            };
-          }
-        });
-        
-        // Set all progress at once (prevents overwriting)
-        if (Object.keys(newProgress).length > 0) {
-          console.log(`[Progress] Initialized ${Object.keys(newProgress).length} dates from cache`);
-          setDateProgress(newProgress);
-        }
-      });
+      // Set all progress at once
+      if (Object.keys(newProgress).length > 0) {
+        console.log(`[Progress] Initialized ${Object.keys(newProgress).length} dates from cache`);
+        setDateProgress(newProgress);
+      }
     });
   }, []); // Only run once on mount
   
