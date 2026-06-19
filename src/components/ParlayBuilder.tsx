@@ -1212,30 +1212,50 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         // Mark selections with errors ONLY if the error is about the match/selection
         // NOT for stake/payout validation errors
         if (bookingResult.betList && bookingResult.betList.length > 0) {
+          console.log('[Bet Error] Processing betList for errors:', bookingResult.betList);
+          
           selections.forEach((selection, index) => {
             const bet = bookingResult.betList[index];
+            console.log(`[Bet Error] Selection ${index}:`, {
+              hasErrorCode: bet?.betErrorCode,
+              betErrorMessage: bet?.betErrorMessage,
+              legErrorMessage: bet?.legErrorMessage
+            });
+            
             if (bet && bet.betErrorCode && bet.betErrorCode !== 0) {
               const errorMsg = (bet.betErrorMessage || bet.legErrorMessage || '').toLowerCase();
+              console.log('[Bet Error] Error message (lowercase):', errorMsg);
               
-              // Only mark as invalid if error is about the match/selection itself
-              // NOT for stake/payout/account validation errors
-              const isMatchError = 
-                errorMsg.includes('suspended') ||
-                errorMsg.includes('unavailable') ||
-                errorMsg.includes('not found') ||
-                errorMsg.includes('invalid') ||
-                errorMsg.includes('odds changed') ||
-                errorMsg.includes('market closed') ||
-                errorMsg.includes('match started');
-              
+              // Check for stake/payout/account errors FIRST (higher priority)
               const isStakeError = 
                 errorMsg.includes('minimum stake') ||
                 errorMsg.includes('maximum stake') ||
                 errorMsg.includes('minimum bet') ||
                 errorMsg.includes('maximum bet') ||
+                errorMsg.includes('invalid stake') || // "Invalid Stake" matches here!
+                errorMsg.includes('stake amount') ||
                 errorMsg.includes('payout') ||
                 errorMsg.includes('balance') ||
                 errorMsg.includes('insufficient');
+              
+              // Then check for match/selection errors
+              const isMatchError = !isStakeError && (  // Only if NOT a stake error
+                errorMsg.includes('suspended') ||
+                errorMsg.includes('unavailable') ||
+                errorMsg.includes('not found') ||
+                errorMsg.includes('odds changed') ||
+                errorMsg.includes('market closed') ||
+                errorMsg.includes('match started') ||
+                errorMsg.includes('invalid selection') ||  // More specific: "invalid selection" not just "invalid"
+                errorMsg.includes('invalid market') ||
+                errorMsg.includes('invalid odds')
+              );
+              
+              console.log('[Bet Error] Classification:', {
+                isMatchError,
+                isStakeError,
+                willMarkInvalid: isMatchError && !isStakeError
+              });
               
               // Only mark if it's a match error, not a stake error
               if (isMatchError && !isStakeError) {
@@ -1243,6 +1263,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 selection.hasError = true;
               } else if (isStakeError) {
                 console.log('[Bet Error] Stake/validation error - NOT marking selection as invalid:', errorMsg);
+              } else {
+                console.log('[Bet Error] Unknown error type - NOT marking selection as invalid:', errorMsg);
               }
             }
           });
