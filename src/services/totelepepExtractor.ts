@@ -163,6 +163,43 @@ class TotelepepExtractor {
         // Also store in memory cache for fast access
         this.setCachedData(cachedMatches, cacheKey);
         
+        // Rebuild calendarList from cached matches (since we're skipping API call)
+        const dateCounts: Record<string, number> = {};
+        cachedMatches.forEach(match => {
+          if (match.date) {
+            dateCounts[match.date] = (dateCounts[match.date] || 0) + 1;
+          }
+        });
+        
+        const calendarList = Object.entries(dateCounts).map(([date, count]) => {
+          const dateObj = new Date(date);
+          const today = new Date();
+          const tomorrow = new Date(today);
+          tomorrow.setDate(today.getDate() + 1);
+          
+          let displayName = '';
+          if (dateObj.toDateString() === today.toDateString()) {
+            displayName = 'Today';
+          } else if (dateObj.toDateString() === tomorrow.toDateString()) {
+            displayName = 'Tomorrow';
+          } else {
+            displayName = dateObj.toLocaleDateString('en-GB', { 
+              weekday: 'short', 
+              day: 'numeric', 
+              month: 'short' 
+            });
+          }
+          
+          return {
+            entryDate: date,
+            matchCount: count,
+            displayDate: displayName
+          };
+        }).sort((a, b) => a.entryDate.localeCompare(b.entryDate));
+        
+        (this as any).calendarList = calendarList;
+        console.log(`[Calendar] Rebuilt calendarList from cache: ${calendarList.length} dates`);
+        
         return cachedMatches;
       }
       
@@ -332,6 +369,8 @@ class TotelepepExtractor {
     // Count how many matches already have markets loaded (from cache)
     const alreadyLoaded = matches.filter(m => m.allMarkets && m.allMarkets.length > 0).length;
     
+    console.log(`[Progress Debug] Total: ${totalMatches}, Already loaded: ${alreadyLoaded}, Need to load: ${totalMatches - alreadyLoaded}`);
+    
     // Run in background - don't await this
     (async () => {
       console.log(`[Background] Starting market fetch for ${totalMatches} matches (${alreadyLoaded} already loaded from cache)...`);
@@ -341,13 +380,16 @@ class TotelepepExtractor {
       
       // Report initial progress
       if (this.onMarketProgress && loadedCount > 0) {
+        console.log(`[Progress] Initial: ${loadedCount}/${totalMatches} (${Math.round((loadedCount/totalMatches)*100)}%)`);
         this.onMarketProgress(date, loadedCount, totalMatches);
       }
       
       for (let i = 0; i < totalMatches; i += chunkSize) {
         const chunk = matches.slice(i, i + chunkSize);
+        const chunkStart = i;
+        const chunkEnd = i + chunk.length;
         
-        console.log(`[Background Chunk ${Math.floor(i/chunkSize) + 1}] Fetching markets for ${chunk.length} matches...`);
+        console.log(`[Background Chunk ${Math.floor(i/chunkSize) + 1}] Processing matches ${chunkStart+1}-${chunkEnd}...`);
         
         // Fetch markets with rate limiting
         for (const match of chunk) {
@@ -361,8 +403,10 @@ class TotelepepExtractor {
             await this.fetchMarketsForMatch(match);
             loadedCount++;
             
-            // Report progress
-            if (this.onMarketProgress) {
+            // Report progress every 10 matches or on last match
+            if (this.onMarketProgress && (loadedCount % 10 === 0 || loadedCount === totalMatches)) {
+              const percentage = Math.round((loadedCount/totalMatches)*100);
+              console.log(`[Progress] ${loadedCount}/${totalMatches} (${percentage}%)`);
               this.onMarketProgress(date, loadedCount, totalMatches);
             }
           } catch (error) {
@@ -370,7 +414,7 @@ class TotelepepExtractor {
             loadedCount++; // Still count as processed (even if failed)
             
             // Report progress
-            if (this.onMarketProgress) {
+            if (this.onMarketProgress && (loadedCount % 10 === 0 || loadedCount === totalMatches)) {
               this.onMarketProgress(date, loadedCount, totalMatches);
             }
           }
@@ -390,6 +434,7 @@ class TotelepepExtractor {
       
       // Final progress update (ensure complete)
       if (this.onMarketProgress) {
+        console.log(`[Progress] Complete: ${totalMatches}/${totalMatches} (100%)`);
         this.onMarketProgress(date, totalMatches, totalMatches);
       }
     })(); // Self-executing async function
