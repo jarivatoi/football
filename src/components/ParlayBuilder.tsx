@@ -1209,12 +1209,41 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         setToast(errorMessage);
         setTimeout(() => setToast(null), 5000); // Show for 5 seconds
         
-        // Mark all selections with errors if bet failed
+        // Mark selections with errors ONLY if the error is about the match/selection
+        // NOT for stake/payout validation errors
         if (bookingResult.betList && bookingResult.betList.length > 0) {
           selections.forEach((selection, index) => {
             const bet = bookingResult.betList[index];
             if (bet && bet.betErrorCode && bet.betErrorCode !== 0) {
-              selection.hasError = true;
+              const errorMsg = (bet.betErrorMessage || bet.legErrorMessage || '').toLowerCase();
+              
+              // Only mark as invalid if error is about the match/selection itself
+              // NOT for stake/payout/account validation errors
+              const isMatchError = 
+                errorMsg.includes('suspended') ||
+                errorMsg.includes('unavailable') ||
+                errorMsg.includes('not found') ||
+                errorMsg.includes('invalid') ||
+                errorMsg.includes('odds changed') ||
+                errorMsg.includes('market closed') ||
+                errorMsg.includes('match started');
+              
+              const isStakeError = 
+                errorMsg.includes('minimum stake') ||
+                errorMsg.includes('maximum stake') ||
+                errorMsg.includes('minimum bet') ||
+                errorMsg.includes('maximum bet') ||
+                errorMsg.includes('payout') ||
+                errorMsg.includes('balance') ||
+                errorMsg.includes('insufficient');
+              
+              // Only mark if it's a match error, not a stake error
+              if (isMatchError && !isStakeError) {
+                console.log('[Bet Error] Marking selection as invalid:', errorMsg);
+                selection.hasError = true;
+              } else if (isStakeError) {
+                console.log('[Bet Error] Stake/validation error - NOT marking selection as invalid:', errorMsg);
+              }
             }
           });
         }
