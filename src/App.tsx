@@ -105,6 +105,14 @@ function App() {
     isComplete: boolean;
   }>>({});
   
+  // Progress for "All Matches" view (combined across all dates)
+  const [allMatchesProgress, setAllMatchesProgress] = useState<{
+    loaded: number;
+    total: number;
+    isComplete: boolean;
+    percentage: number;
+  } | null>(null);
+  
   // Category and Competition filter states
   const [categories, setCategories] = useState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -386,6 +394,10 @@ function App() {
       
       // Use calendarList which has all the dates
       const datesToFetch = calendarList.length > 0 ? calendarList : availableDates;
+      
+      // Calculate total matches across all dates
+      const totalExpectedMatches = datesToFetch.reduce((sum, d) => sum + (d.matchCount || 0), 0);
+      let loadedMatches = 0;
 
       // Fetch matches from each date
       for (const dateInfo of datesToFetch) {
@@ -394,6 +406,16 @@ function App() {
           const matches = await totelepepExtractor.extractMatches(dateInfo.date, catId, compId);
           
           allMatches.push(...matches);
+          loadedMatches += matches.length;
+          
+          // Update progress
+          const percentage = totalExpectedMatches > 0 ? (loadedMatches / totalExpectedMatches) * 100 : 0;
+          setAllMatchesProgress({
+            loaded: loadedMatches,
+            total: totalExpectedMatches,
+            isComplete: false,
+            percentage
+          });
         } catch (error) {
           
         }
@@ -411,6 +433,14 @@ function App() {
       // Group matches by date
       const grouped = totelepepService.groupMatchesByDate(sortedMatches);
       setGroupedMatches(grouped);
+      
+      // Mark as complete
+      setAllMatchesProgress({
+        loaded: sortedMatches.length,
+        total: totalExpectedMatches,
+        isComplete: true,
+        percentage: 100
+      });
       
       setLastUpdated(new Date());
       
@@ -1493,6 +1523,7 @@ function App() {
           onToggleAllMatches={toggleAllMatches}
           totalMatches={totalAllMatchesCount}
           dateProgress={dateProgress}
+          allMatchesProgress={allMatchesProgress || undefined}
         />
         
         {/* Search Bar */}

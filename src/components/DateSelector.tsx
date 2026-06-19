@@ -12,6 +12,12 @@ interface DateSelectorProps {
     total: number;
     isComplete: boolean;
   }>;
+  allMatchesProgress?: {
+    loaded: number;
+    total: number;
+    isComplete: boolean;
+    percentage: number;
+  };
 }
 
 const DateSelector: React.FC<DateSelectorProps> = ({ 
@@ -21,7 +27,8 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   showAllMatches = false,
   onToggleAllMatches,
   totalMatches = 0,
-  dateProgress = {}
+  dateProgress = {},
+  allMatchesProgress
 }) => {
   // Use API data directly - show exact names from totelepep
   const datesToShow = availableDates.length > 0 ? availableDates.slice(0, 8) : [];
@@ -91,19 +98,39 @@ const DateSelector: React.FC<DateSelectorProps> = ({
         {onToggleAllMatches && (
           <button
             onClick={onToggleAllMatches}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all min-w-[90px] ${
-              showAllMatches
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+            className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all min-w-[90px] relative overflow-hidden ${
+              showAllMatches && allMatchesProgress?.isComplete
+                ? 'bg-green-600 text-white shadow-md' // Complete - GREEN
+                : showAllMatches
+                  ? 'bg-blue-600 text-white shadow-md' // Loading - BLUE
+                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
             }`}
           >
+            {/* Progress Bar (only when All Matches is active and loading) */}
+            {showAllMatches && allMatchesProgress && !allMatchesProgress.isComplete && allMatchesProgress.percentage > 0 && (
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-800/30">
+                <div 
+                  className="h-full bg-green-400 transition-all duration-500 ease-out"
+                  style={{ width: `${allMatchesProgress.percentage}%` }}
+                />
+              </div>
+            )}
+            
             <div className="text-center" style={{ minHeight: '28px' }}>
               <div className={`font-semibold ${
+                showAllMatches && allMatchesProgress?.isComplete ? 'text-white' :
                 showAllMatches ? 'text-white' : 'text-gray-900'
               }`}>
                 All Matches
               </div>
-              {showAllMatches && (
+              {showAllMatches && allMatchesProgress && (
+                <div className={`text-[10px] ${
+                  allMatchesProgress.isComplete ? 'text-green-100' : 'text-blue-100'
+                }`}>
+                  ({allMatchesProgress.loaded}/{allMatchesProgress.total})
+                </div>
+              )}
+              {showAllMatches && !allMatchesProgress && (
                 <div className="text-[10px] text-blue-100">
                   ({totalMatches})
                 </div>
