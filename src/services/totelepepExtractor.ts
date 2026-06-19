@@ -201,6 +201,35 @@ class TotelepepExtractor {
         (this as any).calendarList = calendarList;
         console.log(`[Calendar] Rebuilt calendarList from cache: ${calendarList.length} dates`);
         
+        // Check if all matches already have markets loaded (from previous session)
+        const matchesWithMarkets = cachedMatches.filter(m => m.allMarkets && m.allMarkets.length > 0).length;
+        const allMarketsLoaded = matchesWithMarkets === cachedMatches.length;
+        
+        if (allMarketsLoaded && cachedMatches.length > 0) {
+          // All markets already loaded - report 100% complete
+          console.log(`[Markets] All ${cachedMatches.length} matches already have markets loaded (100%)`);
+          
+          // Report complete progress to App.tsx
+          if (this.onMarketProgress) {
+            // Use first date as key
+            const firstDate = Object.keys(dateCounts)[0];
+            if (firstDate) {
+              this.onMarketProgress(firstDate, cachedMatches.length, cachedMatches.length);
+            }
+          }
+        } else if (matchesWithMarkets > 0) {
+          // Some markets loaded - report partial progress
+          console.log(`[Markets] ${matchesWithMarkets}/${cachedMatches.length} matches have markets (${Math.round((matchesWithMarkets/cachedMatches.length)*100)}%)`);
+          
+          if (this.onMarketProgress) {
+            // Use first date as key (since we're loading from cache for one date)
+            const firstDate = Object.keys(dateCounts)[0];
+            if (firstDate) {
+              this.onMarketProgress(firstDate, matchesWithMarkets, cachedMatches.length);
+            }
+          }
+        }
+        
         return cachedMatches;
       }
       
