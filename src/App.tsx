@@ -334,6 +334,19 @@ function App() {
       
     }
     
+    // Set progress to loading state (BLUE) for this date
+    // This ensures button shows BLUE while fetching, even if cache was expired
+    if (dateToFetch) {
+      setDateProgress(prev => ({
+        ...prev,
+        [dateToFetch]: {
+          loaded: 0,
+          total: prev[dateToFetch]?.total || 0,
+          isComplete: false // Force to loading state
+        }
+      }));
+    }
+    
     const catId = categoryId !== undefined ? categoryId : selectedCategory;
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
     try {
