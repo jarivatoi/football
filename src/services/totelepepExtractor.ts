@@ -164,43 +164,6 @@ class TotelepepExtractor {
         // Also store in memory cache for fast access
         this.setCachedData(cachedMatches, cacheKey);
         
-        // Rebuild calendarList from cached matches (since we're skipping API call)
-        const dateCounts: Record<string, number> = {};
-        cachedMatches.forEach(match => {
-          if (match.date) {
-            dateCounts[match.date] = (dateCounts[match.date] || 0) + 1;
-          }
-        });
-        
-        const calendarList = Object.entries(dateCounts).map(([date, count]) => {
-          const dateObj = new Date(date);
-          const today = new Date();
-          const tomorrow = new Date(today);
-          tomorrow.setDate(today.getDate() + 1);
-          
-          let displayName = '';
-          if (dateObj.toDateString() === today.toDateString()) {
-            displayName = 'Today';
-          } else if (dateObj.toDateString() === tomorrow.toDateString()) {
-            displayName = 'Tomorrow';
-          } else {
-            displayName = dateObj.toLocaleDateString('en-GB', { 
-              weekday: 'short', 
-              day: 'numeric', 
-              month: 'short' 
-            });
-          }
-          
-          return {
-            entryDate: date,
-            matchCount: count,
-            displayDate: displayName
-          };
-        }).sort((a, b) => a.entryDate.localeCompare(b.entryDate));
-        
-        (this as any).calendarList = calendarList;
-        console.log(`[Calendar] Rebuilt calendarList from cache: ${calendarList.length} dates`);
-        
         // Check if all matches already have markets loaded (from previous session)
         const matchesWithMarkets = cachedMatches.filter(m => m.allMarkets && m.allMarkets.length > 0).length;
         const allMarketsLoaded = matchesWithMarkets === cachedMatches.length;
@@ -209,24 +172,22 @@ class TotelepepExtractor {
           // All markets already loaded - report 100% complete
           console.log(`[Markets] All ${cachedMatches.length} matches already have markets loaded (100%)`);
           
+          // Extract date from cacheKey (e.g., "date_2026-06-19_all_all_totelepep" -> "2026-06-19")
+          const date = cacheKey.split('_')[1];
+          
           // Report complete progress to App.tsx
-          if (this.onMarketProgress) {
-            // Use first date as key
-            const firstDate = Object.keys(dateCounts)[0];
-            if (firstDate) {
-              this.onMarketProgress(firstDate, cachedMatches.length, cachedMatches.length);
-            }
+          if (this.onMarketProgress && date) {
+            this.onMarketProgress(date, cachedMatches.length, cachedMatches.length);
           }
         } else if (matchesWithMarkets > 0) {
           // Some markets loaded - report partial progress
           console.log(`[Markets] ${matchesWithMarkets}/${cachedMatches.length} matches have markets (${Math.round((matchesWithMarkets/cachedMatches.length)*100)}%)`);
           
-          if (this.onMarketProgress) {
-            // Use first date as key (since we're loading from cache for one date)
-            const firstDate = Object.keys(dateCounts)[0];
-            if (firstDate) {
-              this.onMarketProgress(firstDate, matchesWithMarkets, cachedMatches.length);
-            }
+          // Extract date from cacheKey
+          const date = cacheKey.split('_')[1];
+          
+          if (this.onMarketProgress && date) {
+            this.onMarketProgress(date, matchesWithMarkets, cachedMatches.length);
           }
         }
         
