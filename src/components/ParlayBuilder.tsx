@@ -1092,20 +1092,20 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       return;
     }
 
-    // Determine minimum stake based on bet type and source
-    const isSingleBet = selections.length === 1;
-    const isSuperScore = selectedSource?.id === 'superscore';
-    const minStake = isSingleBet && isSuperScore ? 25 : 50;
+    // REMOVED: Hardcoded minimum stake validation
+    // Let the API handle stake validation and return source-specific errors
+    // Each API source has different min/max stake and payout limits
+    // We'll show the actual API error message instead of generic frontend validation
     
-    if (betAmount < minStake) {
-      const toastMsg = isSingleBet && isSuperScore
-        ? 'Minimum stake for single bet is Rs 25'
-        : `Minimum stake for multi bet is Rs ${minStake}`;
-      
-      setToast(toastMsg);
-      setTimeout(() => setToast(null), 3000);
-      return;
-    }
+    // if (betAmount < minStake) {
+    //   const toastMsg = isSingleBet && isSuperScore
+    //     ? 'Minimum stake for single bet is Rs 25'
+    //     : `Minimum stake for multi bet is Rs ${minStake}`;
+    //   
+    //   setToast(toastMsg);
+    //   setTimeout(() => setToast(null), 3000);
+    //   return;
+    // }
 
     setIsPlacing(true);
 
