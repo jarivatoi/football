@@ -37,7 +37,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   return (
     <div className="bg-white shadow-sm border-b border-gray-200">
       {/* Horizontal Scrolling Row */}
-      <div className="flex gap-2 overflow-x-auto px-3 py-0 max-w-3xl mx-auto scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto px-3 pr-8 py-0 max-w-3xl mx-auto scrollbar-hide">
         {datesToShow.map((dateInfo) => {
           // When All Matches is active, no date should be selected
           const isSelected = showAllMatches ? false : dateInfo.date === selectedDate;
