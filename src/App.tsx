@@ -1664,12 +1664,16 @@ function App() {
   const handleClearCache = async (date: string) => {
     console.log(`[Clear Cache] Long press detected for ${date}`);
     
-    const { clearCacheMatches, isCacheExpired } = await import('./utils/matchCache');
+    const { clearCacheMatches } = await import('./utils/matchCache');
     const cacheKey = `date_${date}_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_totelepep`;
     
     // Clear cache for this date
     await clearCacheMatches(cacheKey);
     console.log(`[Clear Cache] Cleared IndexedDB cache for ${date}`);
+    
+    // Clear current matches immediately
+    setMatches([]);
+    setGroupedMatches({});
     
     // Reset progress for this date
     setDateProgress(prev => ({
@@ -1681,14 +1685,37 @@ function App() {
       }
     }));
     
+    // Show toast notification
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #3b82f6;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 10000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      animation: slideDown 0.3s ease-out;
+    `;
+    toast.textContent = `Cache cleared for ${date}. Reloading...`;
+    document.body.appendChild(toast);
+    
+    // Remove toast after 3 seconds
+    setTimeout(() => {
+      toast.style.animation = 'slideUp 0.3s ease-out';
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+    
     // Reload data from API
     if (selectedDate === date) {
       console.log(`[Clear Cache] Reloading ${date} from API...`);
       loadData(date, selectedCategory, selectedCompetition);
     }
-    
-    // Show feedback
-    alert(`Cache cleared for ${date}. Reloading from API...`);
   };
   
   const toggleParlayBuilder = () => {

@@ -31,7 +31,7 @@ textarea,
 }
 
 /* Toast slide-down animation */
-@keyframes slide-down {
+@keyframes slideDown {
   from {
     transform: translate(-50%, -100%);
     opacity: 0;
@@ -42,6 +42,17 @@ textarea,
   }
 }
 
+@keyframes slideUp {
+  from {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, -100%);
+    opacity: 0;
+  }
+}
+
 .animate-slide-down {
-  animation: slide-down 0.3s ease-out;
+  animation: slideDown 0.3s ease-out;
 }
