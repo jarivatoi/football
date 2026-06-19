@@ -122,14 +122,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
         }
       }
       // Log final form data values for debugging
-      console.log(`📋 Final form data values for selection ${index}:`, {
-        betRef: betRef,
-        stake: stake.toString(),
-        marketBookNo: finalMarketBookNo,
-        marketCode: finalMarketCode,
-        matchId: selection.matchId,
-        competitionId: marketData.competitionId
-      });
       
       // Additional debugging for marketId issues
       formData.append(`data[SingleBets][${index}][betRef]`, betRef);
@@ -220,21 +212,9 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       
       // Debug the form data being added
       // Additional validation for the safe values
-      console.log(`🔍 DETAILED MARKETBOOKNO DEBUG for selection ${index}:`, {
-        originalSelectionMarketBookNo: selection.marketBookNo,
-        finalMarketBookNo: finalMarketBookNo,
-        safeMarketBookNo: safeMarketBookNo,
-        isFinalMarketBookNoValid: safeMarketBookNo && !isNaN(Number(safeMarketBookNo)) && Number(safeMarketBookNo) > 0
-      });
       
       // Additional debugging for safe values
       // Additional validation for the safe values
-      console.log(`🔍 SAFE VALUES VALIDATION for selection ${index}:`, {
-        safeMarketBookNoIsValid: safeMarketBookNo && safeMarketBookNo !== 'null' && safeMarketBookNo !== 'undefined' && safeMarketBookNo.trim() !== '',
-        safeMarketCodeIsValid: safeMarketCode && safeMarketCode !== 'null' && safeMarketCode !== 'undefined' && safeMarketCode.trim() !== '',
-        safeMarketBookNoValue: safeMarketBookNo,
-        safeMarketCodeValue: safeMarketCode
-      });
       
       // Debug the exact values being sent
       formData.append(`data[SingleBets][${index}][marketId]`, marketId);
@@ -360,13 +340,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
     let ticketNo = result.ticketNo;
     
     // Enhanced ticket number extraction to handle various formats
-    console.log('🔍 TICKET NUMBER EXTRACTION DEBUG:', {
-      rawTicketNo: result.ticketNo,
-      betList: result.betList,
-      typeofTicketNo: typeof result.ticketNo,
-      allResponseKeys: Object.keys(result),
-      fullResponse: result
-    });
     
     // Try multiple possible field names for ticket number
     if (!ticketNo) {
@@ -496,23 +469,8 @@ const extractMarketData = (selection: ParlaySelection) => {
     marketBookNo,
     marketCode
   };
-  console.log('🔍 Market Data Details:', {
-    originalMarketBookNo: selection.marketBookNo,
-    finalMarketBookNo: marketBookNo,
-    hasUsableMarketBookNo: hasUsableMarketBookNo,
-    marketBookNoType: typeof marketBookNo,
-    marketBookNoLength: marketBookNo ? marketBookNo.toString().length : 0
-  });
   
   // Additional validation logging
-  console.log('🔍 Market data validation:', {
-    originalMarketBookNo: selection.marketBookNo,
-    originalMarketCode: selection.marketCode,
-    finalMarketBookNo: marketBookNo,
-    finalMarketCode: marketCode,
-    hasValidMarketBookNo: !(!marketBookNo || marketBookNo === 'undefined' || marketBookNo === 'null' || marketBookNo.trim() === ''),
-    hasValidMarketCode: !(!marketCode || marketCode === 'undefined' || marketCode === 'null' || marketCode.trim() === '')
-  });
   
   return marketData;
 };
@@ -1057,15 +1015,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       const hasBetErrors = bookingResult.betList && bookingResult.betList.length > 0 && 
                            bookingResult.betList.some((bet: any) => bet.betErrorCode && bet.betErrorCode !== 0);
             
-      console.log(' FRONTEND SUCCESS DETERMINATION:', {
-        hasTicket: hasTicket,
-        hasErrors: hasErrors,
-        hasBetErrors: hasBetErrors,
-        ticketNo: bookingResult.ticketNo,
-        errorMessage: bookingResult.errorMessage,
-        multiErrorMessage: bookingResult.multiErrorMessage,
-        betListErrors: bookingResult.betList?.map((bet: any) => ({ betErrorCode: bet.betErrorCode, betErrorMessage: bet.betErrorMessage }))
-      });
       
       // Consider successful ONLY if we have a ticket AND no bet errors
       if (hasTicket && !hasBetErrors && !hasErrors) {
@@ -1151,7 +1100,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             const bet = bookingResult.betList[index];
             if (bet && bet.betErrorCode && bet.betErrorCode !== 0) {
               const errorMsg = (bet.betErrorMessage || bet.legErrorMessage || '').toLowerCase();
-              console.log('[Bet Error] Error message (lowercase):', errorMsg);
               
               // Check for stake/payout/account errors FIRST (higher priority)
               const isStakeError = 

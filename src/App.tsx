@@ -362,11 +362,9 @@ function App() {
       // STEP 1: Load from cache immediately (even if expired)
       // This ensures data is always available
       if (cachedMatches && cachedMatches.length > 0) {
-        console.log(`[Load Data] Loading ${cachedMatches.length} matches from cache (expired: ${expired})`);
         
         // Filter out matches that already started (kickoff passed)
         const now = new Date();
-        console.log(`[Load Data Step 1] Current time: ${now.toISOString()}`);
         
         const validMatches = cachedMatches.filter((m: any) => {
           if (!m.kickoff) return true;
@@ -386,12 +384,10 @@ function App() {
           
           const isFuture = kickoffTime > now;
           if (!isFuture) {
-            console.log(`[Load Data Step 1] Filtering out: ${m.homeTeam} vs ${m.awayTeam} - Kickoff: ${m.kickoff} (${kickoffTime.toISOString()})`);
           }
           return isFuture;
         });
         
-        console.log(`[Load Data Step 1] After kickoff filter: ${validMatches.length} matches (was ${cachedMatches.length})`);
         
         const sortedMatches = validMatches.sort((a, b) => {
           const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
@@ -462,7 +458,6 @@ function App() {
       
       // Filter out matches that already started
       const now = new Date();
-      console.log(`[Load Data] Current time: ${now.toISOString()}`);
       
       const validMatches = mergedMatches.filter((m: any) => {
         if (!m.kickoff) return true;
@@ -478,12 +473,10 @@ function App() {
         
         const isFuture = kickoffTime > now;
         if (!isFuture) {
-          console.log(`[Load Data] Filtering out: ${m.homeTeam} vs ${m.awayTeam} - Kickoff: ${m.kickoff} (${kickoffTime.toISOString()})`);
         }
         return isFuture;
       });
       
-      console.log(`[Load Data] After kickoff filter: ${validMatches.length} matches (was ${mergedMatches.length})`);
       
       // Sort matches by date and time
       const sortedMatches = validMatches.sort((a, b) => {
@@ -497,7 +490,6 @@ function App() {
       const grouped = totelepepService.groupMatchesByDate(sortedMatches);
       setGroupedMatches(grouped);
       
-      console.log(`[Load Data] Grouped into ${Object.keys(grouped).length} date groups`);
       
       setLastUpdated(new Date());
       
@@ -741,7 +733,6 @@ function App() {
         }
         
         // No cache at all - show 0%
-        console.log(`[Cache Check] ${dateEntry.entryDate}: No cache (will load on-demand)`);
         return {
           date: dateEntry.entryDate,
           loaded: 0,
@@ -767,7 +758,6 @@ function App() {
         
         // Set all progress at once (prevents overwriting)
         if (Object.keys(newProgress).length > 0) {
-          console.log(`[Progress] Initialized ${Object.keys(newProgress).length} dates from cache`);
           setDateProgress(newProgress);
         }
       });
@@ -1461,14 +1451,6 @@ function App() {
           }
           matchTime.setHours(hours, minutes, 0, 0);
           
-          console.log('⏰ Time Check:', {
-            matchDate: match.date,
-            kickoff: match.kickoff,
-            now: now.toLocaleString(),
-            matchTime: matchTime.toLocaleString(),
-            isPast: matchTime < now,
-            differenceMinutes: (now.getTime() - matchTime.getTime()) / 60000
-          });
           
           // If match time is more than 5 minutes in the past, consider it started
           if (matchTime < new Date(now.getTime() - 5 * 60000)) {
@@ -1483,12 +1465,6 @@ function App() {
             s.matchId === matchId
           );
           
-          console.log('🔄 Duplicate Check:', {
-            matchId,
-            priceType,
-            existingSelections: parlaySelections.map(s => ({ matchId: s.matchId, priceType: s.priceType })),
-            isDuplicate
-          });
           
           if (isDuplicate) {
             hasError = true;

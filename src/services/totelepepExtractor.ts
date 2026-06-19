@@ -152,7 +152,6 @@ class TotelepepExtractor {
       const cacheExpired = await isCacheExpired(cacheKey);
       
       if (!forceFresh && cachedMatches && cachedMatches.length > 0 && metadata?.isComplete && !cacheExpired) {
-        console.log(`[IndexedDB Cache] Loaded ${cachedMatches.length} matches from cache (${Math.round((Date.now() - metadata.lastUpdated) / 60000)}min old)`);
         
         // Delete past matches in background (non-blocking)
         deletePastMatches(cacheKey).then(deleted => {
@@ -169,7 +168,6 @@ class TotelepepExtractor {
         
         if (allMarketsLoaded && cachedMatches.length > 0) {
           // All markets already loaded - report 100% complete
-          console.log(`[Markets] All ${cachedMatches.length} matches already have markets loaded (100%)`);
           
           // Extract date from cacheKey (e.g., "date_2026-06-19_all_all_totelepep" -> "2026-06-19")
           const date = cacheKey.split('_')[1];
@@ -180,7 +178,6 @@ class TotelepepExtractor {
           }
         } else if (matchesWithMarkets > 0) {
           // Some markets loaded - report partial progress
-          console.log(`[Markets] ${matchesWithMarkets}/${cachedMatches.length} matches have markets (${Math.round((matchesWithMarkets/cachedMatches.length)*100)}%)`);
           
           // Extract date from cacheKey
           const date = cacheKey.split('_')[1];
@@ -198,7 +195,6 @@ class TotelepepExtractor {
       
       // Cache expired or incomplete - fetch fresh data
       if (cacheExpired) {
-        console.log('[Cache] Data expired (>30min), fetching fresh data from API');
       }
       
       // Check in-memory cache
@@ -282,13 +278,11 @@ class TotelepepExtractor {
             }
           }
           
-          console.log(`[IndexedDB] Saved ${totalMatches} matches (basic data)`);
           
           // Fetch ALL markets in background (non-blocking, rate limited)
           // This will update the cache progressively as markets are loaded
           this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
         } else {
-          console.log('[Force Fresh] Skipping IndexedDB save (calendar fetch only)');
         }
         
         return matches;
@@ -368,14 +362,12 @@ class TotelepepExtractor {
     const alreadyLoaded = matches.filter(m => m.allMarkets && m.allMarkets.length > 0).length;
     // Run in background - don't await this
     (async () => {
-      console.log(`[Background] Starting market fetch for ${totalMatches} matches (${alreadyLoaded} already loaded from cache)...`);
       
       // Start progress from already loaded count (not from 0!)
       let loadedCount = alreadyLoaded;
       
       // Report initial progress
       if (this.onMarketProgress && loadedCount > 0) {
-        console.log(`[Progress] Initial: ${loadedCount}/${totalMatches} (${Math.round((loadedCount/totalMatches)*100)}%)`);
         this.onMarketProgress(date, loadedCount, totalMatches);
       }
       
@@ -384,7 +376,6 @@ class TotelepepExtractor {
         const chunkStart = i;
         const chunkEnd = i + chunk.length;
         
-        console.log(`[Background Chunk ${Math.floor(i/chunkSize) + 1}] Processing matches ${chunkStart+1}-${chunkEnd}...`);
         
         // Fetch markets with rate limiting
         for (const match of chunk) {
@@ -401,7 +392,6 @@ class TotelepepExtractor {
             // Report progress every 10 matches or on last match
             if (this.onMarketProgress && (loadedCount % 10 === 0 || loadedCount === totalMatches)) {
               const percentage = Math.round((loadedCount/totalMatches)*100);
-              console.log(`[Progress] ${loadedCount}/${totalMatches} (${percentage}%)`);
               this.onMarketProgress(date, loadedCount, totalMatches);
             }
           } catch (error) {
@@ -425,7 +415,6 @@ class TotelepepExtractor {
       }
       // Final progress update (ensure complete)
       if (this.onMarketProgress) {
-        console.log(`[Progress] Complete: ${totalMatches}/${totalMatches} (100%)`);
         this.onMarketProgress(date, totalMatches, totalMatches);
       }
     })(); // Self-executing async function

@@ -468,12 +468,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
           return true;
         });
         // Log all markets for debugging
-        console.log(`[Filter] All markets in match:`, match.allMarkets.map(m => ({
-          name: m.name,
-          periodCode: m.periodCode,
-          marketCode: m.marketCode,
-          hasSelections: m.selections?.length > 0
-        })));
         
         for (const market of matchingMarkets) {
           // Check if this market has any selection matching the target odds
@@ -547,12 +541,6 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                               hasAdvancedFilter;
       // Auto-load markets if market-type filter detected
       const hasMarketTypeFilter = /\d{2,3}(H1|H2|2H|FT|ALL)?(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)/i.test(searchTerm);
-      console.log('[AutoLoad Check]', {
-        searchTerm,
-        hasMarketTypeFilter,
-        hasMarkets: (match.allMarkets?.length || 0) > 0,
-        isLoadingMarkets
-      });
       if (hasMarketTypeFilter && (!match.allMarkets || match.allMarkets.length === 0) && !isLoadingMarkets) {
         const loadMarkets = async () => {
           setIsLoadingMarkets(true);
