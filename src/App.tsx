@@ -363,11 +363,32 @@ function App() {
         
         // Filter out matches that already started (kickoff passed)
         const now = new Date();
+        console.log(`[Load Data Step 1] Current time: ${now.toISOString()}`);
+        
         const validMatches = cachedMatches.filter((m: any) => {
           if (!m.kickoff) return true;
-          const kickoffTime = new Date(m.kickoff);
-          return kickoffTime > now;
+          
+          // Handle different kickoff formats:
+          // 1. "23:00" (time only) - need to combine with match date
+          // 2. "2026-06-19T23:00:00" (full ISO datetime)
+          let kickoffTime: Date;
+          if (m.kickoff.includes('T')) {
+            // Full ISO datetime
+            kickoffTime = new Date(m.kickoff);
+          } else {
+            // Time only (e.g., "23:00") - combine with match date
+            const matchDate = m.date || dateToFetch;
+            kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
+          }
+          
+          const isFuture = kickoffTime > now;
+          if (!isFuture) {
+            console.log(`[Load Data Step 1] Filtering out: ${m.homeTeam} vs ${m.awayTeam} - Kickoff: ${m.kickoff} (${kickoffTime.toISOString()})`);
+          }
+          return isFuture;
         });
+        
+        console.log(`[Load Data Step 1] After kickoff filter: ${validMatches.length} matches (was ${cachedMatches.length})`);
         
         const sortedMatches = validMatches.sort((a, b) => {
           const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
@@ -376,6 +397,8 @@ function App() {
         });
         
         setMatches(sortedMatches);
+        console.log(`[Load Data Step 1] Set ${sortedMatches.length} matches to state`);
+        
         const grouped = totelepepService.groupMatchesByDate(sortedMatches);
         setGroupedMatches(grouped);
         
@@ -396,7 +419,8 @@ function App() {
       }
       
       // STEP 2: Fetch fresh data from API (in background if we have cache)
-      console.log(`[Load Data] Fetching fresh data from API...`);
+      console.log(`[Load Data] Fetching fresh data from API for date: ${dateToFetch}`);
+      console.log(`[Load Data] Category: ${catId}, Competition: ${compId}`);
       
       // Set up market progress callback before fetching
       totelepepExtractor.onMarketProgress = (date, loaded, total) => {
@@ -412,6 +436,12 @@ function App() {
 
       // Fetch matches DIRECTLY from Totelepep API with category/competition filters
       const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId);
+      
+      console.log(`[Load Data] API returned ${fetchedMatches.length} matches`);
+      
+      if (fetchedMatches.length === 0) {
+        console.warn('[Load Data] WARNING: API returned 0 matches!');
+      }
       
       // STEP 3: Merge cached data with fresh data
       // Add new matches, update existing ones
@@ -439,11 +469,28 @@ function App() {
       
       // Filter out matches that already started
       const now = new Date();
+      console.log(`[Load Data] Current time: ${now.toISOString()}`);
+      
       const validMatches = mergedMatches.filter((m: any) => {
         if (!m.kickoff) return true;
-        const kickoffTime = new Date(m.kickoff);
-        return kickoffTime > now;
+        
+        // Handle different kickoff formats
+        let kickoffTime: Date;
+        if (m.kickoff.includes('T')) {
+          kickoffTime = new Date(m.kickoff);
+        } else {
+          const matchDate = m.date || dateToFetch;
+          kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
+        }
+        
+        const isFuture = kickoffTime > now;
+        if (!isFuture) {
+          console.log(`[Load Data] Filtering out: ${m.homeTeam} vs ${m.awayTeam} - Kickoff: ${m.kickoff} (${kickoffTime.toISOString()})`);
+        }
+        return isFuture;
       });
+      
+      console.log(`[Load Data] After kickoff filter: ${validMatches.length} matches (was ${mergedMatches.length})`);
       
       // Sort matches by date and time
       const sortedMatches = validMatches.sort((a, b) => {
@@ -454,9 +501,13 @@ function App() {
       
       setMatches(sortedMatches);
       
+      console.log(`[Load Data] Set ${sortedMatches.length} matches to state`);
+      
       // Group matches by date
       const grouped = totelepepService.groupMatchesByDate(sortedMatches);
       setGroupedMatches(grouped);
+      
+      console.log(`[Load Data] Grouped into ${Object.keys(grouped).length} date groups`);
       
       setLastUpdated(new Date());
       
