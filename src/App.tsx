@@ -340,7 +340,7 @@ function App() {
       setDateProgress(prev => ({
         ...prev,
         [dateToFetch]: {
-          loaded: 0,
+          loaded: prev[dateToFetch]?.loaded || 0,
           total: prev[dateToFetch]?.total || 0,
           isComplete: false // Force to loading state
         }
@@ -349,8 +349,55 @@ function App() {
     
     const catId = categoryId !== undefined ? categoryId : selectedCategory;
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
+    
     try {
-
+      const cacheKey = `date_${dateToFetch}_${catId || 'all'}_${compId || 'all'}_totelepep`;
+      const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
+      const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
+      const expired = await isCacheExpired(cacheKey);
+      
+      // STEP 1: Load from cache immediately (even if expired)
+      // This ensures data is always available
+      if (cachedMatches && cachedMatches.length > 0) {
+        console.log(`[Load Data] Loading ${cachedMatches.length} matches from cache (expired: ${expired})`);
+        
+        // Filter out matches that already started (kickoff passed)
+        const now = new Date();
+        const validMatches = cachedMatches.filter((m: any) => {
+          if (!m.kickoff) return true;
+          const kickoffTime = new Date(m.kickoff);
+          return kickoffTime > now;
+        });
+        
+        const sortedMatches = validMatches.sort((a, b) => {
+          const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
+          if (dateComparison !== 0) return dateComparison;
+          return a.kickoff.localeCompare(b.kickoff);
+        });
+        
+        setMatches(sortedMatches);
+        const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+        setGroupedMatches(grouped);
+        
+        // If cache is valid, mark as complete
+        if (!expired && metadata?.isComplete) {
+          const matchesWithMarkets = validMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
+          setDateProgress(prev => ({
+            ...prev,
+            [dateToFetch!]: {
+              loaded: matchesWithMarkets,
+              total: validMatches.length,
+              isComplete: matchesWithMarkets === validMatches.length
+            }
+          }));
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // STEP 2: Fetch fresh data from API (in background if we have cache)
+      console.log(`[Load Data] Fetching fresh data from API...`);
+      
       // Set up market progress callback before fetching
       totelepepExtractor.onMarketProgress = (date, loaded, total) => {
         setDateProgress(prev => ({
@@ -364,16 +411,44 @@ function App() {
       };
 
       // Fetch matches DIRECTLY from Totelepep API with category/competition filters
-      
       const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId);
       
+      // STEP 3: Merge cached data with fresh data
+      // Add new matches, update existing ones
+      let mergedMatches = fetchedMatches;
+      
+      if (cachedMatches && cachedMatches.length > 0) {
+        // Create a map of existing matches by ID
+        const existingMap = new Map();
+        cachedMatches.forEach((m: any) => existingMap.set(m.id, m));
+        
+        // Merge: update existing or add new
+        fetchedMatches.forEach((freshMatch: any) => {
+          if (existingMap.has(freshMatch.id)) {
+            // Update existing match (new odds, markets)
+            existingMap.set(freshMatch.id, freshMatch);
+          } else {
+            // Add new match
+            existingMap.set(freshMatch.id, freshMatch);
+          }
+        });
+        
+        mergedMatches = Array.from(existingMap.values());
+        console.log(`[Load Data] Merged: ${mergedMatches.length} total matches`);
+      }
+      
+      // Filter out matches that already started
+      const now = new Date();
+      const validMatches = mergedMatches.filter((m: any) => {
+        if (!m.kickoff) return true;
+        const kickoffTime = new Date(m.kickoff);
+        return kickoffTime > now;
+      });
+      
       // Sort matches by date and time
-      const sortedMatches = fetchedMatches.sort((a, b) => {
-        // First sort by date
+      const sortedMatches = validMatches.sort((a, b) => {
         const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
         if (dateComparison !== 0) return dateComparison;
-        
-        // Then sort by kickoff time
         return a.kickoff.localeCompare(b.kickoff);
       });
       
@@ -386,7 +461,7 @@ function App() {
       setLastUpdated(new Date());
       
     } catch (error) {
-      
+      console.error('Failed to load data:', error);
       setError('Failed to load data. Please try again.');
     } finally {
       setLoading(false);
