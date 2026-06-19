@@ -395,9 +395,8 @@ function App() {
       // Use calendarList which has all the dates
       const datesToFetch = calendarList.length > 0 ? calendarList : availableDates;
       
-      // First, calculate approximate total for progress tracking
-      const approximateTotal = datesToFetch.reduce((sum, d) => sum + (d.matchCount || 0), 0);
       let loadedMatches = 0;
+      let totalMatches = 0;
 
       // Fetch matches from each date
       for (const dateInfo of datesToFetch) {
@@ -407,14 +406,13 @@ function App() {
           
           allMatches.push(...matches);
           loadedMatches += matches.length;
+          totalMatches = loadedMatches; // Total is always the actual loaded count
           
-          // Update progress with running total
-          // Use the higher of approximateTotal or actual loaded as the denominator
-          const actualTotal = Math.max(approximateTotal, loadedMatches);
-          const percentage = actualTotal > 0 ? (loadedMatches / actualTotal) * 100 : 0;
+          // Update progress with actual count
+          const percentage = totalMatches > 0 ? (loadedMatches / totalMatches) * 100 : 0;
           setAllMatchesProgress({
             loaded: loadedMatches,
-            total: actualTotal,
+            total: totalMatches,
             isComplete: false,
             percentage
           });
@@ -439,7 +437,7 @@ function App() {
       // Mark as complete with actual count
       setAllMatchesProgress({
         loaded: sortedMatches.length,
-        total: sortedMatches.length, // Total = actual loaded, not approximate
+        total: sortedMatches.length,
         isComplete: true,
         percentage: 100
       });
