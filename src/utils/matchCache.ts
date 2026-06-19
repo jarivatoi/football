@@ -5,7 +5,7 @@
  */
 
 const DB_NAME = 'TotelepepMatchCache';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Incremented to add betslip store
 const STORE_NAME = 'matches';
 const BETSLIP_STORE_NAME = 'betslip'; // Betslip persistence
 const CHUNK_SIZE = 100; // Load and save in chunks of 100 matches
@@ -48,6 +48,11 @@ const openDB = (): Promise<IDBDatabase> => {
       // Create metadata store
       if (!db.objectStoreNames.contains('metadata')) {
         const metadataStore = db.createObjectStore('metadata', { keyPath: 'cacheKey' });
+      }
+      
+      // Create betslip store
+      if (!db.objectStoreNames.contains(BETSLIP_STORE_NAME)) {
+        db.createObjectStore(BETSLIP_STORE_NAME, { keyPath: 'id' });
       }
     };
 
