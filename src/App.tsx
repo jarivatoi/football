@@ -511,6 +511,29 @@ function App() {
         
         loadData(firstDate);
       }
+      
+      // Check ALL dates in calendar for their market loading status
+      const calendarList = (totelepepExtractor as any).calendarList || [];
+      calendarList.forEach(async (dateEntry: any) => {
+        const cacheKey = `date_${dateEntry.entryDate}_all_all_totelepep`;
+        const { getCachedMatches } = await import('./utils/matchCache');
+        const { matches: cachedMatches } = await getCachedMatches(cacheKey);
+        
+        if (cachedMatches && cachedMatches.length > 0) {
+          const matchesWithMarkets = cachedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
+          const isComplete = matchesWithMarkets === cachedMatches.length;
+          
+          // Set progress for this date
+          setDateProgress(prev => ({
+            ...prev,
+            [dateEntry.entryDate]: {
+              loaded: matchesWithMarkets,
+              total: cachedMatches.length,
+              isComplete
+            }
+          }));
+        }
+      });
     });
   }, []); // Only run once on mount
   
