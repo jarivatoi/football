@@ -329,11 +329,20 @@ class TotelepepExtractor {
     // Extract date from cacheKey (e.g., "date_2026-06-19_all_all_totelepep" -> "2026-06-19")
     const date = cacheKey.split('_')[1];
     
+    // Count how many matches already have markets loaded (from cache)
+    const alreadyLoaded = matches.filter(m => m.allMarkets && m.allMarkets.length > 0).length;
+    
     // Run in background - don't await this
     (async () => {
-      console.log(`[Background] Starting market fetch for ${totalMatches} matches...`);
+      console.log(`[Background] Starting market fetch for ${totalMatches} matches (${alreadyLoaded} already loaded from cache)...`);
       
-      let loadedCount = 0;
+      // Start progress from already loaded count (not from 0!)
+      let loadedCount = alreadyLoaded;
+      
+      // Report initial progress
+      if (this.onMarketProgress && loadedCount > 0) {
+        this.onMarketProgress(date, loadedCount, totalMatches);
+      }
       
       for (let i = 0; i < totalMatches; i += chunkSize) {
         const chunk = matches.slice(i, i + chunkSize);
@@ -342,6 +351,11 @@ class TotelepepExtractor {
         
         // Fetch markets with rate limiting
         for (const match of chunk) {
+          // Skip if already has markets (from cache)
+          if (match.allMarkets && match.allMarkets.length > 0) {
+            continue;
+          }
+          
           try {
             await this.enforceRateLimit();
             await this.fetchMarketsForMatch(match);
