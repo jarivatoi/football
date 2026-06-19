@@ -261,32 +261,37 @@ class TotelepepExtractor {
         this.setCachedData(matches, cacheKey);
         
         // Save to IndexedDB in chunks for persistence and memory management
-        const chunkSize = getChunkSize();
-        const totalMatches = matches.length;
-        
-        // Return matches immediately (don't wait for market fetching)
-        // Market fetching will happen in background for lazy loading
-        
-        // Save basic match data to IndexedDB quickly (without allMarkets)
-        for (let i = 0; i < totalMatches; i += chunkSize) {
-          const chunk = matches.slice(i, i + chunkSize);
-          const loadedCount = Math.min(i + chunkSize, totalMatches);
-          const isComplete = loadedCount >= totalMatches;
+        // BUT skip if forceFresh (for calendar loading - don't overwrite existing markets!)
+        if (!forceFresh) {
+          const chunkSize = getChunkSize();
+          const totalMatches = matches.length;
           
-          // Save chunk to IndexedDB (basic data only, fast)
-          await saveMatchesChunk(chunk, cacheKey, loadedCount, totalMatches, isComplete);
+          // Return matches immediately (don't wait for market fetching)
+          // Market fetching will happen in background for lazy loading
           
-          // Report progress
-          if (onProgress) {
-            onProgress(loadedCount, totalMatches);
+          // Save basic match data to IndexedDB quickly (without allMarkets)
+          for (let i = 0; i < totalMatches; i += chunkSize) {
+            const chunk = matches.slice(i, i + chunkSize);
+            const loadedCount = Math.min(i + chunkSize, totalMatches);
+            const isComplete = loadedCount >= totalMatches;
+            
+            // Save chunk to IndexedDB (basic data only, fast)
+            await saveMatchesChunk(chunk, cacheKey, loadedCount, totalMatches, isComplete);
+            
+            // Report progress
+            if (onProgress) {
+              onProgress(loadedCount, totalMatches);
+            }
           }
+          
+          console.log(`[IndexedDB] Saved ${totalMatches} matches (basic data)`);
+          
+          // Fetch ALL markets in background (non-blocking, rate limited)
+          // This will update the cache progressively as markets are loaded
+          this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
+        } else {
+          console.log('[Force Fresh] Skipping IndexedDB save (calendar fetch only)');
         }
-        
-        console.log(`[IndexedDB] Saved ${totalMatches} matches (basic data)`);
-        
-        // Fetch ALL markets in background (non-blocking, rate limited)
-        // This will update the cache progressively as markets are loaded
-        this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
         
         return matches;
       }
