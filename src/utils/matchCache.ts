@@ -102,7 +102,6 @@ export const saveMatchesChunk = async (
       transaction.onerror = () => reject(transaction.error);
     });
   } catch (error) {
-    console.error('Failed to save matches chunk:', error);
   }
 };
 
@@ -151,14 +150,12 @@ export const getCachedMatches = async (cacheKey: string): Promise<{
 
     // If we filtered out matches, update the cache
     if (validMatches.length < matches.length) {
-      console.log(`[Cache Cleanup] Removed ${matches.length - validMatches.length} past matches`);
       // Note: We don't delete here to avoid write transaction on read
       // Deletion will happen when new data is saved
     }
 
     return { matches: validMatches, metadata };
   } catch (error) {
-    console.error('Failed to get cached matches:', error);
     return { matches: [], metadata: null };
   }
 };
@@ -176,7 +173,6 @@ export const getCacheMetadata = async (cacheKey: string): Promise<CacheMetadata 
       request.onerror = () => resolve(null);
     });
   } catch (error) {
-    console.error('Failed to get cache metadata:', error);
     return null;
   }
 };
@@ -228,12 +224,10 @@ export const deletePastMatches = async (cacheKey: string): Promise<number> => {
     });
     
     if (deletedCount > 0) {
-      console.log(`[Cache Cleanup] Deleted ${deletedCount} past matches from IndexedDB`);
     }
     
     return deletedCount;
   } catch (error) {
-    console.error('Failed to delete past matches:', error);
     return 0;
   }
 };
@@ -265,7 +259,6 @@ export const clearCacheMatches = async (cacheKey: string): Promise<void> => {
       transaction.onerror = () => reject(transaction.error);
     });
   } catch (error) {
-    console.error('Failed to clear cache matches:', error);
   }
 };
 
@@ -285,7 +278,6 @@ export const clearAllCacheMatches = async (): Promise<void> => {
       transaction.onerror = () => reject(transaction.error);
     });
   } catch (error) {
-    console.error('Failed to clear all cache matches:', error);
   }
 };
 
@@ -332,10 +324,7 @@ export const updateMatchesInCache = async (
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
     });
-
-    console.log(`[Cache Update] Updated ${matches.length} matches in cache`);
   } catch (error) {
-    console.error('Failed to update matches in cache:', error);
   }
 };
 
@@ -366,10 +355,7 @@ export const saveBetslip = async (selections: any[]): Promise<void> => {
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
     });
-
-    console.log(`[Betslip] Saved ${selections.length} selections to IndexedDB`);
   } catch (error) {
-    console.error('Failed to save betslip:', error);
   }
 };
 
@@ -387,14 +373,11 @@ export const loadBetslip = async (): Promise<any[]> => {
         const selections = request.result
           .sort((a, b) => a.id.localeCompare(b.id)) // Maintain order
           .map(({ id, timestamp, ...selection }) => selection); // Remove metadata
-        
-        console.log(`[Betslip] Loaded ${selections.length} selections from IndexedDB`);
         resolve(selections);
       };
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('Failed to load betslip:', error);
     return [];
   }
 };
@@ -412,9 +395,6 @@ export const clearBetslip = async (): Promise<void> => {
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
     });
-
-    console.log('[Betslip] Cleared from IndexedDB');
   } catch (error) {
-    console.error('Failed to clear betslip:', error);
   }
 };

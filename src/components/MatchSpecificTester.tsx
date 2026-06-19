@@ -40,7 +40,6 @@ const MatchSpecificTester: React.FC = () => {
     }));
     setResults(initialResults);
 
-
     for (const match of testMatches) {
       try {
         

@@ -59,7 +59,6 @@ const DateSelector: React.FC<DateSelectorProps> = ({
     }
     setLongPressDate(null);
   };
-  
 
   return (
     <div className="bg-white shadow-sm border-b border-gray-200">

@@ -49,7 +49,6 @@ class MatchSpecificExtractor {
       // Rate limiting
       await this.enforceRateLimit();
 
-      
       // Set scraping in progress flag
       this.scrapingInProgress = true;
       
@@ -156,8 +155,7 @@ class MatchSpecificExtractor {
       const marketCode = market.marketCode;
       const marketName = market.marketDisplayName?.toLowerCase() || market.name?.toLowerCase() || '';
       const periodCode = market.periodCode;
-      
-      
+
       // Look for full-time BTTS markets (periodCode 'FT' for full-time)
       if (((marketName.includes('both') && marketName.includes('score')) || 
           (marketName.includes('both') && marketName.includes('team')) ||
@@ -204,8 +202,7 @@ class MatchSpecificExtractor {
         const selectionName = selection.name?.toLowerCase() || '';
         const oddsValue = selection.companyOdds || selection.odds;
         const odds = parseFloat(oddsValue);
-        
-        
+
         if (!isNaN(odds) && odds >= 1.01 && odds <= 50) {
           // Use more flexible matching for BTTS selections
           if (selectionName.includes('yes') || selectionName.includes('both') || 
@@ -251,8 +248,7 @@ class MatchSpecificExtractor {
         const selectionName = selection.name?.toLowerCase() || '';
         const oddsValue = selection.companyOdds || selection.odds;
         const odds = parseFloat(oddsValue);
-        
-        
+
         if (!isNaN(odds) && odds >= 1.01 && odds <= 50) {
           // For 2.5 goals markets (more flexible matching)
           if (is25Goals) {
@@ -332,8 +328,7 @@ class MatchSpecificExtractor {
       const marketCode = market.marketCode;
       const marketName = market.marketDisplayName?.toLowerCase() || '';
       const periodCode = market.periodCode;
-      
-      
+
       // Skip second half markets
       if (periodCode === '2H' || marketName.includes('second half') || marketName.includes('2nd half')) {
         return;
@@ -390,7 +385,6 @@ class MatchSpecificExtractor {
 
   async extractOddsForMatches(matches: Array<{id: string, competitionId?: string}>): Promise<Map<string, MatchOddsData>> {
     const oddsMap = new Map<string, MatchOddsData>();
-    
 
     for (let i = 0; i < matches.length; i++) {
       const match = matches[i];

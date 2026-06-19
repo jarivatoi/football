@@ -32,7 +32,6 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
           setSavedBookings(bookings);
           onBookingsCountChange(bookings.length);
         } catch (error) {
-          console.error('Failed to load bookings:', error);
         }
       };
       loadBookings();
@@ -66,7 +65,6 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
         setSelectedBooking(null);
       }
     } catch (error) {
-      console.error('Failed to delete booking:', error);
     }
   }, [savedBookings, selectedBooking, onBookingsCountChange]);
 
@@ -78,7 +76,6 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
       setSelectedBooking(null);
       onBookingsCountChange(0);
     } catch (error) {
-      console.error('Failed to clear bookings:', error);
     }
   }, [onBookingsCountChange]);
 
@@ -185,7 +182,6 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-end sm:items-center justify-center"
           onClick={() => {
-            console.log('Backdrop clicked, closing modal');
             setSelectedBooking(null);
           }}
           style={{ pointerEvents: 'auto' }}
@@ -203,7 +199,6 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                 <h3 className="text-xl font-bold text-gray-800">Saved Booking</h3>
                 <button
                   onClick={() => {
-                    console.log('X button clicked, closing modal');
                     setSelectedBooking(null);
                   }}
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"

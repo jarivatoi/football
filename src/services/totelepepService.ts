@@ -5,8 +5,7 @@ class TotelepepService {
   
   async getMatches(targetDate?: string): Promise<TotelepepMatch[]> {
     // Get matches directly from Totelepep API
-    
-    
+
     // If a specific date is provided, fetch only that date
     if (targetDate) {
       
@@ -38,16 +37,13 @@ class TotelepepService {
       
       // Store calendar list data
       const extractorCalendarList = (totelepepExtractor as any).calendarList;
-      
-      
+
       if (extractorCalendarList && Array.isArray(extractorCalendarList)) {
         // Make a deep copy to avoid reference issues
         this.calendarList = JSON.parse(JSON.stringify(extractorCalendarList));
-        
-        
+
       } else {
-        
-        
+
         // Try to get calendar list from the extractor directly
         if (totelepepExtractor && (totelepepExtractor as any).calendarList) {
           const directCalendarList = (totelepepExtractor as any).calendarList;
@@ -67,14 +63,10 @@ class TotelepepService {
   
   // Method to get available dates with match counts for DateSelector
   public async getAvailableDatesWithCounts(): Promise<Array<{date: string, matchCount: number, displayName: string}>> {
-    
-    
+
     // Always fetch fresh calendar list data
     await this.getCalendarList();
-    
-    
-    
-    
+
     // Log all calendar entries to see if Beyond exists
     this.calendarList.forEach((entry, index) => {
       
@@ -84,12 +76,9 @@ class TotelepepService {
     if (this.calendarList.length > 0) {
       // Validate the structure of the first entry
       const firstEntry = this.calendarList[0];
-      
-      
+
       const result = this.calendarList.map(entry => {
-        
-        
-        
+
         // Handle "Beyond >>" or non-date entries specially
         if (entry.displayDate && (entry.displayDate.includes('Beyond') || entry.displayDate.includes('>>'))) {
           
@@ -132,26 +121,21 @@ class TotelepepService {
         }
         
         dateString = dateObj.toISOString().split('T')[0];
-        
-        
-        
+
         // ALWAYS use the API's displayDate - it already has "Today", "Beyond >>", etc.
         const displayName = entry.displayDate || dateObj.toLocaleDateString('en-GB', { 
           weekday: 'short', 
           day: 'numeric', 
           month: 'short' 
         });
-        
-        
-        
+
         return {
           date: dateString,
           matchCount: entry.matchCount || 0,
           displayName
         };
       }).filter(entry => entry !== null) as Array<{date: string, matchCount: number, displayName: string}>;
-      
-      
+
       return result;
     }
     
@@ -176,8 +160,7 @@ class TotelepepService {
         displayName
       });
     }
-    
-    
+
     return dates;
   }
 
@@ -206,10 +189,7 @@ class TotelepepService {
   private scrapingInProgress = false;
 
   private extractCompetitionId(match: TotelepepMatch): string | null {
-    
-    
-    
-    
+
     // Try to extract competition ID from the match data
     if (match.competitionId && match.competitionId !== '0' && match.competitionId !== '') {
       
@@ -266,8 +246,7 @@ class TotelepepService {
         }
       }
     }
-    
-    
+
     return null;
   }
   
@@ -287,9 +266,7 @@ class TotelepepService {
       // Only include if match hasn't started yet
       return matchDateTime > now;
     });
-    
-    
-    
+
     return upcomingMatches.sort((a, b) => {
       // Sort by date first
       const dateA = new Date(a.date || new Date().toISOString().split('T')[0]);
@@ -356,28 +333,22 @@ class TotelepepService {
   
   // New method to fetch and store all matches for all available dates
   public async fetchAndStoreAllMatches(): Promise<void> {
-    
-    
+
     try {
       // Clear cache first to ensure fresh data
       this.clearCache();
       
       // Get all matches for all dates
       const allMatches = await this.getMatches();
-      
-      
-      
+
       // Remove duplicates by ID to prevent issues when storing in Supabase
       const uniqueMatches = allMatches.filter((match, index, self) => 
         index === self.findIndex(m => m.id === match.id)
       );
-      
-      
-      
+
       if (uniqueMatches.length > 0 && supabaseService) {
         // Store all matches in Supabase
-        
-        
+
         // Log some sample matches for debugging
         
         const matchesByDate: Record<string, number> = {};

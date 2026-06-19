@@ -126,7 +126,6 @@ const BetPlacementAnalyzer: React.FC = () => {
       }
 
       const response = await fetch(endpoint, requestOptions);
-      
 
       if (response.status === 401 || response.status === 403) {
         return {
@@ -197,7 +196,6 @@ const BetPlacementAnalyzer: React.FC = () => {
   const analyzeBetEndpoints = async () => {
     setIsAnalyzing(true);
     setResults([]);
-
 
     // Initialize results
     const initialResults = potentialBetEndpoints.map(({ endpoint, method }) => ({

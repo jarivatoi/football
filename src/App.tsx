@@ -62,7 +62,6 @@ function App() {
         const bookings = await getAllBookingsFromDB();
         setSavedBookingsCount(bookings.length);
       } catch (error) {
-        console.error('Failed to load booking count:', error);
       }
     };
     
@@ -401,8 +400,6 @@ function App() {
         });
         
         setMatches(sortedMatches);
-        console.log(`[Load Data Step 1] Set ${sortedMatches.length} matches to state`);
-        
         const grouped = totelepepService.groupMatchesByDate(sortedMatches);
         setGroupedMatches(grouped);
         
@@ -423,9 +420,6 @@ function App() {
       }
       
       // STEP 2: Fetch fresh data from API (in background if we have cache)
-      console.log(`[Load Data] Fetching fresh data from API for date: ${dateToFetch}`);
-      console.log(`[Load Data] Category: ${catId}, Competition: ${compId}`);
-      
       // Set up market progress callback before fetching
       totelepepExtractor.onMarketProgress = (date, loaded, total) => {
         setDateProgress(prev => ({
@@ -440,11 +434,7 @@ function App() {
 
       // Fetch matches DIRECTLY from Totelepep API with category/competition filters
       const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId);
-      
-      console.log(`[Load Data] API returned ${fetchedMatches.length} matches`);
-      
       if (fetchedMatches.length === 0) {
-        console.warn('[Load Data] WARNING: API returned 0 matches!');
       }
       
       // STEP 3: Merge cached data with fresh data
@@ -468,7 +458,6 @@ function App() {
         });
         
         mergedMatches = Array.from(existingMap.values());
-        console.log(`[Load Data] Merged: ${mergedMatches.length} total matches`);
       }
       
       // Filter out matches that already started
@@ -504,9 +493,6 @@ function App() {
       });
       
       setMatches(sortedMatches);
-      
-      console.log(`[Load Data] Set ${sortedMatches.length} matches to state`);
-      
       // Group matches by date
       const grouped = totelepepService.groupMatchesByDate(sortedMatches);
       setGroupedMatches(grouped);
@@ -516,7 +502,6 @@ function App() {
       setLastUpdated(new Date());
       
     } catch (error) {
-      console.error('Failed to load data:', error);
       setError('Failed to load data. Please try again.');
     } finally {
       setLoading(false);
@@ -541,8 +526,6 @@ function App() {
       
       // Use cached "All Matches" if valid (not expired and complete)
       if (cachedAllMatches && cachedAllMatches.length > 0 && metadata?.isComplete && !expired) {
-        console.log(`[All Matches] Loaded ${cachedAllMatches.length} matches from combined cache`);
-        
         const sortedMatches = cachedAllMatches.sort((a, b) => {
           const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
           if (dateComparison !== 0) return dateComparison;
@@ -567,7 +550,6 @@ function App() {
       }
       
       // No valid cache - fetch from all dates
-      console.log(`[All Matches] No valid cache, fetching from all dates...`);
       const allMatches: TotelepepMatch[] = [];
       
       // Use calendarList which has all the dates
@@ -613,7 +595,6 @@ function App() {
       setGroupedMatches(grouped);
       
       // Save combined "All Matches" to cache
-      console.log(`[All Matches] Saving ${sortedMatches.length} matches to combined cache`);
       const chunkSize = (await import('./utils/matchCache')).getChunkSize();
       for (let i = 0; i < sortedMatches.length; i += chunkSize) {
         const chunk = sortedMatches.slice(i, i + chunkSize);
@@ -751,8 +732,6 @@ function App() {
           const isComplete = expired ? false : marketsLoaded;
           
           const status = expired ? '(expired, will refresh)' : '(valid)';
-          console.log(`[Cache Check] ${dateEntry.entryDate}: ${matchesWithMarkets}/${cachedMatches.length} ${status}`);
-          
           return {
             date: dateEntry.entryDate,
             loaded: matchesWithMarkets,
@@ -1550,14 +1529,6 @@ function App() {
           optionNo: optionNo || '',
           hasError: hasError, // Mark if this selection has an error
         };
-        
-        console.log('📝 New Selection:', {
-          matchId,
-          marketId: newSelection.marketId,
-          priceType,
-          hasError
-        });
-        
         // If this is a duplicate, mark BOTH selections with error
         if (hasError && errorMessage === 'Duplicate match detected') {
           setParlaySelections(prev => {
@@ -1678,15 +1649,11 @@ function App() {
   
   // Handle long-press to clear cache for a specific date
   const handleClearCache = async (date: string) => {
-    console.log(`[Clear Cache] Long press detected for ${date}`);
-    
     const { clearCacheMatches } = await import('./utils/matchCache');
     const cacheKey = `date_${date}_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_totelepep`;
     
     // Clear cache for this date
     await clearCacheMatches(cacheKey);
-    console.log(`[Clear Cache] Cleared IndexedDB cache for ${date}`);
-    
     // Clear current matches immediately
     setMatches([]);
     setGroupedMatches({});
@@ -1729,7 +1696,6 @@ function App() {
     
     // Reload data from API
     if (selectedDate === date) {
-      console.log(`[Clear Cache] Reloading ${date} from API...`);
       loadData(date, selectedCategory, selectedCompetition);
     }
   };

@@ -237,13 +237,7 @@ const ProfileTab: React.FC<ProfileProps> = ({ user, onLoginSuccess, onClose }) =
       
       // Verify the update actually happened
       const verify = await supabase.from('users').select('passcode').eq('id', user.id).single();
-      console.log('Profile verification after update:', { 
-        expected: newPasscode, 
-        actual: verify.data?.passcode, 
-        match: newPasscode === verify.data?.passcode,
-        userId: user.id
-      });
-      
+
       // Also check if we can read the record directly
       const directCheck = await supabase.from('users').select('id, passcode').eq('id', user.id).single();
 

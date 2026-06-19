@@ -103,8 +103,7 @@ const MatchTable: React.FC<MatchTableProps> = ({
 
   const selectMarketCategory = async (match: MatchData, category: string) => {
     const matchId = match.id;
-    
-    
+
     // Update selected category
     setSelectedMarketCategories(prev => ({
       ...prev,

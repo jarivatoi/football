@@ -98,8 +98,7 @@ const CompetitionExtractor: React.FC = () => {
       competitionEntries.forEach((entry, index) => {
         // Split by semicolon (;) to get fields
         const fields = entry.split(';');
-        
-        
+
         // Try to identify ID and name fields
         // Usually: ID is first field, name is second or third field
         if (fields.length >= 2) {

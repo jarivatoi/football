@@ -157,7 +157,6 @@ class TotelepepExtractor {
         // Delete past matches in background (non-blocking)
         deletePastMatches(cacheKey).then(deleted => {
           if (deleted > 0) {
-            console.log(`[Cache] Cleaned up ${deleted} past matches`);
           }
         }).catch(err => console.error('Failed to cleanup past matches:', err));
         
@@ -195,7 +194,6 @@ class TotelepepExtractor {
       }
       
       if (forceFresh) {
-        console.log('[Force Fresh] Bypassing cache, fetching from API...');
       }
       
       // Cache expired or incomplete - fetch fresh data
@@ -368,9 +366,6 @@ class TotelepepExtractor {
     
     // Count how many matches already have markets loaded (from cache)
     const alreadyLoaded = matches.filter(m => m.allMarkets && m.allMarkets.length > 0).length;
-    
-    console.log(`[Progress Debug] Total: ${totalMatches}, Already loaded: ${alreadyLoaded}, Need to load: ${totalMatches - alreadyLoaded}`);
-    
     // Run in background - don't await this
     (async () => {
       console.log(`[Background] Starting market fetch for ${totalMatches} matches (${alreadyLoaded} already loaded from cache)...`);
@@ -410,7 +405,6 @@ class TotelepepExtractor {
               this.onMarketProgress(date, loadedCount, totalMatches);
             }
           } catch (error) {
-            console.error(`[Background] Failed to fetch markets for match ${match.id}:`, error);
             loadedCount++; // Still count as processed (even if failed)
             
             // Report progress
@@ -429,9 +423,6 @@ class TotelepepExtractor {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
-      
-      console.log(`[Background] Completed market fetch for all ${totalMatches} matches`);
-      
       // Final progress update (ensure complete)
       if (this.onMarketProgress) {
         console.log(`[Progress] Complete: ${totalMatches}/${totalMatches} (100%)`);

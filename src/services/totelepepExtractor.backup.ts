@@ -71,7 +71,6 @@ class TotelepepExtractor {
       // Rate limiting
       await this.enforceRateLimit();
 
-      
       // Fetch JSON from totelepep.mu API
       const jsonData = await this.fetchTotelepepAPI(targetDate);
       
@@ -110,8 +109,7 @@ class TotelepepExtractor {
     // Build API URL with current date (same as Power Query)
     const dateToFetch = targetDate || this.getTodayDate(); // YYYY-MM-DD format
     const apiUrl = `${this.baseUrl}?sportId=soccer&date=${dateToFetch}&category=&competitionId=0&pageNo=200&inclusive=1&matchid=0&periodCode=all`;
-    
-    
+
     const response = await fetch(apiUrl, {
       headers: {
         'Accept': 'application/json, text/plain, */*',
@@ -149,8 +147,7 @@ class TotelepepExtractor {
             competitionMap[competition.id.toString()] = competition.name;
           }
         });
-        
-        
+
         // Store this map for use in match parsing
         (this as any).apiCompetitionMap = competitionMap;
       } else {
@@ -171,8 +168,7 @@ class TotelepepExtractor {
         
       } else {
       }
-      
-      
+
       // Remove duplicates and validate
       return this.deduplicateAndValidate(matches);
       
@@ -269,8 +265,7 @@ class TotelepepExtractor {
       if (fields.length < 10) {
         return null;
       }
-      
-      
+
       // Extract ALL possible odds from the entry
       const allOdds = this.extractAllOddsFromEntry(fields, index);
       
@@ -283,8 +278,7 @@ class TotelepepExtractor {
       const competitionId = fields[1] || '0'; // Extract competitionId from field 1, default to '0'
       const teamsString = fields[2]; // e.g., "Austria Lustenau v Kapfenberger SV"
       const datetime = fields[3]; // e.g., "26 Aug 20:30"
-      
-      
+
       // Use comprehensive odds extraction
       const homeOdds = allOdds.homeOdds || parseFloat(fields[7]) || this.generateRealisticOdds();
       const drawOdds = allOdds.drawOdds || parseFloat(fields[9]) || this.generateRealisticOdds();
@@ -358,8 +352,7 @@ class TotelepepExtractor {
           }
         }
       }
-      
-      
+
       const match: TotelepepMatch = {
         id: matchId,
         homeTeam: teamNames.home,
@@ -390,8 +383,7 @@ class TotelepepExtractor {
       if (marketCode !== undefined) {
         match.marketCode = marketCode;
       }
-      
-      
+
       return this.isValidMatch(match) ? match : null;
       
     } catch (error) {
@@ -410,7 +402,6 @@ class TotelepepExtractor {
       bttsNo: null,
       allFoundOdds: []
     };
-
 
     // Extract all numeric values that could be odds
     fields.forEach((field, index) => {
@@ -448,7 +439,6 @@ class TotelepepExtractor {
         }
       }
     });
-
 
     // Map 1X2 odds based on known positions from your data
     this.identifyOddsTypes(odds, fields);
@@ -1233,8 +1223,7 @@ class TotelepepExtractor {
       }
       tables = filteredTables as RegExpMatchArray;
     }
-    
-    
+
     for (let i = 0; i < tables.length; i++) {
       const table = tables[i];
       
@@ -1419,8 +1408,7 @@ class TotelepepExtractor {
       }
       tables = filteredTables as RegExpMatchArray;
     }
-    
-    
+
     for (let i = 0; i < tables.length; i++) {
       const table = tables[i];
       
@@ -1579,8 +1567,7 @@ class TotelepepExtractor {
       if (cells.length < 2) {
         return null; // Not enough data for a match
       }
-      
-      
+
       // Extract team names
       const teamInfo = this.extractTeamNames(cells);
       if (!teamInfo) {
@@ -1636,8 +1623,7 @@ class TotelepepExtractor {
 
   private extractMatchFromTotelepepContainer(divContent: string, id: string): TotelepepMatch | null {
     const textContent = this.cleanHtmlContent(divContent);
-    
-    
+
     // Extract team names
     const teamInfo = this.extractTeamNamesFromText(textContent);
     if (!teamInfo) {
