@@ -427,16 +427,23 @@ function App() {
     try {
       const sourceName = selectedSource?.displayName || 'Totelepep';
 
-      // Clear cache to ensure fresh data
-      totelepepExtractor.clearCache();
+      // Clear in-memory cache ONLY (keep IndexedDB for matches)
+      (totelepepExtractor as any).cache = new Map();
       
       // We need to fetch with a date to get the calendar list
       // Use TODAY (not yesterday) to ensure we get the full calendar with matches
       const today = new Date();
       const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-      // Fetch with a date to get the calendar list
-      const matches = await totelepepExtractor.extractMatches(dateStr, categoryId || '', competitionId || '');
+      // IMPORTANT: Pass a callback to force fresh API fetch (bypass IndexedDB for calendar)
+      // This ensures we get the FULL calendar list, not just cached date
+      const matches = await totelepepExtractor.extractMatches(
+        dateStr, 
+        categoryId || '', 
+        competitionId || '',
+        undefined, // onProgress callback
+        true // forceFresh = true (bypass cache for calendar)
+      );
       
       // Small delay to ensure calendarList is set
       await new Promise(resolve => setTimeout(resolve, 100));

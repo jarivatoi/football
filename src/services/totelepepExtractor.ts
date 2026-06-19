@@ -134,7 +134,8 @@ class TotelepepExtractor {
     targetDate?: string, 
     categoryId?: string, 
     competitionId?: string,
-    onProgress?: (loaded: number, total: number) => void
+    onProgress?: (loaded: number, total: number) => void,
+    forceFresh: boolean = false // Bypass cache (for calendar loading)
   ): Promise<TotelepepMatch[]> {
     try {
       // Check cache first
@@ -144,13 +145,13 @@ class TotelepepExtractor {
                        this.baseUrl.includes('valueplus') ? 'valueplus' : 'totelepep';
       const cacheKey = targetDate ? `date_${targetDate}_${categoryId || 'all'}_${competitionId || 'all'}_${sourceId}` : `all_dates_${new Date().toISOString().split('T')[0]}_${sourceId}`;
       
-      // Try IndexedDB cache first
+      // Try IndexedDB cache first (skip if forceFresh)
       const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
       
       // Check if cache is valid (not expired and has data)
       const cacheExpired = await isCacheExpired(cacheKey);
       
-      if (cachedMatches && cachedMatches.length > 0 && metadata?.isComplete && !cacheExpired) {
+      if (!forceFresh && cachedMatches && cachedMatches.length > 0 && metadata?.isComplete && !cacheExpired) {
         console.log(`[IndexedDB Cache] Loaded ${cachedMatches.length} matches from cache (${Math.round((Date.now() - metadata.lastUpdated) / 60000)}min old)`);
         
         // Delete past matches in background (non-blocking)
@@ -201,6 +202,10 @@ class TotelepepExtractor {
         console.log(`[Calendar] Rebuilt calendarList from cache: ${calendarList.length} dates`);
         
         return cachedMatches;
+      }
+      
+      if (forceFresh) {
+        console.log('[Force Fresh] Bypassing cache, fetching from API...');
       }
       
       // Cache expired or incomplete - fetch fresh data
