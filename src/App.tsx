@@ -395,8 +395,8 @@ function App() {
       // Use calendarList which has all the dates
       const datesToFetch = calendarList.length > 0 ? calendarList : availableDates;
       
-      // Calculate total matches across all dates
-      const totalExpectedMatches = datesToFetch.reduce((sum, d) => sum + (d.matchCount || 0), 0);
+      // First, calculate approximate total for progress tracking
+      const approximateTotal = datesToFetch.reduce((sum, d) => sum + (d.matchCount || 0), 0);
       let loadedMatches = 0;
 
       // Fetch matches from each date
@@ -408,11 +408,13 @@ function App() {
           allMatches.push(...matches);
           loadedMatches += matches.length;
           
-          // Update progress
-          const percentage = totalExpectedMatches > 0 ? (loadedMatches / totalExpectedMatches) * 100 : 0;
+          // Update progress with running total
+          // Use the higher of approximateTotal or actual loaded as the denominator
+          const actualTotal = Math.max(approximateTotal, loadedMatches);
+          const percentage = actualTotal > 0 ? (loadedMatches / actualTotal) * 100 : 0;
           setAllMatchesProgress({
             loaded: loadedMatches,
-            total: totalExpectedMatches,
+            total: actualTotal,
             isComplete: false,
             percentage
           });
@@ -434,10 +436,10 @@ function App() {
       const grouped = totelepepService.groupMatchesByDate(sortedMatches);
       setGroupedMatches(grouped);
       
-      // Mark as complete
+      // Mark as complete with actual count
       setAllMatchesProgress({
         loaded: sortedMatches.length,
-        total: totalExpectedMatches,
+        total: sortedMatches.length, // Total = actual loaded, not approximate
         isComplete: true,
         percentage: 100
       });
