@@ -7,6 +7,11 @@ interface DateSelectorProps {
   showAllMatches?: boolean;
   onToggleAllMatches?: () => void;
   totalMatches?: number;
+  dateProgress?: Record<string, {
+    loaded: number;
+    total: number;
+    isComplete: boolean;
+  }>;
 }
 
 const DateSelector: React.FC<DateSelectorProps> = ({ 
@@ -15,7 +20,8 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   availableDates = [],
   showAllMatches = false,
   onToggleAllMatches,
-  totalMatches = 0
+  totalMatches = 0,
+  dateProgress = {}
 }) => {
   // Use API data directly - show exact names from totelepep
   const datesToShow = availableDates.length > 0 ? availableDates.slice(0, 8) : [];
@@ -28,6 +34,11 @@ const DateSelector: React.FC<DateSelectorProps> = ({
         {datesToShow.map((dateInfo) => {
           // When All Matches is active, no date should be selected
           const isSelected = showAllMatches ? false : dateInfo.date === selectedDate;
+          
+          // Get progress for this date
+          const progress = dateProgress[dateInfo.date];
+          const percentage = progress ? (progress.loaded / progress.total) * 100 : 0;
+          const isComplete = progress?.isComplete;
           
           // Extract date number and month for display
           let dateStr = '';
@@ -42,24 +53,36 @@ const DateSelector: React.FC<DateSelectorProps> = ({
             <button
               key={dateInfo.date}
               onClick={() => onDateChange(dateInfo.date)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all min-w-[70px] ${
-                isSelected
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+              className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all min-w-[70px] relative overflow-hidden ${
+                isSelected && isComplete
+                  ? 'bg-green-600 text-white shadow-md' // ✅ Complete - GREEN
+                  : isSelected
+                    ? 'bg-blue-600 text-white shadow-md' // Selected, loading - BLUE
+                    : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
               }`}
             >
               <div className="text-center">
                 <div className={`font-semibold ${
-                  isSelected ? 'text-white' : 'text-gray-900'
+                  isSelected && isComplete ? 'text-white' : isSelected ? 'text-white' : 'text-gray-900'
                 }`}>
                   {dateInfo.displayName}
                 </div>
                 <div className={`text-[10px] ${
-                  isSelected ? 'text-blue-100' : 'text-gray-500'
+                  isSelected && isComplete ? 'text-green-100' : isSelected ? 'text-blue-100' : 'text-gray-500'
                 }`}>
                   {dateStr && `${dateStr} `}({dateInfo.matchCount})
                 </div>
               </div>
+              
+              {/* 🟢 Progress Bar (only on selected date while loading) */}
+              {isSelected && !isComplete && percentage > 0 && percentage < 100 && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-800/30">
+                  <div 
+                    className="h-full bg-green-400 transition-all duration-500 ease-out"
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+              )}
             </button>
           );
         })}

@@ -98,6 +98,13 @@ function App() {
   const [calendarList, setCalendarList] = useState<Array<{date: string, matchCount: number, displayName: string}>>([]);
   const [showParlayBuilder, setShowParlayBuilder] = useState(false);
   
+  // Market loading progress per date
+  const [dateProgress, setDateProgress] = useState<Record<string, {
+    loaded: number;
+    total: number;
+    isComplete: boolean;
+  }>>({});
+  
   // Category and Competition filter states
   const [categories, setCategories] = useState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -322,6 +329,18 @@ function App() {
     const catId = categoryId !== undefined ? categoryId : selectedCategory;
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
     try {
+
+      // Set up market progress callback before fetching
+      totelepepExtractor.onMarketProgress = (date, loaded, total) => {
+        setDateProgress(prev => ({
+          ...prev,
+          [date]: {
+            loaded,
+            total,
+            isComplete: loaded >= total
+          }
+        }));
+      };
 
       // Fetch matches DIRECTLY from Totelepep API with category/competition filters
       
@@ -1407,6 +1426,7 @@ function App() {
           showAllMatches={showAllMatches}
           onToggleAllMatches={toggleAllMatches}
           totalMatches={totalAllMatchesCount}
+          dateProgress={dateProgress}
         />
         
         {/* Search Bar */}

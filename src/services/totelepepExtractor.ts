@@ -99,6 +99,9 @@ class TotelepepExtractor {
   private categoryList: Array<{id: string, name: string}> = [];
   private competitionList: Array<{id: string, name: string, categoryId?: string, matchCount?: number}> = [];
   private competitionToCategoryMap: Map<string, string> = new Map(); // competitionId -> categoryId
+  
+  // Market loading progress callback
+  public onMarketProgress?: (date: string, loaded: number, total: number) => void;
   // Dynamic competition mapping that can be updated based on actual data
   private dynamicCompetitionMap: Record<string, string> = {};
   // Fallback competition mapping based on team names
@@ -323,9 +326,14 @@ class TotelepepExtractor {
     totalMatches: number,
     chunkSize: number
   ): Promise<void> {
+    // Extract date from cacheKey (e.g., "date_2026-06-19_all_all_totelepep" -> "2026-06-19")
+    const date = cacheKey.split('_')[1];
+    
     // Run in background - don't await this
     (async () => {
       console.log(`[Background] Starting market fetch for ${totalMatches} matches...`);
+      
+      let loadedCount = 0;
       
       for (let i = 0; i < totalMatches; i += chunkSize) {
         const chunk = matches.slice(i, i + chunkSize);
@@ -337,8 +345,20 @@ class TotelepepExtractor {
           try {
             await this.enforceRateLimit();
             await this.fetchMarketsForMatch(match);
+            loadedCount++;
+            
+            // Report progress
+            if (this.onMarketProgress) {
+              this.onMarketProgress(date, loadedCount, totalMatches);
+            }
           } catch (error) {
             console.error(`[Background] Failed to fetch markets for match ${match.id}:`, error);
+            loadedCount++; // Still count as processed (even if failed)
+            
+            // Report progress
+            if (this.onMarketProgress) {
+              this.onMarketProgress(date, loadedCount, totalMatches);
+            }
           }
         }
         
@@ -353,6 +373,11 @@ class TotelepepExtractor {
       }
       
       console.log(`[Background] Completed market fetch for all ${totalMatches} matches`);
+      
+      // Final progress update (ensure complete)
+      if (this.onMarketProgress) {
+        this.onMarketProgress(date, totalMatches, totalMatches);
+      }
     })(); // Self-executing async function
   }
 
