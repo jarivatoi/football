@@ -403,6 +403,41 @@ function App() {
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
 
     try {
+      // Check if we have a cached "All Matches" result
+      const cacheKey = `all_matches_${catId || 'all'}_${compId || 'all'}_totelepep`;
+      const { getCachedMatches, saveMatchesChunk, isCacheExpired } = await import('./utils/matchCache');
+      const { matches: cachedAllMatches, metadata } = await getCachedMatches(cacheKey);
+      const expired = await isCacheExpired(cacheKey);
+      
+      // Use cached "All Matches" if valid (not expired and complete)
+      if (cachedAllMatches && cachedAllMatches.length > 0 && metadata?.isComplete && !expired) {
+        console.log(`[All Matches] Loaded ${cachedAllMatches.length} matches from combined cache`);
+        
+        const sortedMatches = cachedAllMatches.sort((a, b) => {
+          const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
+          if (dateComparison !== 0) return dateComparison;
+          return a.kickoff.localeCompare(b.kickoff);
+        });
+        
+        setMatches(sortedMatches);
+        const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+        setGroupedMatches(grouped);
+        
+        // Mark as complete immediately
+        setAllMatchesProgress({
+          loaded: sortedMatches.length,
+          total: sortedMatches.length,
+          isComplete: true,
+          percentage: 100
+        });
+        
+        setLastUpdated(new Date());
+        setLoading(false);
+        return;
+      }
+      
+      // No valid cache - fetch from all dates
+      console.log(`[All Matches] No valid cache, fetching from all dates...`);
       const allMatches: TotelepepMatch[] = [];
       
       // Use calendarList which has all the dates
@@ -446,6 +481,16 @@ function App() {
       // Group matches by date
       const grouped = totelepepService.groupMatchesByDate(sortedMatches);
       setGroupedMatches(grouped);
+      
+      // Save combined "All Matches" to cache
+      console.log(`[All Matches] Saving ${sortedMatches.length} matches to combined cache`);
+      const chunkSize = (await import('./utils/matchCache')).getChunkSize();
+      for (let i = 0; i < sortedMatches.length; i += chunkSize) {
+        const chunk = sortedMatches.slice(i, i + chunkSize);
+        const loadedCount = Math.min(i + chunkSize, sortedMatches.length);
+        const isComplete = loadedCount >= sortedMatches.length;
+        await saveMatchesChunk(chunk, cacheKey, loadedCount, sortedMatches.length, isComplete);
+      }
       
       // Mark as complete with actual count
       setAllMatchesProgress({
