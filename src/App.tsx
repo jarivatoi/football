@@ -556,7 +556,11 @@ function App() {
         if (cachedMatches && cachedMatches.length > 0 && metadata?.isComplete) {
           // Has cache (even if expired) - count markets for visual continuity
           const matchesWithMarkets = cachedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
-          const isComplete = matchesWithMarkets === cachedMatches.length;
+          const marketsLoaded = matchesWithMarkets === cachedMatches.length;
+          
+          // If expired, mark as NOT complete (will refresh from API)
+          // This makes the button show BLUE (loading) instead of GREEN (complete)
+          const isComplete = expired ? false : marketsLoaded;
           
           const status = expired ? '(expired, will refresh)' : '(valid)';
           console.log(`[Cache Check] ${dateEntry.entryDate}: ${matchesWithMarkets}/${cachedMatches.length} ${status}`);
