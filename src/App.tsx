@@ -523,12 +523,13 @@ function App() {
         const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
         const expired = await isCacheExpired(cacheKey);
         
-        if (cachedMatches && cachedMatches.length > 0 && !expired && metadata?.isComplete) {
-          // Has valid cache - count markets
+        if (cachedMatches && cachedMatches.length > 0 && metadata?.isComplete) {
+          // Has cache (even if expired) - count markets for visual continuity
           const matchesWithMarkets = cachedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
           const isComplete = matchesWithMarkets === cachedMatches.length;
           
-          console.log(`[Cache Check] ${dateEntry.entryDate}: ${matchesWithMarkets}/${cachedMatches.length} (${Math.round((matchesWithMarkets/cachedMatches.length)*100)}%)`);
+          const status = expired ? '(expired, will refresh)' : '(valid)';
+          console.log(`[Cache Check] ${dateEntry.entryDate}: ${matchesWithMarkets}/${cachedMatches.length} ${status}`);
           
           return {
             date: dateEntry.entryDate,
@@ -538,7 +539,7 @@ function App() {
           };
         }
         
-        // No valid cache - show 0%
+        // No cache at all - show 0%
         console.log(`[Cache Check] ${dateEntry.entryDate}: No cache (will load on-demand)`);
         return {
           date: dateEntry.entryDate,
