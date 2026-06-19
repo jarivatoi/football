@@ -98,7 +98,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
         {onToggleAllMatches && (
           <button
             onClick={onToggleAllMatches}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all min-w-[90px] relative overflow-hidden ${
+            className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all w-auto relative overflow-hidden ${
               showAllMatches && allMatchesProgress?.isComplete
                 ? 'bg-green-600 text-white shadow-md' // Complete - GREEN
                 : showAllMatches
