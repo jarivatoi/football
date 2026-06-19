@@ -1171,12 +1171,43 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         // Don't clear selections or reset bet amount - let user decide
         setIsPlacing(false);
       } else {
-        const errorMessage = bookingResult.errorMessage || bookingResult.multiErrorMessage || 'Please try again';
+        // Extract actual API error message from betList
+        let apiErrorMessage = '';
+        
+        if (bookingResult.betList && bookingResult.betList.length > 0) {
+          // Find first bet with an error
+          const errorBet = bookingResult.betList.find((bet: any) => 
+            bet.betErrorCode && bet.betErrorCode !== 0
+          );
+          
+          if (errorBet) {
+            // Use betErrorMessage if available
+            apiErrorMessage = errorBet.betErrorMessage || errorBet.legErrorMessage || '';
+            
+            // Clean up error message
+            if (apiErrorMessage && apiErrorMessage !== 'None' && apiErrorMessage !== 'null') {
+              console.log('[Bet Error] API Error Message:', apiErrorMessage);
+            } else {
+              apiErrorMessage = '';
+            }
+          }
+        }
+        
+        // Fallback to general error messages if no betList error
+        const errorMessage = apiErrorMessage || 
+                            bookingResult.errorMessage || 
+                            bookingResult.multiErrorMessage || 
+                            'Please try again';
+        
         setLastResult({
           success: false,
           message: `Booking failed: ${errorMessage}`,
           fullResponse: bookingResult
         });
+        
+        // Show error toast with actual API message
+        setToast(errorMessage);
+        setTimeout(() => setToast(null), 5000); // Show for 5 seconds
         
         // Mark all selections with errors if bet failed
         if (bookingResult.betList && bookingResult.betList.length > 0) {
