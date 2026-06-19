@@ -509,17 +509,18 @@ function App() {
       const firstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
       if (firstDate) {
         
+        // ONLY load the first date (not all dates!)
         loadData(firstDate);
       }
       
-      // Check ALL dates in calendar for their market loading status
+      // Quick check: Initialize progress state for all dates (from IndexedDB only, no fetching)
       const calendarList = (totelepepExtractor as any).calendarList || [];
       
-      // Process all dates in parallel
+      // Process all dates in parallel (just checking cache, not fetching)
       const progressChecks = calendarList.map(async (dateEntry: any) => {
         const cacheKey = `date_${dateEntry.entryDate}_all_all_totelepep`;
         const { getCachedMatches } = await import('./utils/matchCache');
-        const { matches: cachedMatches } = await getCachedMatches(cacheKey);
+        const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
         
         if (cachedMatches && cachedMatches.length > 0) {
           const matchesWithMarkets = cachedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
@@ -529,10 +530,17 @@ function App() {
             date: dateEntry.entryDate,
             loaded: matchesWithMarkets,
             total: cachedMatches.length,
-            isComplete
+            isComplete,
+            hasCache: true
           };
         }
-        return null;
+        return {
+          date: dateEntry.entryDate,
+          loaded: 0,
+          total: dateEntry.matchCount || 0,
+          isComplete: false,
+          hasCache: false
+        };
       });
       
       // Wait for all dates to be checked
