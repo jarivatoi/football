@@ -823,16 +823,6 @@ function App() {
           // Advanced filter (H1, H2, FT, ALL) - filter matches based on expanded markets
           // This ensures matches without matching markets are filtered out
           filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
-            // If match doesn't have allMarkets loaded yet, let it through
-            // (MatchCard will load and filter it)
-            if (!match.allMarkets || match.allMarkets.length === 0) {
-              // For outrights without markets, filter them out (same as quick 1X2)
-              if (match.isOutright) {
-                return false;
-              }
-              return true; // Regular match without markets yet, let through
-            }
-            
             // Parse the advanced filter code to extract criteria
             const upperSearch = searchTerm.toUpperCase().trim();
             const oddsMatch = upperSearch.match(/^(\d{2,3})/);
@@ -854,6 +844,15 @@ function App() {
             else if (upperSearch.includes('DC')) targetMarketType = 'DC';
             else if (upperSearch.includes('AH')) targetMarketType = 'AH';
             else if (upperSearch.includes('CS')) targetMarketType = 'CS';
+            
+            // If match doesn't have allMarkets loaded yet, filter it out for market-specific filters
+            // (UO, BTTS, DC, AH, CS) - we can't verify the filter without markets
+            if (!match.allMarkets || match.allMarkets.length === 0) {
+              if (targetMarketType) {
+                return false; // Market-specific filter but no markets loaded = filter out
+              }
+              return true; // No market filter, let through (will filter by period/odds only)
+            }
             
             // Extract line for UO/AH markets (e.g., +1.5, -0.5, 2.5)
             let targetLine: string | null = null;
