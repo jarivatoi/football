@@ -345,7 +345,7 @@ function App() {
 
   }, [selectedDate]);
   
-  const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string, forceFresh: boolean = false) => {
+  const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string, forceFresh: boolean = false, silent: boolean = false) => {
     setLoading(true);
     setError(null);
 
@@ -369,40 +369,43 @@ function App() {
     
     // Check if date is already complete in cache before setting to loading state
     // This prevents green buttons from turning blue when clicked again
+    // SKIP this check in silent mode (auto-load)
     const sourceId = selectedSource?.id || 'totelepep';
     const cacheKey = `date_${dateToFetch}_${catId || 'all'}_${compId || 'all'}_${sourceId}`;
     
-    // Only set to loading state if cache is expired or incomplete
-    const { getCachedMatches: checkCached, isCacheExpired: checkExpired } = await import('./utils/matchCache');
-    const { matches: existingCache, metadata: existingMetadata } = await checkCached(cacheKey);
-    const isExpired = await checkExpired(cacheKey);
-    const isAlreadyComplete = existingCache && existingCache.length > 0 && 
-                              existingMetadata?.isComplete && 
-                              !isExpired &&
-                              existingCache.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
-    
-    console.log(`[LoadData] ${dateToFetch}: isAlreadyComplete=${isAlreadyComplete}, cache=${existingCache?.length || 0}, expired=${isExpired}, complete=${existingMetadata?.isComplete}`);
-    
-    if (dateToFetch && !isAlreadyComplete) {
-      // Set progress to loading state (BLUE) only if not already complete
-      setDateProgress(prev => ({
-        ...prev,
-        [dateToFetch]: {
-          loaded: prev[dateToFetch]?.loaded || 0,
-          total: prev[dateToFetch]?.total || 0,
-          isComplete: false // Force to loading state
-        }
-      }));
-    } else if (dateToFetch && isAlreadyComplete) {
-      // Cache is already complete - ensure progress state reflects this
-      setDateProgress(prev => ({
-        ...prev,
-        [dateToFetch]: {
-          loaded: existingCache.length,
-          total: existingCache.length,
-          isComplete: true // Force to complete state (GREEN)
-        }
-      }));
+    if (!silent) {
+      // Only set to loading state if cache is expired or incomplete
+      const { getCachedMatches: checkCached, isCacheExpired: checkExpired } = await import('./utils/matchCache');
+      const { matches: existingCache, metadata: existingMetadata } = await checkCached(cacheKey);
+      const isExpired = await checkExpired(cacheKey);
+      const isAlreadyComplete = existingCache && existingCache.length > 0 && 
+                                existingMetadata?.isComplete && 
+                                !isExpired &&
+                                existingCache.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
+      
+      console.log(`[LoadData] ${dateToFetch}: isAlreadyComplete=${isAlreadyComplete}, cache=${existingCache?.length || 0}, expired=${isExpired}, complete=${existingMetadata?.isComplete}`);
+      
+      if (dateToFetch && !isAlreadyComplete) {
+        // Set progress to loading state (BLUE) only if not already complete
+        setDateProgress(prev => ({
+          ...prev,
+          [dateToFetch]: {
+            loaded: prev[dateToFetch]?.loaded || 0,
+            total: prev[dateToFetch]?.total || 0,
+            isComplete: false // Force to loading state
+          }
+        }));
+      } else if (dateToFetch && isAlreadyComplete) {
+        // Cache is already complete - ensure progress state reflects this
+        setDateProgress(prev => ({
+          ...prev,
+          [dateToFetch]: {
+            loaded: existingCache.length,
+            total: existingCache.length,
+            isComplete: true // Force to complete state (GREEN)
+          }
+        }));
+      }
     }
     
     // Prevent duplicate loads for the same date with same filters
@@ -639,11 +642,58 @@ function App() {
         return a.kickoff.localeCompare(b.kickoff);
       });
       
-      setMatches(sortedMatches);
-      // Group matches by date
-      const grouped = totelepepService.groupMatchesByDate(sortedMatches);
-      setGroupedMatches(grouped);
       
+      if (!silent) {
+        setMatches(sortedMatches);
+        // Group matches by date
+        const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+        setGroupedMatches(grouped);
+      }
+      
+      // After API fetch, refresh from IndexedDB if cache is now complete
+      // This ensures we show the full cached data (with markets) instead of just API data
+      // But only if NOT in silent mode
+      if (!silent) {
+        console.log(`[LoadData] ${dateToFetch}: Refreshing from IndexedDB after API fetch...`);
+        try {
+          const cacheKey = `date_${dateToFetch}_${catId || 'all'}_${compId || 'all'}_${sourceId}`;
+          const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
+          const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
+          const expired = await isCacheExpired(cacheKey);
+          
+          if (cachedMatches && cachedMatches.length > 0 && metadata?.isComplete && !expired) {
+            // Filter out past matches
+            const now = new Date();
+            const validMatches = cachedMatches.filter((m: any) => {
+              if (!m.kickoff) return true;
+              let kickoffTime: Date;
+              if (m.kickoff.includes('T')) {
+                kickoffTime = new Date(m.kickoff);
+              } else {
+                const matchDate = m.date || dateToFetch;
+                kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
+              }
+              return kickoffTime > now;
+            });
+            
+            // Sort and display
+            const sortedCachedMatches = validMatches.sort((a, b) => {
+              const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
+              if (dateComparison !== 0) return dateComparison;
+              return a.kickoff.localeCompare(b.kickoff);
+            });
+            
+            setMatches(sortedCachedMatches);
+            const groupedCached = totelepepService.groupMatchesByDate(sortedCachedMatches);
+            setGroupedMatches(groupedCached);
+            console.log(`[LoadData] ${dateToFetch}: Refreshed with ${sortedCachedMatches.length} matches from IndexedDB`);
+          } else {
+            console.log(`[LoadData] ${dateToFetch}: Cache not complete yet, keeping API data`);
+          }
+        } catch (error) {
+          console.error(`[LoadData] ${dateToFetch}: Error refreshing from IndexedDB:`, error);
+        }
+      }
       
       setLastUpdated(new Date());
       
@@ -782,9 +832,10 @@ function App() {
         return;
       }
       
-      // Load the next date
+      // Load the next date in background (silent mode - don't update UI)
+      // Don't change selectedDate - just load data in background
       loadData(nextDate, categoryId === 'all' ? undefined : categoryId, 
-               competitionId === 'all' ? undefined : competitionId, true);
+               competitionId === 'all' ? undefined : competitionId, false, true);
     } catch (error) {
       console.error('[Auto-Load] Error loading next date:', error);
     }
