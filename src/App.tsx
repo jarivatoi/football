@@ -429,7 +429,7 @@ function App() {
       console.log(`[API] Fetching from Totelepep for ${dateToFetch}...`);
       
       // Set up market progress callback before fetching
-      totelepepExtractor.onMarketProgress = (date, loaded, total) => {
+      totelepepExtractor.onMarketProgress = async (date, loaded, total) => {
         const percentage = Math.round((loaded / total) * 100);
         console.log(`[Progress] ${date}: ${loaded}/${total} markets loaded (${percentage}%)`);
         setDateProgress(prev => ({
@@ -440,6 +440,12 @@ function App() {
             isComplete: loaded >= total
           }
         }));
+        
+        // When date completes (turns GREEN), auto-merge into All Matches cache
+        if (loaded >= total) {
+          console.log(`[Auto-Merge] ${date} complete! Merging into All Matches cache...`);
+          await mergeDateIntoAllMatches(date);
+        }
       };
 
       // Fetch matches DIRECTLY from Totelepep API with category/competition filters
@@ -517,7 +523,73 @@ function App() {
     }
   };
   
-  // Load ALL matches from all dates and combine them
+  // Auto-merge completed date matches into All Matches cache
+  const mergeDateIntoAllMatches = async (date: string) => {
+    try {
+      const { getCachedMatches, saveMatchesChunk } = await import('./utils/matchCache');
+      
+      // Get matches for this specific date
+      const dateCacheKey = `date_${date}_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_totelepep`;
+      const { matches: dateMatches } = await getCachedMatches(dateCacheKey);
+      
+      if (!dateMatches || dateMatches.length === 0) {
+        console.log(`[Auto-Merge] ${date}: No matches to merge`);
+        return;
+      }
+      
+      console.log(`[Auto-Merge] ${date}: ${dateMatches.length} matches ready to merge`);
+      
+      // Get existing All Matches cache
+      const allMatchesCacheKey = `all_matches_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_totelepep`;
+      const { matches: existingAllMatches, metadata } = await getCachedMatches(allMatchesCacheKey);
+      
+      // Merge logic: add new, update existing
+      let mergedMatches = dateMatches;
+      
+      if (existingAllMatches && existingAllMatches.length > 0) {
+        console.log(`[Auto-Merge] Merging with ${existingAllMatches.length} existing All Matches`);
+        
+        // Create map of existing matches
+        const existingMap = new Map();
+        existingAllMatches.forEach((m: any) => existingMap.set(m.id, m));
+        
+        // Merge: update existing or add new
+        dateMatches.forEach((newMatch: any) => {
+          if (existingMap.has(newMatch.id)) {
+            // Update existing match with new data (markets, odds)
+            existingMap.set(newMatch.id, newMatch);
+          } else {
+            // Add new match
+            existingMap.set(newMatch.id, newMatch);
+          }
+        });
+        
+        mergedMatches = Array.from(existingMap.values());
+        console.log(`[Auto-Merge] Result: ${mergedMatches.length} total matches`);
+      }
+      
+      // Save merged matches to All Matches cache
+      const chunkSize = (await import('./utils/matchCache')).getChunkSize();
+      for (let i = 0; i < mergedMatches.length; i += chunkSize) {
+        const chunk = mergedMatches.slice(i, i + chunkSize);
+        const loadedCount = Math.min(i + chunkSize, mergedMatches.length);
+        const isComplete = loadedCount >= mergedMatches.length;
+        await saveMatchesChunk(chunk, allMatchesCacheKey, loadedCount, mergedMatches.length, isComplete);
+      }
+      
+      console.log(`[Auto-Merge] ${date}: Successfully merged into All Matches cache`);
+      
+      // If All Matches is currently active, reload it to show new data
+      if (showAllMatches) {
+        console.log('[Auto-Merge] All Matches is active, reloading...');
+        loadAllMatches(selectedCategory, selectedCompetition);
+      }
+    } catch (error) {
+      console.error('[Auto-Merge] Error merging date into All Matches:', error);
+    }
+  };
+  
+  // Load ALL matches from progressive cache (auto-built as dates complete)
   const loadAllMatches = async (categoryId?: string, competitionId?: string) => {
     setLoading(true);
     setError(null);
@@ -527,84 +599,48 @@ function App() {
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
 
     try {
-      // Check if we have a cached "All Matches" result
+      // Load from All Matches progressive cache
       const cacheKey = `all_matches_${catId || 'all'}_${compId || 'all'}_totelepep`;
-      const { getCachedMatches, saveMatchesChunk, isCacheExpired } = await import('./utils/matchCache');
+      const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
       const { matches: cachedAllMatches, metadata } = await getCachedMatches(cacheKey);
       const expired = await isCacheExpired(cacheKey);
       
-      // Log All Matches cache status
-      if (cachedAllMatches && cachedAllMatches.length > 0) {
-        const cacheAge = metadata?.lastUpdated ? Math.round((Date.now() - metadata.lastUpdated) / 60000) : 0;
-        const matchesWithMarkets = cachedAllMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
-        console.log(`[All Matches Cache] ${cachedAllMatches.length} matches found (${matchesWithMarkets} with markets), ${expired ? 'EXPIRED' : 'VALID'} (${cacheAge}min old)`);
-      } else {
-        console.log('[All Matches Cache] NO CACHE - will fetch from all dates');
-      }
+      console.log(`[All Matches] Cache check: ${cachedAllMatches?.length || 0} matches, ${expired ? 'EXPIRED' : 'VALID'}`);
       
-      // Use cached "All Matches" if valid (not expired and complete)
-      if (cachedAllMatches && cachedAllMatches.length > 0 && metadata?.isComplete && !expired) {
-        console.log(`[All Matches] Using cached data: ${cachedAllMatches.length} matches`);
-        const sortedMatches = cachedAllMatches.sort((a, b) => {
-          const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
-          if (dateComparison !== 0) return dateComparison;
-          return a.kickoff.localeCompare(b.kickoff);
-        });
-        
-        setMatches(sortedMatches);
-        const grouped = totelepepService.groupMatchesByDate(sortedMatches);
-        setGroupedMatches(grouped);
-        
-        // Mark as complete immediately
+      if (!cachedAllMatches || cachedAllMatches.length === 0 || expired) {
+        console.log('[All Matches] No valid cache - please load individual dates first');
+        setMatches([]);
+        setGroupedMatches({});
         setAllMatchesProgress({
-          loaded: sortedMatches.length,
-          total: sortedMatches.length,
-          isComplete: true,
-          percentage: 100
+          loaded: 0,
+          total: 0,
+          isComplete: false,
+          percentage: 0
         });
-        
-        setLastUpdated(new Date());
         setLoading(false);
         return;
       }
       
-      // No valid cache - fetch from all dates
-      const allMatches: TotelepepMatch[] = [];
-      
-      // Use calendarList which has all the dates
-      const datesToFetch = calendarList.length > 0 ? calendarList : availableDates;
-      
-      console.log(`[All Matches] Fetching from ${datesToFetch.length} dates...`);
-      let loadedMatches = 0;
-      let totalMatches = 0;
-
-      // Fetch matches from each date
-      for (const dateInfo of datesToFetch) {
-        console.log(`[All Matches] Fetching ${dateInfo.date}...`);
-        try {
-          const matches = await totelepepExtractor.extractMatches(dateInfo.date, catId, compId);
-          console.log(`[All Matches] ${dateInfo.date}: ${matches.length} matches loaded`);
-          
-          allMatches.push(...matches);
-          loadedMatches += matches.length;
-          totalMatches = loadedMatches; // Total is always the actual loaded count
-          
-          // Update progress with actual count
-          const percentage = totalMatches > 0 ? (loadedMatches / totalMatches) * 100 : 0;
-          console.log(`[All Matches Progress] ${loadedMatches}/${totalMatches} matches (${percentage}%)`);
-          setAllMatchesProgress({
-            loaded: loadedMatches,
-            total: totalMatches,
-            isComplete: false,
-            percentage
-          });
-        } catch (error) {
-          
+      // Filter out kickoff-passed matches
+      const now = new Date();
+      const validMatches = cachedAllMatches.filter((m: any) => {
+        if (!m.kickoff) return true;
+        
+        let kickoffTime: Date;
+        if (m.kickoff.includes('T')) {
+          kickoffTime = new Date(m.kickoff);
+        } else {
+          const matchDate = m.date;
+          kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
         }
-      }
-
-      // Sort all matches by date and time
-      const sortedMatches = allMatches.sort((a, b) => {
+        
+        return kickoffTime > now;
+      });
+      
+      console.log(`[All Matches] ${validMatches.length} matches after filtering kickoff-passed (was ${cachedAllMatches.length})`);
+      
+      // Sort matches by date and time
+      const sortedMatches = validMatches.sort((a, b) => {
         const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
         if (dateComparison !== 0) return dateComparison;
         return a.kickoff.localeCompare(b.kickoff);
@@ -616,29 +652,24 @@ function App() {
       const grouped = totelepepService.groupMatchesByDate(sortedMatches);
       setGroupedMatches(grouped);
       
-      // Save combined "All Matches" to cache
-      console.log(`[All Matches] Saving ${sortedMatches.length} matches to combined cache`);
-      const chunkSize = (await import('./utils/matchCache')).getChunkSize();
-      for (let i = 0; i < sortedMatches.length; i += chunkSize) {
-        const chunk = sortedMatches.slice(i, i + chunkSize);
-        const loadedCount = Math.min(i + chunkSize, sortedMatches.length);
-        const isComplete = loadedCount >= sortedMatches.length;
-        await saveMatchesChunk(chunk, cacheKey, loadedCount, sortedMatches.length, isComplete);
-      }
+      // Check how many have markets loaded
+      const matchesWithMarkets = sortedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
+      const isComplete = matchesWithMarkets === sortedMatches.length;
       
-      // Mark as complete with actual count
-      console.log(`[All Matches] Complete! ${sortedMatches.length} matches loaded from ${datesToFetch.length} dates`);
+      console.log(`[All Matches] ${matchesWithMarkets}/${sortedMatches.length} have markets loaded`);
+      
+      // Mark as complete if all have markets
       setAllMatchesProgress({
-        loaded: sortedMatches.length,
+        loaded: matchesWithMarkets,
         total: sortedMatches.length,
-        isComplete: true,
-        percentage: 100
+        isComplete,
+        percentage: sortedMatches.length > 0 ? (matchesWithMarkets / sortedMatches.length) * 100 : 0
       });
       
       setLastUpdated(new Date());
       
     } catch (error) {
-      
+      console.error('[All Matches] Error loading:', error);
       setError('Failed to load all matches. Please try again.');
     } finally {
       setLoading(false);
