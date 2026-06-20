@@ -149,15 +149,42 @@ function App() {
     // Update the extractor base URL
     (totelepepExtractor as any).baseUrl = source.baseUrl;
     
-    // Clear cache to fetch fresh data from new source
+    // Cancel ALL background loading tasks from previous source
+    totelepepExtractor.cancelAllBackgroundLoading();
+    
+    // Clear in-memory cache
     totelepepExtractor.clearCache();
+    
+    // Clear ALL IndexedDB caches (old source data)
+    try {
+      const { clearCacheMatches, cleanupStaleDateCaches } = await import('./utils/matchCache');
+      const oldSourceId = selectedSource?.id || 'totelepep';
+      
+      // Clear all date caches for old source
+      const datesToClear = availableDates.length > 0 ? availableDates : [];
+      for (const date of datesToClear) {
+        const cacheKey = `date_${date}_all_all_${oldSourceId}`;
+        await clearCacheMatches(cacheKey);
+      }
+      
+      // Clear All Matches cache for old source
+      const allMatchesCacheKey = `all_matches_all_all_${oldSourceId}`;
+      await clearCacheMatches(allMatchesCacheKey);
+      
+      console.log(`[Source Change] Cleared all IndexedDB caches for source: ${oldSourceId}`);
+    } catch (error) {
+      console.error('[Source Change] Error clearing IndexedDB:', error);
+    }
     
     // Set loading state FIRST (prevents "No matches" flash)
     setLoading(true);
     
-    // Keep old matches visible while loading (don't clear them)
-    // setMatches([]);  ← REMOVED
-    // setGroupedMatches({});  ← REMOVED
+    // Clear current matches immediately
+    setMatches([]);
+    setGroupedMatches({});
+    
+    // Reset progress state
+    setDateProgress({});
     
     // Reset both category and competition filters when switching sources
     // Each source has its own IDs, so start fresh
@@ -180,7 +207,7 @@ function App() {
       loadAllMatches('', '');
     } else if (selectedDate) {
       
-      loadData(selectedDate, '', '');
+      loadData(selectedDate, '', '', true); // forceFresh=true to ensure API fetch
     }
   };
   
@@ -886,14 +913,16 @@ function App() {
         // First, clean up stale date caches (older than today)
         await cleanupStaleDateCaches();
         
-        // Clear any existing date caches
+        // Clear any existing date caches (use correct cache key with source ID)
+        const sourceId = selectedSource?.id || 'totelepep';
         const datesToClear = availableDates.length > 0 ? availableDates : [];
         for (const date of datesToClear) {
-          const cacheKey = `date_${date}_all_all`;
+          const cacheKey = `date_${date}_all_all_${sourceId}`;
           await clearCacheMatches(cacheKey);
         }
         // Clear All Matches cache
-        await clearCacheMatches('all_matches_all_all');
+        const allMatchesCacheKey = `all_matches_all_all_${sourceId}`;
+        await clearCacheMatches(allMatchesCacheKey);
         console.log('[Initial Load] Cleared all IndexedDB caches');
         
         // NOW it's safe to load data

@@ -9,7 +9,7 @@ const DB_VERSION = 2; // Incremented to add betslip store
 const STORE_NAME = 'matches';
 const BETSLIP_STORE_NAME = 'betslip'; // Betslip persistence
 const CHUNK_SIZE = 100; // Load and save in chunks of 100 matches
-const CACHE_EXPIRY = 10 * 60 * 1000; // 10 minutes - refresh odds data
+const CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes - refresh odds data
 
 interface MatchCacheEntry {
   id: string;

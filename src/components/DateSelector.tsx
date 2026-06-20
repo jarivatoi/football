@@ -108,7 +108,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
               )}
               {/* Green dot: Fully loaded with all markets (persists even when not selected) */}
               {progress && isComplete && (
-                <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-500 shadow-sm" />
+                <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />
               )}
               
               <div className="text-center">
