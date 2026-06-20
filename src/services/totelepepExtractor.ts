@@ -352,6 +352,9 @@ class TotelepepExtractor {
     }
   }
 
+  // Track active background loading tasks for cancellation
+  private activeBackgroundTasks: Set<string> = new Set();
+  
   // Fetch markets for all matches in background (non-blocking)
   private async fetchMarketsInBackground(
     matches: TotelepepMatch[],
@@ -361,6 +364,15 @@ class TotelepepExtractor {
   ): Promise<void> {
     // Extract date from cacheKey (e.g., "date_2026-06-19_all_all_totelepep" -> "2026-06-19")
     const date = cacheKey.split('_')[1];
+    
+    // Cancel any existing background task for this date
+    if (this.activeBackgroundTasks.has(cacheKey)) {
+      console.log(`[Background] ${date}: Cancelling previous background task`);
+      this.activeBackgroundTasks.delete(cacheKey);
+    }
+    
+    // Mark this task as active
+    this.activeBackgroundTasks.add(cacheKey);
     
     // Count how many matches already have markets loaded (from cache)
     const alreadyLoaded = matches.filter(m => m.allMarkets && m.allMarkets.length > 0).length;
@@ -387,6 +399,12 @@ class TotelepepExtractor {
         
         // Fetch markets with rate limiting
         for (const match of chunk) {
+          // Check if this task has been cancelled
+          if (!this.activeBackgroundTasks.has(cacheKey)) {
+            console.log(`[Background] ${date}: Task cancelled, stopping market loading at ${loadedCount}/${totalMatches}`);
+            return; // Exit early
+          }
+          
           // Skip if already has markets (from cache)
           if (match.allMarkets && match.allMarkets.length > 0) {
             continue;
@@ -426,7 +444,21 @@ class TotelepepExtractor {
         console.log(`[Background Market Loading] ${date}: Complete! ${totalMatches}/${totalMatches} markets loaded (100%)`);
         this.onMarketProgress(date, totalMatches, totalMatches);
       }
+      
+      // Clean up: remove from active tasks
+      this.activeBackgroundTasks.delete(cacheKey);
     })(); // Self-executing async function
+  }
+  
+  // Cancel background loading for a specific date/cache
+  public cancelBackgroundLoading(cacheKey: string): void {
+    this.activeBackgroundTasks.delete(cacheKey);
+  }
+  
+  // Cancel ALL background loading tasks
+  public cancelAllBackgroundLoading(): void {
+    console.log(`[Background] Cancelling all ${this.activeBackgroundTasks.size} active tasks`);
+    this.activeBackgroundTasks.clear();
   }
 
   // Fetch all markets for all matches - OPTIMIZED WITH PARALLEL REQUESTS

@@ -418,8 +418,8 @@ function App() {
             ...prev,
             [dateToFetch!]: {
               loaded: matchesWithMarkets,
-              total: validMatches.length,
-              isComplete: matchesWithMarkets === validMatches.length
+              total: cachedMatches.length, // Use ORIGINAL total (matches background loader expectation)
+              isComplete: matchesWithMarkets === cachedMatches.length
             }
           }));
           setLoading(false);
@@ -429,6 +429,11 @@ function App() {
       
       // STEP 2: Fetch fresh data from API (in background if we have cache)
       console.log(`[API] Fetching from Totelepep for ${dateToFetch}...`);
+      
+      // Capture source ID and filters at load START to prevent stale values during auto-merge
+      const loadSourceId = selectedSource?.id || 'totelepep';
+      const loadCategory = catId || 'all';
+      const loadCompetition = compId || 'all';
       
       // Set up market progress callback before fetching
       totelepepExtractor.onMarketProgress = async (date, loaded, total) => {
@@ -446,7 +451,8 @@ function App() {
         // When date completes (turns GREEN), auto-merge into All Matches cache
         if (loaded >= total) {
           console.log(`[Auto-Merge] ${date} complete! Merging into All Matches cache...`);
-          await mergeDateIntoAllMatches(date);
+          // Use captured values from load start, not current state
+          await mergeDateIntoAllMatches(date, loadSourceId, loadCategory, loadCompetition);
         }
       };
 
@@ -526,13 +532,17 @@ function App() {
   };
   
   // Auto-merge completed date matches into All Matches cache
-  const mergeDateIntoAllMatches = async (date: string) => {
+  const mergeDateIntoAllMatches = async (date: string, sourceId?: string, categoryId?: string, competitionId?: string) => {
     try {
       const { getCachedMatches, saveMatchesChunk } = await import('./utils/matchCache');
       
+      // Use provided source ID and filters (captured at load start), or fall back to current state
+      const mergeSourceId = sourceId || selectedSource?.id || 'totelepep';
+      const mergeCategoryId = categoryId !== undefined ? categoryId : selectedCategory;
+      const mergeCompetitionId = competitionId !== undefined ? competitionId : selectedCompetition;
+      
       // Get matches for this specific date
-      const sourceId = selectedSource?.id || 'totelepep';
-      const dateCacheKey = `date_${date}_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_${sourceId}`;
+      const dateCacheKey = `date_${date}_${mergeCategoryId || 'all'}_${mergeCompetitionId || 'all'}_${mergeSourceId}`;
       const { matches: dateMatches } = await getCachedMatches(dateCacheKey);
       
       if (!dateMatches || dateMatches.length === 0) {
@@ -543,7 +553,7 @@ function App() {
       console.log(`[Auto-Merge] ${date}: ${dateMatches.length} matches ready to merge`);
       
       // Get existing All Matches cache
-      const allMatchesCacheKey = `all_matches_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_${sourceId}`;
+      const allMatchesCacheKey = `all_matches_${mergeCategoryId || 'all'}_${mergeCompetitionId || 'all'}_${mergeSourceId}`;
       const { matches: existingAllMatches, metadata } = await getCachedMatches(allMatchesCacheKey);
       
       // Merge logic: add new, update existing
@@ -751,8 +761,26 @@ function App() {
   // Load initial data on mount
   useEffect(() => {
 
-    // Clear all caches on initial load
+    // Clear ALL caches on initial load (both in-memory and IndexedDB)
     totelepepExtractor.clearCache();
+    
+    // Also clear IndexedDB cache to prevent stale data
+    (async () => {
+      try {
+        const { clearCacheMatches } = await import('./utils/matchCache');
+        // Clear any existing date caches
+        const datesToClear = availableDates.length > 0 ? availableDates : [];
+        for (const date of datesToClear) {
+          const cacheKey = `date_${date}_all_all`;
+          await clearCacheMatches(cacheKey);
+        }
+        // Clear All Matches cache
+        await clearCacheMatches('all_matches_all_all');
+        console.log('[Initial Load] Cleared all IndexedDB caches');
+      } catch (error) {
+        console.error('[Initial Load] Error clearing IndexedDB cache:', error);
+      }
+    })();
     
     // Load saved betslip from IndexedDB
     loadBetslip().then(savedSelections => {
@@ -777,9 +805,13 @@ function App() {
       const calendarList = (totelepepExtractor as any).calendarList || [];
       
       // Use Promise.all for parallel cache checks (fast, no API calls)
+      // FIX: Use current filters to match loadData cache keys
       const sourceId = selectedSource?.id || 'totelepep';
+      const currentCategory = selectedCategory || 'all';
+      const currentCompetition = selectedCompetition || 'all';
+      
       const progressChecks = calendarList.map(async (dateEntry: any) => {
-        const cacheKey = `date_${dateEntry.entryDate}_all_all_${sourceId}`;
+        const cacheKey = `date_${dateEntry.entryDate}_${currentCategory}_${currentCompetition}_${sourceId}`;
         const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
         const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
         const expired = await isCacheExpired(cacheKey);
@@ -1780,6 +1812,9 @@ function App() {
     // Reset all progress
     setDateProgress({});
     setAllMatchesProgress(null);
+    
+    // Cancel all active background loading tasks
+    totelepepExtractor.cancelAllBackgroundLoading();
     
     // Turn off All Matches view
     if (showAllMatches) {
