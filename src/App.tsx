@@ -354,7 +354,9 @@ function App() {
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
     
     try {
-      const cacheKey = `date_${dateToFetch}_${catId || 'all'}_${compId || 'all'}_totelepep`;
+      // Include source ID in cache key to prevent mixing data from different sources
+      const sourceId = selectedSource?.id || 'totelepep';
+      const cacheKey = `date_${dateToFetch}_${catId || 'all'}_${compId || 'all'}_${sourceId}`;
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
       const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
       const expired = await isCacheExpired(cacheKey);
@@ -529,7 +531,8 @@ function App() {
       const { getCachedMatches, saveMatchesChunk } = await import('./utils/matchCache');
       
       // Get matches for this specific date
-      const dateCacheKey = `date_${date}_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_totelepep`;
+      const sourceId = selectedSource?.id || 'totelepep';
+      const dateCacheKey = `date_${date}_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_${sourceId}`;
       const { matches: dateMatches } = await getCachedMatches(dateCacheKey);
       
       if (!dateMatches || dateMatches.length === 0) {
@@ -540,7 +543,7 @@ function App() {
       console.log(`[Auto-Merge] ${date}: ${dateMatches.length} matches ready to merge`);
       
       // Get existing All Matches cache
-      const allMatchesCacheKey = `all_matches_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_totelepep`;
+      const allMatchesCacheKey = `all_matches_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_${sourceId}`;
       const { matches: existingAllMatches, metadata } = await getCachedMatches(allMatchesCacheKey);
       
       // Merge logic: add new, update existing
@@ -600,7 +603,8 @@ function App() {
 
     try {
       // Load from All Matches progressive cache
-      const cacheKey = `all_matches_${catId || 'all'}_${compId || 'all'}_totelepep`;
+      const sourceId = selectedSource?.id || 'totelepep';
+      const cacheKey = `all_matches_${catId || 'all'}_${compId || 'all'}_${sourceId}`;
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
       const { matches: cachedAllMatches, metadata } = await getCachedMatches(cacheKey);
       const expired = await isCacheExpired(cacheKey);
@@ -773,8 +777,9 @@ function App() {
       const calendarList = (totelepepExtractor as any).calendarList || [];
       
       // Use Promise.all for parallel cache checks (fast, no API calls)
+      const sourceId = selectedSource?.id || 'totelepep';
       const progressChecks = calendarList.map(async (dateEntry: any) => {
-        const cacheKey = `date_${dateEntry.entryDate}_all_all_totelepep`;
+        const cacheKey = `date_${dateEntry.entryDate}_all_all_${sourceId}`;
         const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
         const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
         const expired = await isCacheExpired(cacheKey);
@@ -1691,7 +1696,8 @@ function App() {
   // Handle long-press to clear cache for a specific date
   const handleClearCache = async (date: string) => {
     const { clearCacheMatches } = await import('./utils/matchCache');
-    const cacheKey = `date_${date}_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_totelepep`;
+    const sourceId = selectedSource?.id || 'totelepep';
+    const cacheKey = `date_${date}_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_${sourceId}`;
     
     // Clear cache for this date
     await clearCacheMatches(cacheKey);
