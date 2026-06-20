@@ -359,6 +359,15 @@ function App() {
       const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
       const expired = await isCacheExpired(cacheKey);
       
+      // Log cache status
+      if (cachedMatches && cachedMatches.length > 0) {
+        const cacheAge = metadata?.lastUpdated ? Math.round((Date.now() - metadata.lastUpdated) / 60000) : 0;
+        const matchesWithMarkets = cachedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
+        console.log(`[Cache] ${dateToFetch}: ${cachedMatches.length} matches found (${matchesWithMarkets} with markets), ${expired ? 'EXPIRED' : 'VALID'} (${cacheAge}min old)`);
+      } else {
+        console.log(`[Cache] ${dateToFetch}: NO CACHE - will fetch from API`);
+      }
+      
       // STEP 1: Load from cache immediately (even if expired)
       // This ensures data is always available
       if (cachedMatches && cachedMatches.length > 0) {
@@ -402,6 +411,7 @@ function App() {
         // If cache is valid, mark as complete
         if (!expired && metadata?.isComplete) {
           const matchesWithMarkets = validMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
+          console.log(`[Cache] ${dateToFetch}: Using cached data (${matchesWithMarkets}/${validMatches.length} markets loaded)`);
           setDateProgress(prev => ({
             ...prev,
             [dateToFetch!]: {
@@ -416,8 +426,12 @@ function App() {
       }
       
       // STEP 2: Fetch fresh data from API (in background if we have cache)
+      console.log(`[API] Fetching from Totelepep for ${dateToFetch}...`);
+      
       // Set up market progress callback before fetching
       totelepepExtractor.onMarketProgress = (date, loaded, total) => {
+        const percentage = Math.round((loaded / total) * 100);
+        console.log(`[Progress] ${date}: ${loaded}/${total} markets loaded (${percentage}%)`);
         setDateProgress(prev => ({
           ...prev,
           [date]: {
@@ -430,7 +444,9 @@ function App() {
 
       // Fetch matches DIRECTLY from Totelepep API with category/competition filters
       const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId);
+      console.log(`[API] ${dateToFetch}: Received ${fetchedMatches.length} matches from API`);
       if (fetchedMatches.length === 0) {
+        console.warn(`[API] ${dateToFetch}: WARNING - API returned 0 matches!`);
       }
       
       // STEP 3: Merge cached data with fresh data
@@ -438,6 +454,7 @@ function App() {
       let mergedMatches = fetchedMatches;
       
       if (cachedMatches && cachedMatches.length > 0) {
+        console.log(`[Merge] ${dateToFetch}: Merging ${fetchedMatches.length} fresh matches with ${cachedMatches.length} cached matches`);
         // Create a map of existing matches by ID
         const existingMap = new Map();
         cachedMatches.forEach((m: any) => existingMap.set(m.id, m));
@@ -516,8 +533,18 @@ function App() {
       const { matches: cachedAllMatches, metadata } = await getCachedMatches(cacheKey);
       const expired = await isCacheExpired(cacheKey);
       
+      // Log All Matches cache status
+      if (cachedAllMatches && cachedAllMatches.length > 0) {
+        const cacheAge = metadata?.lastUpdated ? Math.round((Date.now() - metadata.lastUpdated) / 60000) : 0;
+        const matchesWithMarkets = cachedAllMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
+        console.log(`[All Matches Cache] ${cachedAllMatches.length} matches found (${matchesWithMarkets} with markets), ${expired ? 'EXPIRED' : 'VALID'} (${cacheAge}min old)`);
+      } else {
+        console.log('[All Matches Cache] NO CACHE - will fetch from all dates');
+      }
+      
       // Use cached "All Matches" if valid (not expired and complete)
       if (cachedAllMatches && cachedAllMatches.length > 0 && metadata?.isComplete && !expired) {
+        console.log(`[All Matches] Using cached data: ${cachedAllMatches.length} matches`);
         const sortedMatches = cachedAllMatches.sort((a, b) => {
           const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
           if (dateComparison !== 0) return dateComparison;
@@ -547,14 +574,16 @@ function App() {
       // Use calendarList which has all the dates
       const datesToFetch = calendarList.length > 0 ? calendarList : availableDates;
       
+      console.log(`[All Matches] Fetching from ${datesToFetch.length} dates...`);
       let loadedMatches = 0;
       let totalMatches = 0;
 
       // Fetch matches from each date
       for (const dateInfo of datesToFetch) {
-        
+        console.log(`[All Matches] Fetching ${dateInfo.date}...`);
         try {
           const matches = await totelepepExtractor.extractMatches(dateInfo.date, catId, compId);
+          console.log(`[All Matches] ${dateInfo.date}: ${matches.length} matches loaded`);
           
           allMatches.push(...matches);
           loadedMatches += matches.length;
@@ -562,6 +591,7 @@ function App() {
           
           // Update progress with actual count
           const percentage = totalMatches > 0 ? (loadedMatches / totalMatches) * 100 : 0;
+          console.log(`[All Matches Progress] ${loadedMatches}/${totalMatches} matches (${percentage}%)`);
           setAllMatchesProgress({
             loaded: loadedMatches,
             total: totalMatches,
@@ -587,6 +617,7 @@ function App() {
       setGroupedMatches(grouped);
       
       // Save combined "All Matches" to cache
+      console.log(`[All Matches] Saving ${sortedMatches.length} matches to combined cache`);
       const chunkSize = (await import('./utils/matchCache')).getChunkSize();
       for (let i = 0; i < sortedMatches.length; i += chunkSize) {
         const chunk = sortedMatches.slice(i, i + chunkSize);
@@ -596,6 +627,7 @@ function App() {
       }
       
       // Mark as complete with actual count
+      console.log(`[All Matches] Complete! ${sortedMatches.length} matches loaded from ${datesToFetch.length} dates`);
       setAllMatchesProgress({
         loaded: sortedMatches.length,
         total: sortedMatches.length,
