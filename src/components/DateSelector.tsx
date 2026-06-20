@@ -102,11 +102,13 @@ const DateSelector: React.FC<DateSelectorProps> = ({
               } ${longPressDate === dateInfo.date ? 'animate-pulse' : ''}`}
             >
               {/* Colored dot indicator - top right */}
+              {/* Orange dot: Background loading in progress (not complete, but has some progress) */}
               {progress && !isComplete && percentage > 0 && (
-                <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-500 shadow-sm" />
+                <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
               )}
-              {(!progress || progress.loaded === 0) && isSelected && (
-                <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-blue-500 shadow-sm opacity-0" />
+              {/* Green dot: Fully loaded with all markets (persists even when not selected) */}
+              {progress && isComplete && (
+                <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-500 shadow-sm" />
               )}
               
               <div className="text-center">

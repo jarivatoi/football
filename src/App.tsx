@@ -389,6 +389,7 @@ function App() {
     
     try {
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
+      console.log(`[Cache Check] Reading cache with key: ${cacheKey}`);
       const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
       const expired = await isCacheExpired(cacheKey);
       
@@ -876,10 +877,15 @@ function App() {
     // Clear ALL caches on initial load (both in-memory and IndexedDB)
     totelepepExtractor.clearCache();
     
-    // Also clear IndexedDB cache to prevent stale data
+    // Also clear IndexedDB cache SYNCHRONOUSLY (wait for it to complete)
+    // This prevents race condition where clearing happens during save
     (async () => {
       try {
-        const { clearCacheMatches } = await import('./utils/matchCache');
+        const { clearCacheMatches, cleanupStaleDateCaches } = await import('./utils/matchCache');
+        
+        // First, clean up stale date caches (older than today)
+        await cleanupStaleDateCaches();
+        
         // Clear any existing date caches
         const datesToClear = availableDates.length > 0 ? availableDates : [];
         for (const date of datesToClear) {
@@ -889,6 +895,62 @@ function App() {
         // Clear All Matches cache
         await clearCacheMatches('all_matches_all_all');
         console.log('[Initial Load] Cleared all IndexedDB caches');
+        
+        // NOW it's safe to load data
+        loadCalendarList().then(() => {
+          const firstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
+          if (firstDate) {
+            (totelepepExtractor as any).cache = new Map();
+            loadData(firstDate, selectedCategory, selectedCompetition, true);
+          }
+          
+          // Initialize progress state for all dates
+          const calendarList = (totelepepExtractor as any).calendarList || [];
+          const sourceId = selectedSource?.id || 'totelepep';
+          const currentCategory = selectedCategory || 'all';
+          const currentCompetition = selectedCompetition || 'all';
+          
+          const progressChecks = calendarList.map(async (dateEntry: any) => {
+            const cacheKey = `date_${dateEntry.entryDate}_${currentCategory}_${currentCompetition}_${sourceId}`;
+            const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
+            const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
+            const expired = await isCacheExpired(cacheKey);
+            
+            if (cachedMatches && cachedMatches.length > 0 && metadata?.isComplete) {
+              const matchesWithMarkets = cachedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
+              const marketsLoaded = matchesWithMarkets === cachedMatches.length;
+              const isComplete = expired ? false : marketsLoaded;
+              
+              return {
+                date: dateEntry.entryDate,
+                loaded: matchesWithMarkets,
+                total: cachedMatches.length,
+                isComplete
+              };
+            }
+            
+            return {
+              date: dateEntry.entryDate,
+              loaded: 0,
+              total: dateEntry.matchCount || 0,
+              isComplete: false
+            };
+          });
+          
+          Promise.all(progressChecks).then(results => {
+            const newProgress: Record<string, {loaded: number, total: number, isComplete: boolean}> = {};
+            results.forEach(result => {
+              if (result) {
+                newProgress[result.date] = {
+                  loaded: result.loaded,
+                  total: result.total,
+                  isComplete: result.isComplete
+                };
+              }
+            });
+            setDateProgress(newProgress);
+          });
+        });
       } catch (error) {
         console.error('[Initial Load] Error clearing IndexedDB cache:', error);
       }
@@ -899,83 +961,6 @@ function App() {
       if (savedSelections && savedSelections.length > 0) {
         setParlaySelections(savedSelections);
       }
-    });
-    
-    // Load calendar first - it will set the correct selected date from the API
-    loadCalendarList().then(() => {
-      // After calendar is loaded, load matches for the first date
-      const firstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
-      if (firstDate) {
-        // Clear in-memory cache to ensure loadData does a full fetch with market loading
-        (totelepepExtractor as any).cache = new Map();
-        
-        // ONLY load the first date (not all dates!)
-        // Since we just cleared IndexedDB, skip cache check and fetch directly from API
-        loadData(firstDate, selectedCategory, selectedCompetition, true); // forceFresh=true
-      }
-      
-      // Quick check: Initialize progress state for all dates (from IndexedDB only, no fetching)
-      const calendarList = (totelepepExtractor as any).calendarList || [];
-      
-      // Use Promise.all for parallel cache checks (fast, no API calls)
-      // FIX: Use current filters to match loadData cache keys
-      const sourceId = selectedSource?.id || 'totelepep';
-      const currentCategory = selectedCategory || 'all';
-      const currentCompetition = selectedCompetition || 'all';
-      
-      const progressChecks = calendarList.map(async (dateEntry: any) => {
-        const cacheKey = `date_${dateEntry.entryDate}_${currentCategory}_${currentCompetition}_${sourceId}`;
-        const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
-        const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
-        const expired = await isCacheExpired(cacheKey);
-        
-        if (cachedMatches && cachedMatches.length > 0 && metadata?.isComplete) {
-          // Has cache (even if expired) - count markets for visual continuity
-          const matchesWithMarkets = cachedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
-          const marketsLoaded = matchesWithMarkets === cachedMatches.length;
-          
-          // If expired, mark as NOT complete (will refresh from API)
-          // This makes the button show BLUE (loading) instead of GREEN (complete)
-          const isComplete = expired ? false : marketsLoaded;
-          
-          const status = expired ? '(expired, will refresh)' : '(valid)';
-          return {
-            date: dateEntry.entryDate,
-            loaded: matchesWithMarkets,
-            total: cachedMatches.length,
-            isComplete
-          };
-        }
-        
-        // No cache at all - show 0%
-        return {
-          date: dateEntry.entryDate,
-          loaded: 0,
-          total: dateEntry.matchCount || 0,
-          isComplete: false
-        };
-      });
-      
-      // Wait for all dates to be checked
-      Promise.all(progressChecks).then(results => {
-        // Build progress object for ALL dates at once
-        const newProgress: Record<string, {loaded: number, total: number, isComplete: boolean}> = {};
-        
-        results.forEach(result => {
-          if (result) {
-            newProgress[result.date] = {
-              loaded: result.loaded,
-              total: result.total,
-              isComplete: result.isComplete
-            };
-          }
-        });
-        
-        // Set all progress at once (prevents overwriting)
-        if (Object.keys(newProgress).length > 0) {
-          setDateProgress(newProgress);
-        }
-      });
     });
   }, []); // Only run once on mount
   

@@ -78,7 +78,7 @@ export const saveMatchesChunk = async (
 
     // Save matches
     const entries: MatchCacheEntry[] = matches.map(match => ({
-      id: match.id,
+      id: `${cacheKey}_${match.id}`, // Include cacheKey in ID to prevent cross-date overwrites
       cacheKey,
       match,
       timestamp: Date.now()
@@ -98,10 +98,25 @@ export const saveMatchesChunk = async (
     });
 
     await new Promise<void>((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
+      transaction.oncomplete = () => {
+        if (isComplete) {
+          console.log(`[IndexedDB] ${cacheKey}: Save complete - ${loadedCount}/${totalCount} matches saved`);
+          // Verify save by reading back immediately
+          setTimeout(async () => {
+            try {
+              const { matches } = await getCachedMatches(cacheKey);
+              console.log(`[IndexedDB Verify] ${cacheKey}: Read back ${matches?.length || 0} matches`);
+            } catch (e) {
+              console.error(`[IndexedDB Verify] ${cacheKey}: Failed to verify`, e);
+            }
+          }, 100);
+        }
+        resolve();
+      };
       transaction.onerror = () => reject(transaction.error);
     });
   } catch (error) {
+    console.error(`[IndexedDB] ${cacheKey}: Save failed!`, error);
   }
 };
 
@@ -129,6 +144,7 @@ export const getCachedMatches = async (cacheKey: string): Promise<{
     const matches: any[] = await new Promise((resolve, reject) => {
       matchesRequest.onsuccess = () => {
         const entries: MatchCacheEntry[] = matchesRequest.result;
+        console.log(`[IndexedDB Read] ${cacheKey}: Found ${entries.length} entries`);
         resolve(entries.map(entry => entry.match));
       };
       matchesRequest.onerror = () => reject(matchesRequest.error);
@@ -234,6 +250,7 @@ export const deletePastMatches = async (cacheKey: string): Promise<number> => {
 
 // Clear cached matches for a specific cache key
 export const clearCacheMatches = async (cacheKey: string): Promise<void> => {
+  console.log(`[ClearCache] Clearing cache: ${cacheKey}`);
   try {
     const db = await openDB();
     const transaction = db.transaction([STORE_NAME, 'metadata'], 'readwrite');
@@ -284,6 +301,79 @@ export const clearAllCacheMatches = async (): Promise<void> => {
 // Get chunk size
 export const getChunkSize = (): number => CHUNK_SIZE;
 
+// Clean up stale date caches (older than today)
+export const cleanupStaleDateCaches = async (): Promise<void> => {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction([STORE_NAME, 'metadata'], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const metadataStore = transaction.objectStore('metadata');
+    
+    // Get today's date
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    // Get all metadata to find date caches
+    const allMetadata = await new Promise<any[]>((resolve, reject) => {
+      const request = metadataStore.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+    
+    // Find date caches older than today
+    const staleCaches = allMetadata.filter(meta => {
+      // Only process date caches (not all_matches)
+      if (!meta.cacheKey.startsWith('date_')) return false;
+      
+      // Extract date from cacheKey: date_2026-06-15_all_all_totelepep
+      const parts = meta.cacheKey.split('_');
+      if (parts.length < 2) return false;
+      
+      const cacheDate = parts[1]; // 2026-06-15
+      
+      // Check if this date is older than today
+      return cacheDate < todayStr;
+    });
+    
+    if (staleCaches.length === 0) {
+      console.log('[Cleanup] No stale date caches found');
+      return;
+    }
+    
+    console.log(`[Cleanup] Found ${staleCaches.length} stale date caches, removing...`);
+    
+    // Remove stale caches
+    for (const meta of staleCaches) {
+      // Get all matches for this cache key
+      const index = store.index('cacheKey');
+      const matches = await new Promise<any[]>((resolve, reject) => {
+        const request = index.getAll(meta.cacheKey);
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+      
+      // Delete each match
+      for (const match of matches) {
+        store.delete(match.id);
+      }
+      
+      // Delete metadata
+      metadataStore.delete(meta.cacheKey);
+      
+      console.log(`[Cleanup] Removed stale cache: ${meta.cacheKey} (${matches.length} matches)`);
+    }
+    
+    await new Promise<void>((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+    
+    console.log('[Cleanup] Stale date cache cleanup complete');
+  } catch (error) {
+    console.error('[Cleanup] Error cleaning up stale caches:', error);
+  }
+};
+
 // Update odds for specific matches only (for visible range updates)
 export const updateMatchesInCache = async (
   matches: any[],
@@ -298,7 +388,7 @@ export const updateMatchesInCache = async (
 
     // Update each match
     const entries: MatchCacheEntry[] = matches.map(match => ({
-      id: match.id,
+      id: `${cacheKey}_${match.id}`, // Include cacheKey in ID to prevent cross-date overwrites
       cacheKey,
       match,
       timestamp: Date.now()
