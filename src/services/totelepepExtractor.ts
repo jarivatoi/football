@@ -259,28 +259,25 @@ class TotelepepExtractor {
         this.setCachedData(matches, cacheKey);
         
         // Save to IndexedDB in chunks for persistence and memory management
-        // BUT skip if forceFresh (for calendar loading - don't overwrite existing markets!)
         const chunkSize = getChunkSize();
         const totalMatches = matches.length;
         
         // Return matches immediately (don't wait for market fetching)
         // Market fetching will happen in background for lazy loading
         
-        // Save basic match data to IndexedDB quickly (without allMarkets)
-        // Skip if forceFresh to prevent overwriting existing cached markets
-        if (!forceFresh) {
-          for (let i = 0; i < totalMatches; i += chunkSize) {
-            const chunk = matches.slice(i, i + chunkSize);
-            const loadedCount = Math.min(i + chunkSize, totalMatches);
-            const isComplete = loadedCount >= totalMatches;
-            
-            // Save chunk to IndexedDB (basic data only, fast)
-            await saveMatchesChunk(chunk, cacheKey, loadedCount, totalMatches, isComplete);
-            
-            // Report progress
-            if (onProgress) {
-              onProgress(loadedCount, totalMatches);
-            }
+        // ALWAYS save basic match data to IndexedDB
+        // This ensures data persists even when forceFresh=true (initial load)
+        for (let i = 0; i < totalMatches; i += chunkSize) {
+          const chunk = matches.slice(i, i + chunkSize);
+          const loadedCount = Math.min(i + chunkSize, totalMatches);
+          const isComplete = loadedCount >= totalMatches;
+          
+          // Save chunk to IndexedDB (basic data only, fast)
+          await saveMatchesChunk(chunk, cacheKey, loadedCount, totalMatches, isComplete);
+          
+          // Report progress
+          if (onProgress) {
+            onProgress(loadedCount, totalMatches);
           }
         }
         
