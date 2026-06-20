@@ -354,6 +354,8 @@ function App() {
                               !isExpired &&
                               existingCache.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
     
+    console.log(`[LoadData] ${dateToFetch}: isAlreadyComplete=${isAlreadyComplete}, cache=${existingCache?.length || 0}, expired=${isExpired}, complete=${existingMetadata?.isComplete}`);
+    
     if (dateToFetch && !isAlreadyComplete) {
       // Set progress to loading state (BLUE) only if not already complete
       setDateProgress(prev => ({
@@ -569,6 +571,7 @@ function App() {
       setError('Failed to load data. Please try again.');
     } finally {
       // Clear the loading guard
+      console.log(`[LoadData] ${dateToFetch}: Load complete, clearing guard`);
       (window as any).__loadingDate = null;
       setLoading(false);
     }
@@ -652,6 +655,14 @@ function App() {
   // Auto-load next date in sequence (sequential loading)
   const autoLoadNextDate = async (completedDate: string, sourceId: string, categoryId: string, competitionId: string) => {
     try {
+      // Check if we already auto-loaded this date (prevent duplicate auto-loads)
+      const autoLoadKey = `autoLoad_${completedDate}`;
+      if ((window as any).__autoLoadCompleted === autoLoadKey) {
+        console.log(`[Auto-Load] ${completedDate} already triggered auto-load, skipping`);
+        return;
+      }
+      (window as any).__autoLoadCompleted = autoLoadKey;
+      
       const calendarList = (totelepepExtractor as any).calendarList || [];
       
       // Find the index of the completed date
