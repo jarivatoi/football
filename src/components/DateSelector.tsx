@@ -101,6 +101,14 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                     : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
               } ${longPressDate === dateInfo.date ? 'animate-pulse' : ''}`}
             >
+              {/* Colored dot indicator - top right */}
+              {progress && !isComplete && percentage > 0 && (
+                <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-500 shadow-sm" />
+              )}
+              {(!progress || progress.loaded === 0) && isSelected && (
+                <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-blue-500 shadow-sm opacity-0" />
+              )}
+              
               <div className="text-center">
                 <div className={`font-semibold ${
                   isSelected && isComplete ? 'text-white' : isSelected ? 'text-white' : 'text-gray-900'

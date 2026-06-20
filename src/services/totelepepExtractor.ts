@@ -260,14 +260,15 @@ class TotelepepExtractor {
         
         // Save to IndexedDB in chunks for persistence and memory management
         // BUT skip if forceFresh (for calendar loading - don't overwrite existing markets!)
+        const chunkSize = getChunkSize();
+        const totalMatches = matches.length;
+        
+        // Return matches immediately (don't wait for market fetching)
+        // Market fetching will happen in background for lazy loading
+        
+        // Save basic match data to IndexedDB quickly (without allMarkets)
+        // Skip if forceFresh to prevent overwriting existing cached markets
         if (!forceFresh) {
-          const chunkSize = getChunkSize();
-          const totalMatches = matches.length;
-          
-          // Return matches immediately (don't wait for market fetching)
-          // Market fetching will happen in background for lazy loading
-          
-          // Save basic match data to IndexedDB quickly (without allMarkets)
           for (let i = 0; i < totalMatches; i += chunkSize) {
             const chunk = matches.slice(i, i + chunkSize);
             const loadedCount = Math.min(i + chunkSize, totalMatches);
@@ -281,13 +282,11 @@ class TotelepepExtractor {
               onProgress(loadedCount, totalMatches);
             }
           }
-          
-          
-          // Fetch ALL markets in background (non-blocking, rate limited)
-          // This will update the cache progressively as markets are loaded
-          this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
-        } else {
         }
+        
+        // ALWAYS fetch markets in background (even with forceFresh)
+        // This ensures markets load automatically on first load
+        this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
         
         return matches;
       }
