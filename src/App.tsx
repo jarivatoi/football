@@ -640,8 +640,62 @@ function App() {
         console.log('[Auto-Merge] All Matches is active, reloading...');
         loadAllMatches(selectedCategory, selectedCompetition);
       }
+      
+      // AUTO-LOAD NEXT DATE: Sequential loading after current date completes
+      console.log(`[Auto-Load] ${date} complete, checking for next date to load...`);
+      autoLoadNextDate(date, mergeSourceId, mergeCategoryId, mergeCompetitionId);
     } catch (error) {
       console.error('[Auto-Merge] Error merging date into All Matches:', error);
+    }
+  };
+  
+  // Auto-load next date in sequence (sequential loading)
+  const autoLoadNextDate = async (completedDate: string, sourceId: string, categoryId: string, competitionId: string) => {
+    try {
+      const calendarList = (totelepepExtractor as any).calendarList || [];
+      
+      // Find the index of the completed date
+      const completedIndex = calendarList.findIndex((d: any) => d.entryDate === completedDate);
+      
+      if (completedIndex === -1) {
+        console.log('[Auto-Load] Completed date not found in calendar');
+        return;
+      }
+      
+      // Get next date
+      const nextDateEntry = calendarList[completedIndex + 1];
+      
+      if (!nextDateEntry) {
+        console.log('[Auto-Load] No more dates to load - all dates complete!');
+        return;
+      }
+      
+      const nextDate = nextDateEntry.entryDate;
+      console.log(`[Auto-Load] Loading next date: ${nextDate}`);
+      
+      // Check if next date is already complete
+      const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
+      const nextCacheKey = `date_${nextDate}_${categoryId || 'all'}_${competitionId || 'all'}_${sourceId}`;
+      const { matches: nextCache, metadata: nextMetadata } = await getCachedMatches(nextCacheKey);
+      const nextExpired = await isCacheExpired(nextCacheKey);
+      
+      const isNextComplete = nextCache && nextCache.length > 0 && 
+                            nextMetadata?.isComplete && 
+                            !nextExpired &&
+                            nextCache.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
+      
+      if (isNextComplete) {
+        console.log(`[Auto-Load] ${nextDate} already complete, skipping to next...`);
+        // Recursively try the next date
+        autoLoadNextDate(nextDate, sourceId, categoryId, competitionId);
+        return;
+      }
+      
+      // Load the next date
+      loadData(nextDate, categoryId === 'all' ? undefined : categoryId, 
+               competitionId === 'all' ? undefined : competitionId, true);
+    } catch (error) {
+      console.error('[Auto-Load] Error loading next date:', error);
     }
   };
   
