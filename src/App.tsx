@@ -318,7 +318,7 @@ function App() {
 
   }, [selectedDate]);
   
-  const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string) => {
+  const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string, forceFresh: boolean = false) => {
     setLoading(true);
     setError(null);
 
@@ -457,7 +457,7 @@ function App() {
       };
 
       // Fetch matches DIRECTLY from Totelepep API with category/competition filters
-      const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId);
+      const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId, undefined, forceFresh);
       console.log(`[API] ${dateToFetch}: Received ${fetchedMatches.length} matches from API`);
       if (fetchedMatches.length === 0) {
         console.warn(`[API] ${dateToFetch}: WARNING - API returned 0 matches!`);
@@ -798,7 +798,8 @@ function App() {
         (totelepepExtractor as any).cache = new Map();
         
         // ONLY load the first date (not all dates!)
-        loadData(firstDate);
+        // Since we just cleared IndexedDB, skip cache check and fetch directly from API
+        loadData(firstDate, selectedCategory, selectedCompetition, true); // forceFresh=true
       }
       
       // Quick check: Initialize progress state for all dates (from IndexedDB only, no fetching)
