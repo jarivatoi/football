@@ -432,7 +432,8 @@ function App() {
       // STEP 1: Load from cache immediately (even if expired)
       // This ensures data is always available
       // BUT skip if forceFresh - always fetch fresh data
-      if (cachedMatches && cachedMatches.length > 0 && !forceFresh) {
+      // ALSO skip if cache is incomplete - wait for API to get full data
+      if (cachedMatches && cachedMatches.length > 0 && !forceFresh && metadata?.isComplete) {
         
         // Filter out matches that already started (kickoff passed)
         const now = new Date();
