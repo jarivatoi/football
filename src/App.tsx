@@ -1747,6 +1747,74 @@ function App() {
     }
   };
   
+  // Handle long-press on All Matches to clear ALL date caches
+  const handleClearAllCache = async () => {
+    console.log('[Clear All Cache] Long press detected on All Matches');
+    
+    const { clearCacheMatches } = await import('./utils/matchCache');
+    const sourceId = selectedSource?.id || 'totelepep';
+    
+    // Clear all date caches for current source
+    const datesToClear = calendarList.length > 0 ? calendarList : availableDates;
+    
+    console.log(`[Clear All Cache] Clearing ${datesToClear.length} dates...`);
+    
+    for (const dateEntry of datesToClear) {
+      const date = dateEntry.date;
+      if (!date) continue;
+      
+      const cacheKey = `date_${date}_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_${sourceId}`;
+      await clearCacheMatches(cacheKey);
+      console.log(`[Clear All Cache] Cleared ${date}`);
+    }
+    
+    // Clear All Matches cache too
+    const allMatchesCacheKey = `all_matches_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_${sourceId}`;
+    await clearCacheMatches(allMatchesCacheKey);
+    console.log('[Clear All Cache] Cleared All Matches cache');
+    
+    // Clear current matches immediately
+    setMatches([]);
+    setGroupedMatches({});
+    
+    // Reset all progress
+    setDateProgress({});
+    setAllMatchesProgress(null);
+    
+    // Turn off All Matches view
+    if (showAllMatches) {
+      setShowAllMatches(false);
+    }
+    
+    // Show toast notification
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ef4444;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 10000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      animation: slideDown 0.3s ease-out;
+    `;
+    toast.textContent = `All caches cleared! Reload calendar to fetch fresh data.`;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.animation = 'slideUp 0.3s ease-out';
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+    
+    // Reload calendar to start fresh
+    loadCalendarList(selectedCategory, selectedCompetition);
+  };
+  
   const toggleParlayBuilder = () => {
     setShowParlayBuilder(prev => !prev);
   };
@@ -1799,6 +1867,7 @@ function App() {
           dateProgress={dateProgress}
           allMatchesProgress={allMatchesProgress || undefined}
           onClearCache={handleClearCache}
+          onClearAllCache={handleClearAllCache}
         />
         
         {/* Search Bar */}

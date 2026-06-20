@@ -18,7 +18,8 @@ interface DateSelectorProps {
     isComplete: boolean;
     percentage: number;
   };
-  onClearCache?: (date: string) => void; // Long-press callback
+  onClearCache?: (date: string) => void; // Long-press callback for date
+  onClearAllCache?: () => void; // Long-press callback for All Matches
 }
 
 const DateSelector: React.FC<DateSelectorProps> = ({ 
@@ -30,7 +31,8 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   totalMatches = 0,
   dateProgress = {},
   allMatchesProgress,
-  onClearCache
+  onClearCache,
+  onClearAllCache
 }) => {
   // Long-press state
   const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null);
@@ -129,13 +131,36 @@ const DateSelector: React.FC<DateSelectorProps> = ({
         {onToggleAllMatches && (
           <button
             onClick={onToggleAllMatches}
+            onTouchStart={() => {
+              setLongPressDate('all_matches');
+              const timer = setTimeout(() => {
+                if (onClearAllCache) {
+                  onClearAllCache();
+                }
+                setLongPressDate(null);
+              }, 3000);
+              setPressTimer(timer);
+            }}
+            onTouchEnd={handlePressEnd}
+            onMouseDown={() => {
+              setLongPressDate('all_matches');
+              const timer = setTimeout(() => {
+                if (onClearAllCache) {
+                  onClearAllCache();
+                }
+                setLongPressDate(null);
+              }, 3000);
+              setPressTimer(timer);
+            }}
+            onMouseUp={handlePressEnd}
+            onMouseLeave={handlePressEnd}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all w-auto ml-2 relative overflow-hidden ${
               showAllMatches && allMatchesProgress?.isComplete
                 ? 'bg-green-600 text-white shadow-md' // Complete - GREEN
                 : showAllMatches
                   ? 'bg-blue-600 text-white shadow-md' // Loading - BLUE
                   : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-            }`}
+            } ${longPressDate === 'all_matches' ? 'animate-pulse' : ''}`}
           >
             {/* Progress Bar (only when All Matches is active and loading) */}
             {showAllMatches && allMatchesProgress && !allMatchesProgress.isComplete && allMatchesProgress.percentage > 0 && (
