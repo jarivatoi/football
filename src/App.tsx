@@ -401,7 +401,8 @@ function App() {
       
       // STEP 1: Load from cache immediately (even if expired)
       // This ensures data is always available
-      if (cachedMatches && cachedMatches.length > 0) {
+      // BUT skip if forceFresh - always fetch fresh data
+      if (cachedMatches && cachedMatches.length > 0 && !forceFresh) {
         
         // Filter out matches that already started (kickoff passed)
         const now = new Date();
