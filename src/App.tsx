@@ -1924,7 +1924,7 @@ function App() {
       {/* Clear All Confirmation Modal */}
       {showClearAllModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]">
-          <div className="bg-white rounded-xl shadow-2xl max-w-sm mx-4 overflow-hidden animate-slide-down">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm mx-4 overflow-hidden animate-modal-fade-in">
             {/* Header */}
             <div className="bg-red-600 px-6 py-4">
               <div className="flex items-center gap-3">
