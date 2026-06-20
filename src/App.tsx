@@ -366,6 +366,15 @@ function App() {
       }));
     }
     
+    // Prevent duplicate loads for the same date with same filters
+    const loadKey = `${dateToFetch}_${catId}_${compId}_${sourceId}`;
+    if ((window as any).__loadingDate === loadKey) {
+      console.log(`[LoadData] ${dateToFetch}: Already loading, skipping duplicate call`);
+      setLoading(false);
+      return;
+    }
+    (window as any).__loadingDate = loadKey;
+    
     try {
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
       const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
@@ -548,6 +557,8 @@ function App() {
     } catch (error) {
       setError('Failed to load data. Please try again.');
     } finally {
+      // Clear the loading guard
+      (window as any).__loadingDate = null;
       setLoading(false);
     }
   };
@@ -782,6 +793,10 @@ function App() {
   // Load initial data on mount
   useEffect(() => {
 
+    // Cancel ALL existing background loading tasks first
+    // This prevents multiple tasks from running simultaneously on app reload
+    totelepepExtractor.cancelAllBackgroundLoading();
+    
     // Clear ALL caches on initial load (both in-memory and IndexedDB)
     totelepepExtractor.clearCache();
     
