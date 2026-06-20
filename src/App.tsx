@@ -337,9 +337,25 @@ function App() {
       
     }
     
-    // Set progress to loading state (BLUE) for this date
-    // This ensures button shows BLUE while fetching, even if cache was expired
-    if (dateToFetch) {
+    const catId = categoryId !== undefined ? categoryId : selectedCategory;
+    const compId = competitionId !== undefined ? competitionId : selectedCompetition;
+    
+    // Check if date is already complete in cache before setting to loading state
+    // This prevents green buttons from turning blue when clicked again
+    const sourceId = selectedSource?.id || 'totelepep';
+    const cacheKey = `date_${dateToFetch}_${catId || 'all'}_${compId || 'all'}_${sourceId}`;
+    
+    // Only set to loading state if cache is expired or incomplete
+    const { getCachedMatches: checkCached, isCacheExpired: checkExpired } = await import('./utils/matchCache');
+    const { matches: existingCache, metadata: existingMetadata } = await checkCached(cacheKey);
+    const isExpired = await checkExpired(cacheKey);
+    const isAlreadyComplete = existingCache && existingCache.length > 0 && 
+                              existingMetadata?.isComplete && 
+                              !isExpired &&
+                              existingCache.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
+    
+    if (dateToFetch && !isAlreadyComplete) {
+      // Set progress to loading state (BLUE) only if not already complete
       setDateProgress(prev => ({
         ...prev,
         [dateToFetch]: {
@@ -350,13 +366,7 @@ function App() {
       }));
     }
     
-    const catId = categoryId !== undefined ? categoryId : selectedCategory;
-    const compId = competitionId !== undefined ? competitionId : selectedCompetition;
-    
     try {
-      // Include source ID in cache key to prevent mixing data from different sources
-      const sourceId = selectedSource?.id || 'totelepep';
-      const cacheKey = `date_${dateToFetch}_${catId || 'all'}_${compId || 'all'}_${sourceId}`;
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
       const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
       const expired = await isCacheExpired(cacheKey);
