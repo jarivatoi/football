@@ -141,7 +141,7 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
       ref={scrollContainerRef}
       onScroll={handleScroll}
       className="space-y-8 pb-4"
-      style={{ maxHeight: 'calc(100vh - 250px)', overflowY: 'auto' }}
+      style={{ maxHeight: 'calc(100vh - 250px)', overflowY: 'auto', overflowX: 'hidden' }}
     >
       {Object.keys(displayedGroupedMatches).map((date) => {
         const matches = displayedGroupedMatches[date];

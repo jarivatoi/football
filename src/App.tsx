@@ -525,6 +525,44 @@ function App() {
           console.log(`[Auto-Merge] ${date} complete! Merging into All Matches cache...`);
           // Use captured values from load start, not current state
           await mergeDateIntoAllMatches(date, loadSourceId, loadCategory, loadCompetition);
+          
+          // Refresh UI from IndexedDB now that loading is complete
+          console.log(`[Refresh] ${date}: Background loading complete, refreshing UI from IndexedDB...`);
+          try {
+            const cacheKey = `date_${date}_${loadCategory}_${loadCompetition}_${loadSourceId}`;
+            const { getCachedMatches } = await import('./utils/matchCache');
+            const { matches: completeCache } = await getCachedMatches(cacheKey);
+            
+            if (completeCache && completeCache.length > 0) {
+              // Filter out past matches
+              const now = new Date();
+              const validMatches = completeCache.filter((m: any) => {
+                if (!m.kickoff) return true;
+                let kickoffTime: Date;
+                if (m.kickoff.includes('T')) {
+                  kickoffTime = new Date(m.kickoff);
+                } else {
+                  const matchDate = m.date || date;
+                  kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
+                }
+                return kickoffTime > now;
+              });
+              
+              // Sort and display
+              const sortedMatches = validMatches.sort((a, b) => {
+                const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
+                if (dateComparison !== 0) return dateComparison;
+                return a.kickoff.localeCompare(b.kickoff);
+              });
+              
+              setMatches(sortedMatches);
+              const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+              setGroupedMatches(grouped);
+              console.log(`[Refresh] ${date}: UI refreshed with ${sortedMatches.length} matches from IndexedDB`);
+            }
+          } catch (error) {
+            console.error(`[Refresh] ${date}: Error refreshing UI from IndexedDB:`, error);
+          }
         }
       };
 
@@ -533,6 +571,13 @@ function App() {
       console.log(`[API] ${dateToFetch}: Received ${fetchedMatches.length} matches from API`);
       if (fetchedMatches.length === 0) {
         console.warn(`[API] ${dateToFetch}: WARNING - API returned 0 matches!`);
+        
+        // If API returns 0 but we have partial cache, use the cache instead
+        if (cachedMatches && cachedMatches.length > 0) {
+          console.log(`[Fallback] ${dateToFetch}: API returned 0, using ${cachedMatches.length} partial matches from cache`);
+          fetchedMatches.length = 0; // Clear the array
+          fetchedMatches.push(...cachedMatches); // Use cached data
+        }
       }
       
       // STEP 3: Merge cached data with fresh data
@@ -2146,7 +2191,7 @@ function App() {
         />
       </div>
       
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto" style={{ overflowX: 'hidden' }}>
         
         {/* Matches Display */}
         {error && (
