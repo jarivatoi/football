@@ -526,42 +526,48 @@ function App() {
           // Use captured values from load start, not current state
           await mergeDateIntoAllMatches(date, loadSourceId, loadCategory, loadCompetition);
           
-          // Refresh UI from IndexedDB now that loading is complete
-          console.log(`[Refresh] ${date}: Background loading complete, refreshing UI from IndexedDB...`);
-          try {
-            const cacheKey = `date_${date}_${loadCategory}_${loadCompetition}_${loadSourceId}`;
-            const { getCachedMatches } = await import('./utils/matchCache');
-            const { matches: completeCache } = await getCachedMatches(cacheKey);
-            
-            if (completeCache && completeCache.length > 0) {
-              // Filter out past matches
-              const now = new Date();
-              const validMatches = completeCache.filter((m: any) => {
-                if (!m.kickoff) return true;
-                let kickoffTime: Date;
-                if (m.kickoff.includes('T')) {
-                  kickoffTime = new Date(m.kickoff);
-                } else {
-                  const matchDate = m.date || date;
-                  kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
-                }
-                return kickoffTime > now;
-              });
+          // Only refresh UI if currently viewing THIS specific date
+          // Don't refresh if user is viewing a different date or has filters applied
+          if (date === selectedDate && !showAllMatches && !searchTerm) {
+            // Refresh UI from IndexedDB now that loading is complete
+            console.log(`[Refresh] ${date}: Background loading complete, refreshing UI from IndexedDB...`);
+            try {
+              const cacheKey = `date_${date}_${loadCategory}_${loadCompetition}_${loadSourceId}`;
+              const { getCachedMatches } = await import('./utils/matchCache');
+              const { matches: completeCache } = await getCachedMatches(cacheKey);
               
-              // Sort and display
-              const sortedMatches = validMatches.sort((a, b) => {
-                const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
-                if (dateComparison !== 0) return dateComparison;
-                return a.kickoff.localeCompare(b.kickoff);
-              });
-              
-              setMatches(sortedMatches);
-              const grouped = totelepepService.groupMatchesByDate(sortedMatches);
-              setGroupedMatches(grouped);
-              console.log(`[Refresh] ${date}: UI refreshed with ${sortedMatches.length} matches from IndexedDB`);
+              if (completeCache && completeCache.length > 0) {
+                // Filter out past matches
+                const now = new Date();
+                const validMatches = completeCache.filter((m: any) => {
+                  if (!m.kickoff) return true;
+                  let kickoffTime: Date;
+                  if (m.kickoff.includes('T')) {
+                    kickoffTime = new Date(m.kickoff);
+                  } else {
+                    const matchDate = m.date || date;
+                    kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
+                  }
+                  return kickoffTime > now;
+                });
+                
+                // Sort and display
+                const sortedMatches = validMatches.sort((a, b) => {
+                  const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
+                  if (dateComparison !== 0) return dateComparison;
+                  return a.kickoff.localeCompare(b.kickoff);
+                });
+                
+                setMatches(sortedMatches);
+                const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+                setGroupedMatches(grouped);
+                console.log(`[Refresh] ${date}: UI refreshed with ${sortedMatches.length} matches from IndexedDB`);
+              }
+            } catch (error) {
+              console.error(`[Refresh] ${date}: Error refreshing UI from IndexedDB:`, error);
             }
-          } catch (error) {
-            console.error(`[Refresh] ${date}: Error refreshing UI from IndexedDB:`, error);
+          } else {
+            console.log(`[Refresh] ${date}: Skipping UI refresh (viewing different date or has filters)`);
           }
         }
       };
