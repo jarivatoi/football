@@ -414,14 +414,25 @@ function App() {
         if (!expired && metadata?.isComplete) {
           const matchesWithMarkets = validMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
           console.log(`[Cache] ${dateToFetch}: Using cached data (${matchesWithMarkets}/${validMatches.length} markets loaded)`);
-          setDateProgress(prev => ({
-            ...prev,
-            [dateToFetch!]: {
-              loaded: matchesWithMarkets,
-              total: cachedMatches.length, // Use ORIGINAL total (matches background loader expectation)
-              isComplete: matchesWithMarkets === cachedMatches.length
-            }
-          }));
+          
+          // Only update progress if NOT currently loading in background
+          // This prevents overwriting the live progress from background market loading
+          const currentProgress = dateProgress[dateToFetch!];
+          const isBackgroundLoading = currentProgress && currentProgress.total > 0 && !currentProgress.isComplete;
+          
+          if (!isBackgroundLoading) {
+            setDateProgress(prev => ({
+              ...prev,
+              [dateToFetch!]: {
+                loaded: matchesWithMarkets,
+                total: cachedMatches.length, // Use ORIGINAL total (matches background loader expectation)
+                isComplete: matchesWithMarkets === cachedMatches.length
+              }
+            }));
+          } else {
+            console.log(`[Cache] ${dateToFetch}: Background loading in progress, preserving current progress state`);
+          }
+          
           setLoading(false);
           return;
         }
