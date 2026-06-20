@@ -699,6 +699,8 @@ function App() {
       // After calendar is loaded, load matches for the first date
       const firstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
       if (firstDate) {
+        // Clear in-memory cache to ensure loadData does a full fetch with market loading
+        (totelepepExtractor as any).cache = new Map();
         
         // ONLY load the first date (not all dates!)
         loadData(firstDate);
