@@ -364,6 +364,16 @@ function App() {
           isComplete: false // Force to loading state
         }
       }));
+    } else if (dateToFetch && isAlreadyComplete) {
+      // Cache is already complete - ensure progress state reflects this
+      setDateProgress(prev => ({
+        ...prev,
+        [dateToFetch]: {
+          loaded: existingCache.length,
+          total: existingCache.length,
+          isComplete: true // Force to complete state (GREEN)
+        }
+      }));
     }
     
     // Prevent duplicate loads for the same date with same filters
