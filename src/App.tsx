@@ -115,27 +115,41 @@ function App() {
   
   // Automatically update All Matches progress when any date progress changes
   useEffect(() => {
-    // Check if any date is incomplete (has orange dot)
-    const hasIncompleteDate = calendarList.some(calEntry => {
+    // Aggregate loaded count from all dates
+    let totalLoaded = 0;
+    let totalMatches = 0;
+    let hasIncompleteDate = false;
+    let totalDatesInCalendar = calendarList.length;
+    let completedDatesCount = 0;
+    
+    calendarList.forEach(calEntry => {
       const entryProgress = dateProgress[calEntry.date];
-      // If date has started loading (total > 0) but not complete, it's incomplete
-      return entryProgress && entryProgress.total > 0 && !entryProgress.isComplete;
+      if (entryProgress) {
+        totalLoaded += entryProgress.loaded || 0;
+        // Only count total from dates that have fully loaded
+        if (entryProgress.isComplete && entryProgress.total > 0) {
+          totalMatches += entryProgress.total || 0;
+          completedDatesCount++;
+        } else if (entryProgress.total > 0) {
+          // Date has started but not complete
+          hasIncompleteDate = true;
+        }
+      }
     });
     
-    // If any date is incomplete and All Matches exists, mark as not complete
-    if (hasIncompleteDate && allMatchesProgress) {
-      setAllMatchesProgress(prev => {
-        if (prev && prev.isComplete) {
-          // Was complete, but now a date is incomplete (orange)
-          return {
-            ...prev,
-            isComplete: false
-          };
-        }
-        return prev;
+    // Always update allMatchesProgress if we have dates in calendar
+    // This ensures count is always visible, even before any loading starts
+    if (totalDatesInCalendar > 0) {
+      const allDatesComplete = completedDatesCount === totalDatesInCalendar && totalDatesInCalendar > 0;
+      
+      setAllMatchesProgress({
+        loaded: totalLoaded,
+        total: allDatesComplete ? totalMatches : 0, // 0 means unknown (?)
+        isComplete: allDatesComplete,
+        percentage: 0 // No progress bar for ALL MATCHES
       });
     }
-  }, [dateProgress, calendarList, allMatchesProgress]);
+  }, [dateProgress, calendarList]);
   
   // Category and Competition filter states
   const [categories, setCategories] = useState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
@@ -1003,15 +1017,7 @@ function App() {
         const grouped = totelepepService.groupMatchesByDate(sortedMatches);
         setGroupedMatches(grouped);
         
-        const matchesWithMarkets = sortedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
-        const isComplete = matchesWithMarkets === sortedMatches.length;
-        
-        setAllMatchesProgress({
-          loaded: matchesWithMarkets,
-          total: sortedMatches.length,
-          isComplete,
-          percentage: sortedMatches.length > 0 ? (matchesWithMarkets / sortedMatches.length) * 100 : 0
-        });
+        // Don't set allMatchesProgress here - let the useEffect handle it based on dateProgress
         
         setLastUpdated(new Date());
         setLoading(false);
@@ -1049,19 +1055,13 @@ function App() {
       const grouped = totelepepService.groupMatchesByDate(sortedMatches);
       setGroupedMatches(grouped);
       
-      // Check how many have markets loaded
+      // Check how many have markets loaded (for logging only)
       const matchesWithMarkets = sortedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
       const isComplete = matchesWithMarkets === sortedMatches.length;
       
       console.log(`[All Matches] ${matchesWithMarkets}/${sortedMatches.length} have markets loaded`);
       
-      // Mark as complete if all have markets
-      setAllMatchesProgress({
-        loaded: matchesWithMarkets,
-        total: sortedMatches.length,
-        isComplete,
-        percentage: sortedMatches.length > 0 ? (matchesWithMarkets / sortedMatches.length) * 100 : 0
-      });
+      // Don't set allMatchesProgress here - let the useEffect handle it based on dateProgress
       
       setLastUpdated(new Date());
       
