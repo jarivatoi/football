@@ -113,6 +113,30 @@ function App() {
     percentage: number;
   } | null>(null);
   
+  // Automatically update All Matches progress when any date progress changes
+  useEffect(() => {
+    // Check if any date is incomplete (has orange dot)
+    const hasIncompleteDate = calendarList.some(calEntry => {
+      const entryProgress = dateProgress[calEntry.date];
+      // If date has started loading (total > 0) but not complete, it's incomplete
+      return entryProgress && entryProgress.total > 0 && !entryProgress.isComplete;
+    });
+    
+    // If any date is incomplete and All Matches exists, mark as not complete
+    if (hasIncompleteDate && allMatchesProgress) {
+      setAllMatchesProgress(prev => {
+        if (prev && prev.isComplete) {
+          // Was complete, but now a date is incomplete (orange)
+          return {
+            ...prev,
+            isComplete: false
+          };
+        }
+        return prev;
+      });
+    }
+  }, [dateProgress, calendarList, allMatchesProgress]);
+  
   // Category and Competition filter states
   const [categories, setCategories] = useState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -526,6 +550,38 @@ function App() {
           // Use captured values from load start, not current state
           await mergeDateIntoAllMatches(date, loadSourceId, loadCategory, loadCompetition);
           
+          // Check if ALL dates are now complete
+          const allDatesComplete = calendarList.every(calEntry => {
+            const entryProgress = dateProgress[calEntry.entryDate];
+            return entryProgress && entryProgress.isComplete;
+          });
+          
+          // If all dates complete, update All Matches progress automatically
+          if (allDatesComplete && calendarList.length > 0) {
+            console.log('[Auto-Merge] ALL dates complete! Updating All Matches progress...');
+            try {
+              const allMatchesCacheKey = `all_matches_${loadCategory}_${loadCompetition}_${loadSourceId}`;
+              const { getCachedMatches } = await import('./utils/matchCache');
+              const { matches: allMatchesCache } = await getCachedMatches(allMatchesCacheKey);
+              
+              if (allMatchesCache && allMatchesCache.length > 0) {
+                const matchesWithMarkets = allMatchesCache.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
+                const isComplete = matchesWithMarkets === allMatchesCache.length;
+                
+                setAllMatchesProgress({
+                  loaded: matchesWithMarkets,
+                  total: allMatchesCache.length,
+                  isComplete,
+                  percentage: allMatchesCache.length > 0 ? (matchesWithMarkets / allMatchesCache.length) * 100 : 0
+                });
+                
+                console.log(`[Auto-Merge] All Matches updated: ${matchesWithMarkets}/${allMatchesCache.length} complete`);
+              }
+            } catch (error) {
+              console.error('[Auto-Merge] Error updating All Matches progress:', error);
+            }
+          }
+          
           // Only refresh UI if currently viewing THIS specific date
           // Don't refresh if user is viewing a different date or has filters applied
           if (date === selectedDate && !showAllMatches && !searchTerm) {
@@ -736,24 +792,30 @@ function App() {
       const allMatchesCacheKey = `all_matches_${mergeCategoryId || 'all'}_${mergeCompetitionId || 'all'}_${mergeSourceId}`;
       const { matches: existingAllMatches, metadata } = await getCachedMatches(allMatchesCacheKey);
       
+      console.log(`[Auto-Merge] All Matches cache before merge: ${existingAllMatches?.length || 0} matches`);
+      
       // Merge logic: add new, update existing
       let mergedMatches = dateMatches;
       
       if (existingAllMatches && existingAllMatches.length > 0) {
         console.log(`[Auto-Merge] Merging with ${existingAllMatches.length} existing All Matches`);
         
-        // Create map of existing matches
+        // Create map of existing matches using composite key (date + id) to avoid collisions
         const existingMap = new Map();
-        existingAllMatches.forEach((m: any) => existingMap.set(m.id, m));
+        existingAllMatches.forEach((m: any) => {
+          const compositeKey = `${m.date}_${m.id}`;
+          existingMap.set(compositeKey, m);
+        });
         
         // Merge: update existing or add new
         dateMatches.forEach((newMatch: any) => {
-          if (existingMap.has(newMatch.id)) {
+          const compositeKey = `${newMatch.date}_${newMatch.id}`;
+          if (existingMap.has(compositeKey)) {
             // Update existing match with new data (markets, odds)
-            existingMap.set(newMatch.id, newMatch);
+            existingMap.set(compositeKey, newMatch);
           } else {
             // Add new match
-            existingMap.set(newMatch.id, newMatch);
+            existingMap.set(compositeKey, newMatch);
           }
         });
         
@@ -864,15 +926,77 @@ function App() {
       console.log(`[All Matches] Cache check: ${cachedAllMatches?.length || 0} matches, ${expired ? 'EXPIRED' : 'VALID'}`);
       
       if (!cachedAllMatches || cachedAllMatches.length === 0 || expired) {
-        console.log('[All Matches] No valid cache - please load individual dates first');
-        setMatches([]);
-        setGroupedMatches({});
-        setAllMatchesProgress({
-          loaded: 0,
-          total: 0,
-          isComplete: false,
-          percentage: 0
+        console.log('[All Matches] No combined cache - checking individual date caches...');
+        
+        // Try to combine individual date caches
+        const allDateMatches: any[] = [];
+        const sourceId = selectedSource?.id || 'totelepep';
+        
+        for (const calEntry of calendarList) {
+          const dateCacheKey = `date_${calEntry.date}_${catId || 'all'}_${compId || 'all'}_${sourceId}`;
+          const { matches: dateCache, metadata: dateMetadata } = await getCachedMatches(dateCacheKey);
+          const dateExpired = await isCacheExpired(dateCacheKey);
+          
+          // Only include complete, non-expired date caches (green button dates)
+          if (dateCache && dateCache.length > 0 && dateMetadata?.isComplete && !dateExpired) {
+            console.log(`[All Matches] Adding ${calEntry.date}: ${dateCache.length} matches`);
+            allDateMatches.push(...dateCache);
+          }
+        }
+        
+        if (allDateMatches.length === 0) {
+          console.log('[All Matches] No complete date caches found - please load individual dates first');
+          setMatches([]);
+          setGroupedMatches({});
+          setAllMatchesProgress({
+            loaded: 0,
+            total: 0,
+            isComplete: false,
+            percentage: 0
+          });
+          setLoading(false);
+          return;
+        }
+        
+        // Use combined date matches
+        console.log(`[All Matches] Combined ${allDateMatches.length} matches from ${calendarList.length} dates`);
+        
+        // Filter out kickoff-passed matches
+        const now = new Date();
+        const validMatches = allDateMatches.filter((m: any) => {
+          if (!m.kickoff) return true;
+          let kickoffTime: Date;
+          if (m.kickoff.includes('T')) {
+            kickoffTime = new Date(m.kickoff);
+          } else {
+            const matchDate = m.date;
+            kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
+          }
+          return kickoffTime > now;
         });
+        
+        // Sort by date and time
+        const sortedMatches = validMatches.sort((a, b) => {
+          const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
+          if (dateComparison !== 0) return dateComparison;
+          return a.kickoff.localeCompare(b.kickoff);
+        });
+        
+        setMatches(sortedMatches);
+        const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+        setGroupedMatches(grouped);
+        
+        const matchesWithMarkets = sortedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
+        const isComplete = matchesWithMarkets === sortedMatches.length;
+        
+        setAllMatchesProgress({
+          loaded: matchesWithMarkets,
+          total: sortedMatches.length,
+          isComplete,
+          percentage: sortedMatches.length > 0 ? (matchesWithMarkets / sortedMatches.length) * 100 : 0
+        });
+        
+        setLastUpdated(new Date());
         setLoading(false);
         return;
       }
