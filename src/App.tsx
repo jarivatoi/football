@@ -826,6 +826,7 @@ function App() {
       
       // Get matches for this specific date
       const dateCacheKey = `date_${date}_${mergeCategoryId || 'all'}_${mergeCompetitionId || 'all'}_${mergeSourceId}`;
+      console.log(`[Auto-Merge] ${date}: Reading from cacheKey: ${dateCacheKey}`);
       const { matches: dateMatches } = await getCachedMatches(dateCacheKey);
       
       if (!dateMatches || dateMatches.length === 0) {
