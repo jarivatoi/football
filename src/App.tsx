@@ -1980,6 +1980,18 @@ function App() {
       }
     }));
     
+    // Reset All Matches progress since one date is now incomplete
+    setAllMatchesProgress(prev => {
+      if (prev) {
+        // Mark as not complete since we cleared a date
+        return {
+          ...prev,
+          isComplete: false
+        };
+      }
+      return prev;
+    });
+    
     // Show toast notification
     const toast = document.createElement('div');
     toast.style.cssText = `
@@ -2009,6 +2021,12 @@ function App() {
     // Reload data from API
     if (selectedDate === date) {
       loadData(date, selectedCategory, selectedCompetition);
+    }
+    
+    // If All Matches is active, reload it to reflect the cleared date
+    if (showAllMatches) {
+      console.log('[Clear Cache] All Matches is active, reloading to reflect cleared date...');
+      loadAllMatches(selectedCategory, selectedCompetition);
     }
   };
   

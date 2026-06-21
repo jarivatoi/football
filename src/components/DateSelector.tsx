@@ -182,6 +182,15 @@ const DateSelector: React.FC<DateSelectorProps> = ({
               </div>
             )}
             
+            {/* Orange dot: Partial loading (some dates loaded, not all) */}
+            {allMatchesProgress && !allMatchesProgress.isComplete && allMatchesProgress.loaded > 0 && (
+              <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
+            )}
+            {/* Green dot: Fully loaded (all dates complete) */}
+            {allMatchesProgress && allMatchesProgress.isComplete && (
+              <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />
+            )}
+            
             <div className="text-center" style={{ minHeight: '28px' }}>
               <div className={`font-semibold ${
                 showAllMatches && allMatchesProgress?.isComplete ? 'text-white' :
