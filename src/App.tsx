@@ -438,8 +438,10 @@ function App() {
     
     console.log(`[LoadData] ${dateToFetch}: isAlreadyComplete=${isAlreadyComplete}, cache=${existingCache?.length || 0}, expired=${isExpired}, complete=${existingMetadata?.isComplete}`);
     
-    if (dateToFetch && !isAlreadyComplete) {
-      // Set progress to loading state (BLUE) only if not already complete
+    // Only set to loading state if cache is NOT valid (expired or doesn't exist)
+    // If cache exists and is valid, don't trigger loading state
+    if (dateToFetch && !isAlreadyComplete && (!existingCache || existingCache.length === 0 || isExpired)) {
+      // Set progress to loading state (BLUE) only if cache is missing or expired
       setDateProgress(prev => ({
         ...prev,
         [dateToFetch]: {
@@ -562,6 +564,9 @@ function App() {
       const loadCategory = catId || 'all';
       const loadCompetition = compId || 'all';
       
+      // Track which dates have already triggered the "background loading complete" refresh
+      const completedDates = new Set<string>();
+      
       // Set up market progress callback before fetching
       totelepepExtractor.onMarketProgress = async (date, loaded, total) => {
         const percentage = Math.round((loaded / total) * 100);
@@ -576,7 +581,9 @@ function App() {
         }));
         
         // When date completes (turns GREEN), auto-merge into All Matches cache
-        if (loaded >= total) {
+        if (loaded >= total && !completedDates.has(date)) {
+          // Mark as completed to prevent duplicate refreshes
+          completedDates.add(date);
           console.log(`[Auto-Merge] ${date} complete! Merging into All Matches cache...`);
           // Use captured values from load start, not current state
           await mergeDateIntoAllMatches(date, loadSourceId, loadCategory, loadCompetition);
@@ -662,8 +669,17 @@ function App() {
       // Fetch matches DIRECTLY from Totelepep API with category/competition filters
       const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId, undefined, forceFresh);
       console.log(`[API] ${dateToFetch}: Received ${fetchedMatches.length} matches from API`);
-      if (fetchedMatches.length === 0) {
-        console.warn(`[API] ${dateToFetch}: WARNING - API returned 0 matches!`);
+      
+      // If API returns 0 matches, mark date as complete immediately (nothing to load)
+      if (fetchedMatches.length === 0 && dateToFetch) {
+        console.warn(`[API] ${dateToFetch}: WARNING - API returned 0 matches! Marking as complete.`);
+        const newProgress = { ...dateProgress };
+        newProgress[dateToFetch] = {
+          loaded: 0,
+          total: 0,
+          isComplete: true  // No matches = complete, don't block ALL MATCHES
+        };
+        setDateProgress(newProgress);
         
         // If API returns 0 but we have partial cache, use the cache instead
         if (cachedMatches && cachedMatches.length > 0) {

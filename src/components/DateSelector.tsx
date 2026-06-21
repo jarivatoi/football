@@ -128,7 +128,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
               {!isComplete && percentage > 0 && percentage < 100 && (
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-800/30">
                   <div 
-                    className="h-full bg-green-400 transition-all duration-500 ease-out"
+                    className="h-full bg-green-400 progress-bar-smooth"
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
