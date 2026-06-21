@@ -182,20 +182,21 @@ function App() {
     // Clear ALL IndexedDB caches (old source data)
     try {
       const { clearCacheMatches, cleanupStaleDateCaches } = await import('./utils/matchCache');
-      const oldSourceId = selectedSource?.id || 'totelepep';
+      // Use the NEW source ID since we're switching TO this source
+      const newSourceId = source.id;
       
-      // Clear all date caches for old source
+      // Clear all date caches for NEW source (in case it has stale data)
       const datesToClear = availableDates.length > 0 ? availableDates : [];
       for (const date of datesToClear) {
-        const cacheKey = `date_${date}_all_all_${oldSourceId}`;
+        const cacheKey = `date_${date}_all_all_${newSourceId}`;
         await clearCacheMatches(cacheKey);
       }
       
-      // Clear All Matches cache for old source
-      const allMatchesCacheKey = `all_matches_all_all_${oldSourceId}`;
+      // Clear All Matches cache for NEW source
+      const allMatchesCacheKey = `all_matches_all_all_${newSourceId}`;
       await clearCacheMatches(allMatchesCacheKey);
       
-      console.log(`[Source Change] Cleared all IndexedDB caches for source: ${oldSourceId}`);
+      console.log(`[Source Change] Cleared all IndexedDB caches for source: ${newSourceId}`);
     } catch (error) {
       console.error('[Source Change] Error clearing IndexedDB:', error);
     }
@@ -226,12 +227,27 @@ function App() {
     await loadCalendarList('', '');
     
     // Reload data with new source (no filters)
+    console.log('[Source Change] Reloading data:', {
+      showAllMatches,
+      selectedDate,
+      newSourceId: source.id,
+      willLoad: showAllMatches ? 'allMatches' : (selectedDate || 'NO DATE SELECTED')
+    });
+    
     if (showAllMatches) {
       
       loadAllMatches('', '');
     } else if (selectedDate) {
+      // Temporarily set the source ID on the extractor so loadData uses the correct source
+      // This fixes the race condition where selectedSource state hasn't updated yet
+      (totelepepExtractor as any).currentSourceId = source.id;
       
       loadData(selectedDate, '', '', true); // forceFresh=true to ensure API fetch
+      
+      // Clear the temp source ID after a short delay to not interfere with subsequent loads
+      setTimeout(() => {
+        delete (totelepepExtractor as any).currentSourceId;
+      }, 1000);
     }
   };
   
@@ -393,7 +409,8 @@ function App() {
     
     // Check if date is already complete in cache before setting to loading state
     // This prevents green buttons from turning blue when clicked again
-    const sourceId = selectedSource?.id || 'totelepep';
+    // Use extractor's currentSourceId if available (for source switching), otherwise use selectedSource state
+    const sourceId = (totelepepExtractor as any).currentSourceId || selectedSource?.id || 'totelepep';
     const cacheKey = `date_${dateToFetch}_${catId || 'all'}_${compId || 'all'}_${sourceId}`;
     
     // Only set to loading state if cache is expired or incomplete
@@ -552,7 +569,7 @@ function App() {
           
           // Check if ALL dates are now complete
           const allDatesComplete = calendarList.every(calEntry => {
-            const entryProgress = dateProgress[calEntry.entryDate];
+            const entryProgress = dateProgress[calEntry.date];
             return entryProgress && entryProgress.isComplete;
           });
           
@@ -1873,6 +1890,20 @@ function App() {
   const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => {
     // Find the match details
     const match = matches.find(m => m.id === matchId);
+    
+    console.log('[Price Click] Full debug:', {
+      matchId,
+      priceType,
+      marketBookNo_param: marketBookNo,
+      marketCode_param: marketCode,
+      marketId_param: marketId,
+      matchMarketBookNo: match?.marketBookNo,
+      matchMarketCode: match?.marketCode,
+      matchMarketId: match?.marketId,
+      selectedSource: selectedSource?.id,
+      selectedSourceBaseUrl: selectedSource?.baseUrl
+    });
+    
     if (match) {
       // Check if this exact selection already exists
       const existingIndex = parlaySelections.findIndex(

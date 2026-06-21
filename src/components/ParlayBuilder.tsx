@@ -160,6 +160,16 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       let safeMarketBookNo = '76713'; // Default fallback
       let safeMarketCode = 'CP'; // Default fallback
       
+      console.log(`[Bet Placement] Selection ${index + 1}:`, {
+        matchId: selection.matchId,
+        homeTeam: selection.homeTeam,
+        awayTeam: selection.awayTeam,
+        priceType: selection.priceType,
+        marketBookNo: selection.marketBookNo,
+        marketCode: selection.marketCode,
+        marketId: selection.marketId
+      });
+      
       // Priority 1: Use selection.marketBookNo if it's valid
       if (selection.marketBookNo && 
           typeof selection.marketBookNo === 'string' && 
@@ -279,7 +289,7 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       formData.append(`data[SingleBets][${index}][barrierNo]`, '0');
       formData.append(`data[SingleBets][${index}][racingName]`, '');
       formData.append(`data[SingleBets][${index}][priceTag]`, '');
-      formData.append(`data[SingleBets][${index}][market]`, '');
+      formData.append(`data[SingleBets][${index}][market]`, '');
     });
     
     // Proxy bet flag
@@ -308,6 +318,17 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
     // Use selected source or default to Totelepep
     const baseUrl = selectedSource?.baseUrl.replace('/webapi/GetSport', '') || 'https://www.totelepep.mu';
     const betUrl = 'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=' + encodeURIComponent(`${baseUrl}/webapi/placebet`);
+    
+    console.log('[Bet Placement] API Info:', {
+      selectedSourceId: selectedSource?.id,
+      selectedSourceBaseUrl: selectedSource?.baseUrl,
+      extractedBaseUrl: baseUrl,
+      betUrl: betUrl
+    });
+    
+    // Log the complete form data being sent
+    console.log('[Bet Placement] Form Data:', formData.toString());
+    
     const response = await fetch(betUrl, {
       method: 'POST',
       headers: {
@@ -382,7 +403,7 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
     // Enhanced success determination logic
     // Consider successful if we have a ticket, regardless of errorMessage
     // This handles cases where the API returns a ticket but also has warning messages
-    const isSuccessful = !!ticketNo || (!result.errorMessage && !result.multiErrorMessage);
+    const isSuccessful = !!ticketNo || (!result.errorMessage && !result.multiErrorMessage);
     
     return {
       success: isSuccessful,
@@ -403,7 +424,7 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       bookingReference: result.bookingReference
     };
     
-  } catch (error) {
+  } catch (error) {
     return {
       success: false,
       errorMessage: error instanceof Error ? error.message : 'Network error'
@@ -458,7 +479,7 @@ const extractMarketData = (selection: ParlaySelection) => {
     competitionId,
     marketBookNo,
     marketCode
-  };
+  };
 
   return marketData;
 };
@@ -726,7 +747,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         if (onBookingsCountChange) {
           onBookingsCountChange(bookings.length);
         }
-      } catch (error) {
+      } catch (error) {
       }
     };
     
@@ -805,7 +826,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       return acc * odds;
     }, 1);
     
-    if (!ticketNo) {
+    if (!ticketNo) {
       return;
     }
     
@@ -830,7 +851,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       }
       setToast('Booking saved successfully!');
       setTimeout(() => setToast(null), 3000);
-    } catch (error) {
+    } catch (error) {
       setToast('Failed to save booking');
       setTimeout(() => setToast(null), 3000);
     }
@@ -845,7 +866,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       if (onBookingsCountChange) {
         onBookingsCountChange(updatedBookings.length);
       }
-    } catch (error) {
+    } catch (error) {
     }
   }, [savedBookings, onBookingsCountChange]);
 
@@ -859,7 +880,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       }
       setToast('All bookings cleared');
       setTimeout(() => setToast(null), 3000);
-    } catch (error) {
+    } catch (error) {
     }
   }, [onBookingsCountChange]);
 
@@ -902,7 +923,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         setToast('Image saved successfully!');
         setTimeout(() => setToast(null), 3000);
       }, 'image/png');
-    } catch (error) {
+    } catch (error) {
       setToast('Failed to save image');
       setTimeout(() => setToast(null), 3000);
     }
@@ -932,7 +953,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     let taxAmount: number;
     let bonusAmount: number;
     
-    if (isMultiBet) {
+    if (isMultiBet) {
       
       // Remove commas before parsing (API returns "2,546" not "2546")
       stake = parseFloat((fullResponse.multiStake || betAmount.toString()).replace(/,/g, ''));
@@ -1002,7 +1023,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             
       // Check betList for error codes
       const hasBetErrors = bookingResult.betList && bookingResult.betList.length > 0 && 
-                           bookingResult.betList.some((bet: any) => bet.betErrorCode && bet.betErrorCode !== 0);
+                           bookingResult.betList.some((bet: any) => bet.betErrorCode && bet.betErrorCode !== 0);
       
       // Consider successful ONLY if we have a ticket AND no bet errors
       if (hasTicket && !hasBetErrors && !hasErrors) {
@@ -1058,7 +1079,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             apiErrorMessage = errorBet.betErrorMessage || errorBet.legErrorMessage || '';
             
             // Clean up error message
-            if (apiErrorMessage && apiErrorMessage !== 'None' && apiErrorMessage !== 'null') {
+            if (apiErrorMessage && apiErrorMessage !== 'None' && apiErrorMessage !== 'null') {
             } else {
               apiErrorMessage = '';
             }
@@ -1083,13 +1104,13 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         
         // Mark selections with errors ONLY if the error is about the match/selection
         // NOT for stake/payout validation errors
-        if (bookingResult.betList && bookingResult.betList.length > 0) {
+        if (bookingResult.betList && bookingResult.betList.length > 0) {
           
           selections.forEach((selection, index) => {
-            const bet = bookingResult.betList[index];
+            const bet = bookingResult.betList[index];
             
             if (bet && bet.betErrorCode && bet.betErrorCode !== 0) {
-              const errorMsg = (bet.betErrorMessage || bet.legErrorMessage || '').toLowerCase();
+              const errorMsg = (bet.betErrorMessage || bet.legErrorMessage || '').toLowerCase();
               
               // Check for stake/payout/account errors FIRST (higher priority)
               const isStakeError = 
@@ -1114,13 +1135,13 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 errorMsg.includes('invalid selection') ||  // More specific: "invalid selection" not just "invalid"
                 errorMsg.includes('invalid market') ||
                 errorMsg.includes('invalid odds')
-              );
+              );
               
               // Only mark if it's a match error, not a stake error
-              if (isMatchError && !isStakeError) {
+              if (isMatchError && !isStakeError) {
                 selection.hasError = true;
-              } else if (isStakeError) {
-              } else {
+              } else if (isStakeError) {
+              } else {
               }
             }
           });

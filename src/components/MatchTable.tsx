@@ -149,19 +149,40 @@ const MatchTable: React.FC<MatchTableProps> = ({
             <PriceButton
               odds={match.homeOdds}
               type="home"
-              onClick={() => onPriceClick(match.id, 'home', Number(match.homeOdds))}
+              onClick={() => onPriceClick(
+                match.id, 
+                'home', 
+                Number(match.homeOdds),
+                match.marketBookNo,
+                match.marketCode,
+                match.marketId
+              )}
               selected={selectedPrices.includes(`${match.id}-home`)}
             />
             <PriceButton
               odds={match.drawOdds}
               type="draw"
-              onClick={() => onPriceClick(match.id, 'draw', Number(match.drawOdds))}
+              onClick={() => onPriceClick(
+                match.id, 
+                'draw', 
+                Number(match.drawOdds),
+                match.marketBookNo,
+                match.marketCode,
+                match.marketId
+              )}
               selected={selectedPrices.includes(`${match.id}-draw`)}
             />
             <PriceButton
               odds={match.awayOdds}
               type="away"
-              onClick={() => onPriceClick(match.id, 'away', Number(match.awayOdds))}
+              onClick={() => onPriceClick(
+                match.id, 
+                'away', 
+                Number(match.awayOdds),
+                match.marketBookNo,
+                match.marketCode,
+                match.marketId
+              )}
               selected={selectedPrices.includes(`${match.id}-away`)}
             />
           </div>
@@ -183,14 +204,28 @@ const MatchTable: React.FC<MatchTableProps> = ({
                 <PriceButton
                   odds={overOdds}
                   type="over"
-                  onClick={() => overOdds && onPriceClick(match.id, 'over', Number(overOdds))}
+                  onClick={() => overOdds && onPriceClick(
+                    match.id, 
+                    'over', 
+                    Number(overOdds),
+                    match.marketBookNo,
+                    match.marketCode,
+                    match.marketId
+                  )}
                   selected={selectedPrices.includes(`${match.id}-over`)}
                   disabled={!overOdds || overOdds === 'N/A'}
                 />
                 <PriceButton
                   odds={underOdds}
                   type="under"
-                  onClick={() => underOdds && onPriceClick(match.id, 'under', Number(underOdds))}
+                  onClick={() => underOdds && onPriceClick(
+                    match.id, 
+                    'under', 
+                    Number(underOdds),
+                    match.marketBookNo,
+                    match.marketCode,
+                    match.marketId
+                  )}
                   selected={selectedPrices.includes(`${match.id}-under`)}
                   disabled={!underOdds || underOdds === 'N/A'}
                 />
@@ -215,14 +250,28 @@ const MatchTable: React.FC<MatchTableProps> = ({
                 <PriceButton
                   odds={bttsYesOdds}
                   type="yes"
-                  onClick={() => bttsYesOdds && onPriceClick(match.id, 'btts_yes', Number(bttsYesOdds))}
+                  onClick={() => bttsYesOdds && onPriceClick(
+                    match.id, 
+                    'btts_yes', 
+                    Number(bttsYesOdds),
+                    match.marketBookNo,
+                    match.marketCode,
+                    match.marketId
+                  )}
                   selected={selectedPrices.includes(`${match.id}-btts_yes`)}
                   disabled={!bttsYesOdds || bttsYesOdds === 'N/A'}
                 />
                 <PriceButton
                   odds={bttsNoOdds}
                   type="no"
-                  onClick={() => bttsNoOdds && onPriceClick(match.id, 'btts_no', Number(bttsNoOdds))}
+                  onClick={() => bttsNoOdds && onPriceClick(
+                    match.id, 
+                    'btts_no', 
+                    Number(bttsNoOdds),
+                    match.marketBookNo,
+                    match.marketCode,
+                    match.marketId
+                  )}
                   selected={selectedPrices.includes(`${match.id}-btts_no`)}
                   disabled={!bttsNoOdds || bttsNoOdds === 'N/A'}
                 />
@@ -236,19 +285,40 @@ const MatchTable: React.FC<MatchTableProps> = ({
             <PriceButton
               odds={match.homeOdds}
               type="home"
-              onClick={() => onPriceClick(match.id, 'home', Number(match.homeOdds))}
+              onClick={() => onPriceClick(
+                match.id, 
+                'home', 
+                Number(match.homeOdds),
+                match.marketBookNo,
+                match.marketCode,
+                match.marketId
+              )}
               selected={selectedPrices.includes(`${match.id}-home`)}
             />
             <PriceButton
               odds={match.drawOdds}
               type="draw"
-              onClick={() => onPriceClick(match.id, 'draw', Number(match.drawOdds))}
+              onClick={() => onPriceClick(
+                match.id, 
+                'draw', 
+                Number(match.drawOdds),
+                match.marketBookNo,
+                match.marketCode,
+                match.marketId
+              )}
               selected={selectedPrices.includes(`${match.id}-draw`)}
             />
             <PriceButton
               odds={match.awayOdds}
               type="away"
-              onClick={() => onPriceClick(match.id, 'away', Number(match.awayOdds))}
+              onClick={() => onPriceClick(
+                match.id, 
+                'away', 
+                Number(match.awayOdds),
+                match.marketBookNo,
+                match.marketCode,
+                match.marketId
+              )}
               selected={selectedPrices.includes(`${match.id}-away`)}
             />
           </div>
