@@ -1702,7 +1702,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             {showNewBetButton && (
               <div className="p-3 border-t border-gray-200">
                 <button
-                  onClick={onClearAll}
+                  onClick={onClose}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
                 >
                   Exit Parlay Builder
