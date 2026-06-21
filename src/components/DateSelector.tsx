@@ -124,8 +124,8 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                 </div>
               </div>
               
-              {/* 🟢 Progress Bar (only on selected date while loading) */}
-              {isSelected && !isComplete && percentage > 0 && percentage < 100 && (
+              {/* 🟢 Progress Bar (show on any date with orange dot while loading, except ALL MATCHES) */}
+              {!isComplete && percentage > 0 && percentage < 100 && (
                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-800/30">
                   <div 
                     className="h-full bg-green-400 transition-all duration-500 ease-out"
@@ -172,15 +172,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                   : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
             } ${longPressDate === 'all_matches' ? 'animate-pulse' : ''}`}
           >
-            {/* Progress Bar (only when All Matches is active and loading) */}
-            {showAllMatches && allMatchesProgress && !allMatchesProgress.isComplete && allMatchesProgress.percentage > 0 && (
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-800/30">
-                <div 
-                  className="h-full bg-green-400 transition-all duration-500 ease-out"
-                  style={{ width: `${allMatchesProgress.percentage}%` }}
-                />
-              </div>
-            )}
+            {/* No progress bar for ALL MATCHES - it's not fetching in background */}
             
             {/* Orange dot: Partial loading (some dates loaded, not all) */}
             {/* Show orange dot if: All Matches has partial progress OR any individual date is loading */}
@@ -203,11 +195,15 @@ const DateSelector: React.FC<DateSelectorProps> = ({
               }`}>
                 All Matches
               </div>
-              {showAllMatches && allMatchesProgress && (
-                <div className={`text-[10px] ${
-                  allMatchesProgress.isComplete ? 'text-green-100' : 'text-blue-100'
-                }`}>
+              {/* Show (X/?) while loading, only show total when complete */}
+              {showAllMatches && allMatchesProgress && allMatchesProgress.isComplete && (
+                <div className="text-[10px] text-green-100">
                   ({allMatchesProgress.loaded}/{allMatchesProgress.total})
+                </div>
+              )}
+              {showAllMatches && allMatchesProgress && !allMatchesProgress.isComplete && (
+                <div className="text-[10px] text-blue-100">
+                  ({allMatchesProgress.loaded}/?)
                 </div>
               )}
               {showAllMatches && !allMatchesProgress && (
