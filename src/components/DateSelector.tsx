@@ -183,7 +183,12 @@ const DateSelector: React.FC<DateSelectorProps> = ({
             )}
             
             {/* Orange dot: Partial loading (some dates loaded, not all) */}
+            {/* Show orange dot if: All Matches has partial progress OR any individual date is loading */}
             {allMatchesProgress && !allMatchesProgress.isComplete && allMatchesProgress.loaded > 0 && (
+              <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
+            )}
+            {/* Also show orange dot if any individual date is still loading (has orange dot) */}
+            {!allMatchesProgress?.isComplete && Object.values(dateProgress).some(p => p.total > 0 && !p.isComplete) && (
               <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
             )}
             {/* Green dot: Fully loaded (all dates complete) */}
