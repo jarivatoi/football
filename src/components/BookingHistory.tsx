@@ -211,6 +211,7 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
             
             {/* Booking Content */}
             <div className="flex-1 overflow-y-auto p-4">
+              {(() => { console.log('📋 Selected booking data:', selectedBooking); return null; })()}
               {/* Matches */}
               <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white">
                 <div className="max-h-60 overflow-y-auto">
@@ -315,13 +316,21 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                     <span>Stake:</span>
                     <span className="font-medium">Rs {Math.round(selectedBooking.stake)}</span>
                   </div>
-                  <div className="flex justify-between text-red-600">
-                    <span>Tax:</span>
-                    <span className="font-medium">-Rs {(selectedBooking.stake * 0.15).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between border-t border-blue-200 pt-1 font-bold text-xl mt-2">
-                    <span className="text-gray-700">Net Payout:</span>
-                    <span className="text-green-600">Rs {formatCurrency(selectedBooking.potentialWin)}</span>
+                  {selectedBooking.tax !== undefined && selectedBooking.tax > 0 && (
+                    <div className="flex justify-between text-red-600">
+                      <span>Tax:</span>
+                      <span className="font-medium">-Rs {formatCurrency(selectedBooking.tax)}</span>
+                    </div>
+                  )}
+                  {selectedBooking.bonus !== undefined && selectedBooking.bonus > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Bonus:</span>
+                      <span className="font-medium">+Rs {formatCurrency(selectedBooking.bonus)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between border-t border-blue-200 pt-1 font-bold text-lg">
+                    <span>Net Payout:</span>
+                    <span className="text-green-600">Rs {formatCurrency(selectedBooking.netPayout || selectedBooking.potentialWin)}</span>
                   </div>
                 </div>
               </div>

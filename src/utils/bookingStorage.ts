@@ -10,6 +10,9 @@ export interface SavedBooking {
   selections: any[];
   stake: number;
   potentialWin: number;
+  tax?: number;        // Tax amount deducted
+  bonus?: number;      // Bonus amount added
+  netPayout?: number;  // Final net payout
   timestamp: number;
   formattedDateTime: string;
   apiSource?: string;

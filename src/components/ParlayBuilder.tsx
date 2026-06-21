@@ -815,7 +815,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   };
 
   // Save current booking to IndexedDB
-  const saveBooking = useCallback(async (bookingData?: { ticketNo: string; selections: any[]; stake: number; potentialWin: number }) => {
+  const saveBooking = useCallback(async (bookingData?: { ticketNo: string; selections: any[]; stake: number; potentialWin: number; tax?: number; bonus?: number; netPayout?: number }) => {
     // If bookingData is provided, use it (for auto-save after bet)
     // Otherwise, use state (for manual save from history)
     const ticketNo = bookingData?.ticketNo || lastResult?.ticketNo;
@@ -825,6 +825,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       const odds = typeof selection.odds === 'string' ? parseFloat(selection.odds) : selection.odds;
       return acc * odds;
     }, 1);
+    const taxToSave = bookingData?.tax ?? apiBreakdown?.tax ?? 0;
+    const bonusToSave = bookingData?.bonus ?? apiBreakdown?.bonus ?? 0;
+    const netPayoutToSave = bookingData?.netPayout ?? apiBreakdown?.netPayout ?? potentialWinToSave;
     
     if (!ticketNo) {
       return;
@@ -837,6 +840,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       selections: [...selectionsToSave],
       stake: stakeToSave,
       potentialWin: potentialWinToSave,
+      tax: taxToSave,
+      bonus: bonusToSave,
+      netPayout: netPayoutToSave,
       timestamp: Date.now(),
       formattedDateTime: formatBookingDateTime(Date.now()),
       apiSource: selectedSource?.displayName
@@ -1036,11 +1042,31 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         });
         
         // Auto-save booking to IndexedDB with API response data
+        // Extract tax and bonus from bookingResult (same logic as apiBreakdown)
+        const betList = bookingResult.betList;
+        const isMultiBet = !betList || betList.length === 0;
+        let taxToSave = 0;
+        let bonusToSave = 0;
+        let netPayoutToSave = parseFloat((bookingResult.potentialPayout || '0').replace(/,/g, '')) || 0;
+        
+        if (isMultiBet) {
+          // Multi-bet: use top-level fields
+          taxToSave = parseFloat((bookingResult.taxAmount || '0').replace(/,/g, '')) || 0;
+          bonusToSave = parseFloat((bookingResult.bonusAmount || '0').replace(/,/g, '')) || 0;
+        } else {
+          // Single bet or parlay: sum from betList
+          taxToSave = betList.reduce((sum: number, bet: any) => sum + (parseFloat((bet.taxAmount || '0').replace(/,/g, '')) || 0), 0);
+          bonusToSave = betList.reduce((sum: number, bet: any) => sum + (parseFloat((bet.bonusAmount || '0').replace(/,/g, '')) || 0), 0);
+        }
+        
         saveBooking({
           ticketNo: bookingResult.ticketNo || '',
           selections: [...selections],
           stake: betAmount,
-          potentialWin: bookingResult.potentialPayout
+          potentialWin: bookingResult.potentialPayout,
+          tax: taxToSave,
+          bonus: bonusToSave,
+          netPayout: netPayoutToSave
         });
         
         // Don't clear selections or reset bet amount - let user decide
@@ -1055,11 +1081,31 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         });
         
         // Auto-save booking to IndexedDB with API response data
+        // Extract tax and bonus from bookingResult (same logic as apiBreakdown)
+        const betList = bookingResult.betList;
+        const isMultiBet = !betList || betList.length === 0;
+        let taxToSave = 0;
+        let bonusToSave = 0;
+        let netPayoutToSave = parseFloat((bookingResult.potentialPayout || '0').replace(/,/g, '')) || 0;
+        
+        if (isMultiBet) {
+          // Multi-bet: use top-level fields
+          taxToSave = parseFloat((bookingResult.taxAmount || '0').replace(/,/g, '')) || 0;
+          bonusToSave = parseFloat((bookingResult.bonusAmount || '0').replace(/,/g, '')) || 0;
+        } else {
+          // Single bet or parlay: sum from betList
+          taxToSave = betList.reduce((sum: number, bet: any) => sum + (parseFloat((bet.taxAmount || '0').replace(/,/g, '')) || 0), 0);
+          bonusToSave = betList.reduce((sum: number, bet: any) => sum + (parseFloat((bet.bonusAmount || '0').replace(/,/g, '')) || 0), 0);
+        }
+        
         saveBooking({
           ticketNo: bookingResult.ticketNo || '',
           selections: [...selections],
           stake: betAmount,
-          potentialWin: bookingResult.potentialPayout
+          potentialWin: bookingResult.potentialPayout,
+          tax: taxToSave,
+          bonus: bonusToSave,
+          netPayout: netPayoutToSave
         });
         
         // Don't clear selections or reset bet amount - let user decide
@@ -1470,6 +1516,18 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   const rawPercentage = basePayout > 0 ? ((apiBreakdown.netPayout - basePayout) / basePayout) * 100 : 0;
                   // Round to nearest integer
                   const bonusPercentage = Math.round(rawPercentage);
+                  
+                  console.log('[Bonus Calculation Debug]:', {
+                    stake: apiBreakdown.stake,
+                    tax: apiBreakdown.tax,
+                    totalOdds,
+                    basePayout,
+                    netPayout: apiBreakdown.netPayout,
+                    bonus: apiBreakdown.bonus,
+                    rawPercentage,
+                    bonusPercentage
+                  });
+                  
                   return (
                     <div className="flex justify-between text-green-600">
                       <span>Bonus ({bonusPercentage}%):</span>
