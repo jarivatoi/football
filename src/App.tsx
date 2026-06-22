@@ -151,6 +151,20 @@ function App() {
     }
   }, [dateProgress, calendarList]);
   
+  // Auto-refresh ALL MATCHES list when a date completes (dateProgress changes)
+  useEffect(() => {
+    // Only reload if ALL MATCHES view is active
+    if (!showAllMatches) return;
+    
+    // Check if any date just completed (has isComplete=true)
+    const hasCompletedDate = Object.values(dateProgress).some(p => p.isComplete);
+    if (!hasCompletedDate) return;
+    
+    // Reload ALL MATCHES from cache when progress changes
+    console.log('[Auto-Refresh] Date progress changed, reloading ALL MATCHES...');
+    loadAllMatches(selectedCategory, selectedCompetition);
+  }, [dateProgress]); // Watch dateProgress changes
+  
   // Category and Competition filter states
   const [categories, setCategories] = useState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -871,8 +885,11 @@ function App() {
       console.log(`[Auto-Merge] ${date}: Successfully merged into All Matches cache`);
       
       // If All Matches is currently active, reload it to show new data
+      // The cache is fully saved at this point (all awaits completed above)
       if (showAllMatches) {
-        console.log('[Auto-Merge] All Matches is active, reloading...');
+        console.log('[Auto-Merge] All Matches is active, reloading from fresh cache...');
+        // Force reload by setting loading state first to trigger UI update
+        setLoading(true);
         loadAllMatches(selectedCategory, selectedCompetition);
       }
       
@@ -1156,6 +1173,9 @@ function App() {
     // Cancel ALL existing background loading tasks first
     // This prevents multiple tasks from running simultaneously on app reload
     totelepepExtractor.cancelAllBackgroundLoading();
+    
+    // Clear auto-load completion flags on app reload
+    (window as any).__autoLoadCompleted = null;
     
     // Clear ALL caches on initial load (both in-memory and IndexedDB)
     totelepepExtractor.clearCache();
@@ -2268,6 +2288,9 @@ function App() {
     // Cancel all active background loading tasks
     totelepepExtractor.cancelAllBackgroundLoading();
     
+    // Clear auto-load completion flags (allow re-auto-loading after cache clear)
+    (window as any).__autoLoadCompleted = null;
+    
     // Turn off All Matches view
     if (showAllMatches) {
       setShowAllMatches(false);
@@ -2290,7 +2313,7 @@ function App() {
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       animation: slideDown 0.3s ease-out;
     `;
-    toast.textContent = `All caches cleared! Reload calendar to fetch fresh data.`;
+    toast.textContent = `All cache cleared! Reloading calendar to fetch fresh data...`;
     document.body.appendChild(toast);
     
     setTimeout(() => {
@@ -2299,7 +2322,15 @@ function App() {
     }, 3000);
     
     // Reload calendar to start fresh
-    loadCalendarList(selectedCategory, selectedCompetition);
+    loadCalendarList(selectedCategory, selectedCompetition).then(() => {
+      // After calendar loads, trigger auto-fetch by loading the first date
+      const firstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
+      if (firstDate) {
+        console.log('[Clear All Cache] Loading first date to trigger auto-fetch:', firstDate);
+        (totelepepExtractor as any).cache = new Map();
+        loadData(firstDate, selectedCategory, selectedCompetition, true);
+      }
+    });
   };
   
   const toggleParlayBuilder = () => {
