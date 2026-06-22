@@ -154,18 +154,11 @@ function App() {
   // Auto-refresh ALL MATCHES list when a date completes (dateProgress changes)
   useEffect(() => {
     // Only reload if ALL MATCHES view is active
-    console.log('[Auto-Refresh useEffect] showAllMatches =', showAllMatches, ', dateProgress changed');
-    if (!showAllMatches) {
-      console.log('[Auto-Refresh] Skipping - not in ALL MATCHES view');
-      return;
-    }
+    if (!showAllMatches) return;
     
     // Check if any date just completed (has isComplete=true)
     const hasCompletedDate = Object.values(dateProgress).some(p => p.isComplete);
-    if (!hasCompletedDate) {
-      console.log('[Auto-Refresh] Skipping - no completed dates');
-      return;
-    }
+    if (!hasCompletedDate) return;
     
     // Reload ALL MATCHES from cache when progress changes
     console.log('[Auto-Refresh] Date progress changed, reloading ALL MATCHES...');
@@ -420,7 +413,7 @@ function App() {
 
   }, [selectedDate]);
   
-  const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string, forceFresh: boolean = false, viewDate?: string | null) => {
+  const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string, forceFresh: boolean = false) => {
     setLoading(true);
     setError(null);
 
@@ -487,14 +480,6 @@ function App() {
     const loadKey = `${dateToFetch}_${catId}_${compId}_${sourceId}`;
     if ((window as any).__loadingDate === loadKey) {
       console.log(`[LoadData] ${dateToFetch}: Already loading, skipping duplicate call`);
-      
-      // BUT if this is a user-initiated click (viewDate provided), ensure UI shows loading state
-      if (viewDate === dateToFetch) {
-        console.log(`[LoadData] ${dateToFetch}: User clicked this date, ensuring UI shows loading`);
-        // Keep current matches visible until load completes
-        // Don't clear them - the original load will update UI when done
-      }
-      
       setLoading(false);
       return;
     }
@@ -561,19 +546,9 @@ function App() {
           return a.kickoff.localeCompare(b.kickoff);
         });
         
-        // Only update UI if this is the date the user is CURRENTLY viewing
-        // Use CURRENT selectedDate state (not stale viewDate from when load started)
-        // If viewDate is null, this is background loading - never update UI
-        if (viewDate === null) {
-          console.log(`[Cache] ${dateToFetch}: Background loading - skipping UI update`);
-        } else if (dateToFetch === selectedDate) {
-          setMatches(sortedMatches);
-          const grouped = totelepepService.groupMatchesByDate(sortedMatches);
-          setGroupedMatches(grouped);
-          console.log(`[Cache] ${dateToFetch}: Displaying ${sortedMatches.length} matches from cache (expired=${expired})`);
-        } else {
-          console.log(`[Cache] ${dateToFetch}: Skipping UI update (user is viewing ${selectedDate})`);
-        }
+        setMatches(sortedMatches);
+        const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+        setGroupedMatches(grouped);
         
         // If cache is valid, mark as complete
         if (!expired && metadata?.isComplete) {
@@ -619,7 +594,6 @@ function App() {
       totelepepExtractor.onMarketProgress = async (date, loaded, total) => {
         const percentage = Math.round((loaded / total) * 100);
         console.log(`[Progress] ${date}: ${loaded}/${total} markets loaded (${percentage}%)`);
-        console.log(`[Progress Callback] Currently viewing: selectedDate=${selectedDate}, showAllMatches=${showAllMatches}`);
         setDateProgress(prev => ({
           ...prev,
           [date]: {
@@ -658,15 +632,27 @@ function App() {
               const { matches: completeCache } = await getCachedMatches(cacheKey);
               
               if (completeCache && completeCache.length > 0) {
-                // Don't filter past matches here - let the UI filtering handle it
+                // Filter out past matches
+                const now = new Date();
+                const validMatches = completeCache.filter((m: any) => {
+                  if (!m.kickoff) return true;
+                  let kickoffTime: Date;
+                  if (m.kickoff.includes('T')) {
+                    kickoffTime = new Date(m.kickoff);
+                  } else {
+                    const matchDate = m.date || date;
+                    kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
+                  }
+                  return kickoffTime > now;
+                });
+                
                 // Sort and display
-                const sortedMatches = completeCache.sort((a, b) => {
+                const sortedMatches = validMatches.sort((a, b) => {
                   const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
                   if (dateComparison !== 0) return dateComparison;
                   return a.kickoff.localeCompare(b.kickoff);
                 });
                 
-                console.log(`[Background Refresh] ${date}: About to set ${sortedMatches.length} matches to state (viewing ${selectedDate})`);
                 setMatches(sortedMatches);
                 const grouped = totelepepService.groupMatchesByDate(sortedMatches);
                 setGroupedMatches(grouped);
@@ -760,14 +746,9 @@ function App() {
       });
       
       
-      // Only update UI if this is the date the user is CURRENTLY viewing
+      // Only update UI if this is the date the user is currently viewing
       // This prevents auto-load from overwriting the current view
-      // Use CURRENT selectedDate state (not stale viewDate from when load started)
-      // If viewDate is null, this is background loading - never update UI
-      if (viewDate === null) {
-        console.log(`[LoadData] ${dateToFetch}: Background loading - skipping UI update`);
-      } else if (dateToFetch === selectedDate) {
-        console.log(`[LoadData] ${dateToFetch}: Setting matches to state - ${sortedMatches.length} matches`);
+      if (dateToFetch === selectedDate) {
         setMatches(sortedMatches);
         // Group matches by date
         const grouped = totelepepService.groupMatchesByDate(sortedMatches);
@@ -780,7 +761,6 @@ function App() {
       // After API fetch, refresh from IndexedDB if cache is now complete
       // This ensures we show the full cached data (with markets) instead of just API data
       // But only if this is the date the user is viewing
-      console.log(`[IndexedDB Refresh Check] dateToFetch=${dateToFetch}, selectedDate=${selectedDate}, match=${dateToFetch === selectedDate}`);
       if (dateToFetch === selectedDate) {
         console.log(`[LoadData] ${dateToFetch}: Refreshing from IndexedDB after API fetch...`);
         try {
@@ -804,8 +784,6 @@ function App() {
               return kickoffTime > now;
             });
             
-            console.log(`[IndexedDB Refresh] ${dateToFetch}: ${cachedMatches.length} total -> ${validMatches.length} after filtering past matches`);
-            
             // Sort and display
             const sortedCachedMatches = validMatches.sort((a, b) => {
               const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
@@ -818,7 +796,7 @@ function App() {
             setGroupedMatches(groupedCached);
             console.log(`[LoadData] ${dateToFetch}: Refreshed with ${sortedCachedMatches.length} matches from IndexedDB`);
           } else {
-            console.log(`[LoadData] ${dateToFetch}: Cache not complete yet, keeping API data (${sortedMatches.length} matches)`);
+            console.log(`[LoadData] ${dateToFetch}: Cache not complete yet, keeping API data`);
           }
         } catch (error) {
           console.error(`[LoadData] ${dateToFetch}: Error refreshing from IndexedDB:`, error);
@@ -973,9 +951,9 @@ function App() {
         return;
       }
       
-      // Load the next date in background (never update UI - pass null as viewDate)
+      // Load the next date in background
       loadData(nextDate, categoryId === 'all' ? undefined : categoryId, 
-               competitionId === 'all' ? undefined : competitionId, false, null);
+               competitionId === 'all' ? undefined : competitionId, false);
     } catch (error) {
       console.error('[Auto-Load] Error loading next date:', error);
     }
@@ -1859,13 +1837,8 @@ function App() {
 
   // Debug: Log grouped matches to see what dates we have
   useEffect(() => {
-    const dates = Object.keys(groupedMatches);
-    const totalMatches = Object.values(groupedMatches).reduce((sum: number, matches: any) => sum + matches.length, 0);
-    console.log(`[groupedMatches Update] Dates: ${dates.join(', ')}, Total matches: ${totalMatches}`);
-    if (selectedDate && groupedMatches[selectedDate]) {
-      console.log(`[groupedMatches] ${selectedDate}: ${groupedMatches[selectedDate].length} matches`);
-    }
-  }, [groupedMatches, selectedDate]);
+    
+  }, [groupedMatches]);
 
   // ========================================
   // AUTHENTICATION HANDLERS (AFTER ALL HOOKS)
@@ -2174,7 +2147,7 @@ function App() {
     setShowExtractor(false);
   };
 
-  const handleDateChange = async (newDate: string) => {
+  const handleDateChange = (newDate: string) => {
 
     // Turn off All Matches when a specific date is selected
     if (showAllMatches) {
@@ -2187,26 +2160,6 @@ function App() {
     
     setSelectedDate(newDate);
     
-    // Check if this date is currently loading in background (has partial progress)
-    const currentProgress = dateProgress[newDate];
-    const isLoadingInBackground = currentProgress && currentProgress.total > 0 && !currentProgress.isComplete;
-    
-    // Check if there's partial cache available
-    const sourceId = selectedSource?.id || 'totelepep';
-    const cacheKey = `date_${newDate}_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_${sourceId}`;
-    const { getCachedMatches } = await import('./utils/matchCache');
-    const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
-    const hasPartialCache = cachedMatches && cachedMatches.length > 0;
-    
-    // If date is loading in background BUT has partial cache, DON'T force fresh - use the cache
-    // If date is loading but NO cache yet, force fresh to get data from API
-    const forceFresh = isLoadingInBackground && !hasPartialCache;
-    if (forceFresh) {
-      console.log(`[Date Change] ${newDate} is loading with no cache, forcing fresh API fetch`);
-    } else if (isLoadingInBackground && hasPartialCache) {
-      console.log(`[Date Change] ${newDate} is loading, using partial cache (${cachedMatches.length} matches)`);
-    }
-    
     // Handle "beyond" date - check if this date corresponds to Beyond entry
     const isBeyondDate = availableDatesWithCounts.find(d => 
       d.date === newDate && (d.displayName.includes('Beyond') || d.displayName.includes('>>'))
@@ -2218,11 +2171,11 @@ function App() {
       const beyondDate = newDate.split('T')[0];
       
       // Pass the date - API will use inclusive=1 to return all matches from that date onwards
-      loadData(beyondDate, selectedCategory, selectedCompetition, forceFresh, newDate);
+      loadData(beyondDate, selectedCategory, selectedCompetition);
     } else {
       // For regular dates, load with current filters
       
-      loadData(newDate, selectedCategory, selectedCompetition, forceFresh, newDate);
+      loadData(newDate, selectedCategory, selectedCompetition);
     }
   };
   
