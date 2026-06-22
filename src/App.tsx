@@ -633,6 +633,7 @@ function App() {
               if (completeCache && completeCache.length > 0) {
                 // Filter out past matches
                 const now = new Date();
+                console.log(`[Refresh] ${date}: Filtering ${completeCache.length} matches, current time: ${now.toISOString()}`);
                 const validMatches = completeCache.filter((m: any) => {
                   if (!m.kickoff) return true;
                   let kickoffTime: Date;
@@ -642,8 +643,13 @@ function App() {
                     const matchDate = m.date || date;
                     kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
                   }
-                  return kickoffTime > now;
+                  const isFuture = kickoffTime > now;
+                  if (!isFuture) {
+                    console.log(`[Refresh] ${date}: Filtering out PAST match: ${m.homeTeam} vs ${m.awayTeam}, kickoff: ${kickoffTime.toISOString()}`);
+                  }
+                  return isFuture;
                 });
+                console.log(`[Refresh] ${date}: After filtering: ${validMatches.length} valid, ${completeCache.length - validMatches.length} filtered out`);
                 
                 // Sort and display
                 const sortedMatches = validMatches.sort((a, b) => {
@@ -715,6 +721,7 @@ function App() {
       
       // Filter out matches that already started
       const now = new Date();
+      console.log(`[LoadData] ${dateToFetch}: Filtering ${mergedMatches.length} matches, current time: ${now.toISOString()}`);
       
       const validMatches = mergedMatches.filter((m: any) => {
         if (!m.kickoff) return true;
@@ -730,9 +737,11 @@ function App() {
         
         const isFuture = kickoffTime > now;
         if (!isFuture) {
+          console.log(`[LoadData] ${dateToFetch}: Filtering out PAST match: ${m.homeTeam} vs ${m.awayTeam}, kickoff: ${kickoffTime.toISOString()}`);
         }
         return isFuture;
       });
+      console.log(`[LoadData] ${dateToFetch}: After filtering: ${validMatches.length} valid, ${mergedMatches.length - validMatches.length} filtered out`);
       
       
       // Sort matches by date and time
