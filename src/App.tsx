@@ -126,8 +126,8 @@ function App() {
       const entryProgress = dateProgress[calEntry.date];
       if (entryProgress) {
         totalLoaded += entryProgress.loaded || 0;
-        // Only count total from dates that have fully loaded
-        if (entryProgress.isComplete && entryProgress.total > 0) {
+        // Count complete dates (including 0-match dates)
+        if (entryProgress.isComplete) {
           totalMatches += entryProgress.total || 0;
           completedDatesCount++;
         } else if (entryProgress.total > 0) {
@@ -594,31 +594,9 @@ function App() {
             return entryProgress && entryProgress.isComplete;
           });
           
-          // If all dates complete, update All Matches progress automatically
-          if (allDatesComplete && calendarList.length > 0) {
-            console.log('[Auto-Merge] ALL dates complete! Updating All Matches progress...');
-            try {
-              const allMatchesCacheKey = `all_matches_${loadCategory}_${loadCompetition}_${loadSourceId}`;
-              const { getCachedMatches } = await import('./utils/matchCache');
-              const { matches: allMatchesCache } = await getCachedMatches(allMatchesCacheKey);
-              
-              if (allMatchesCache && allMatchesCache.length > 0) {
-                const matchesWithMarkets = allMatchesCache.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
-                const isComplete = matchesWithMarkets === allMatchesCache.length;
-                
-                setAllMatchesProgress({
-                  loaded: matchesWithMarkets,
-                  total: allMatchesCache.length,
-                  isComplete,
-                  percentage: allMatchesCache.length > 0 ? (matchesWithMarkets / allMatchesCache.length) * 100 : 0
-                });
-                
-                console.log(`[Auto-Merge] All Matches updated: ${matchesWithMarkets}/${allMatchesCache.length} complete`);
-              }
-            } catch (error) {
-              console.error('[Auto-Merge] Error updating All Matches progress:', error);
-            }
-          }
+          // If all dates complete, the useEffect will automatically update allMatchesProgress
+          // No need to manually set it here (avoids duplicates from IndexedDB cache)
+          console.log('[Auto-Merge] ALL dates complete! useEffect will update progress automatically');
           
           // Only refresh UI if currently viewing THIS specific date
           // Don't refresh if user is viewing a different date or has filters applied
@@ -673,13 +651,15 @@ function App() {
       // If API returns 0 matches, mark date as complete immediately (nothing to load)
       if (fetchedMatches.length === 0 && dateToFetch) {
         console.warn(`[API] ${dateToFetch}: WARNING - API returned 0 matches! Marking as complete.`);
-        const newProgress = { ...dateProgress };
-        newProgress[dateToFetch] = {
-          loaded: 0,
-          total: 0,
-          isComplete: true  // No matches = complete, don't block ALL MATCHES
-        };
-        setDateProgress(newProgress);
+        // Use state updater to avoid overwriting other dates' progress
+        setDateProgress(prev => ({
+          ...prev,
+          [dateToFetch]: {
+            loaded: 0,
+            total: 0,
+            isComplete: true  // No matches = complete, don't block ALL MATCHES
+          }
+        }));
         
         // If API returns 0 but we have partial cache, use the cache instead
         if (cachedMatches && cachedMatches.length > 0) {
