@@ -410,6 +410,11 @@ function App() {
     registerServiceWorker();
     requestNotificationPermission();
     scheduleBackgroundSync();
+    
+    // Sync current selectedDate to window for use in async loadData closures
+    (window as any).__currentSelectedDate = selectedDate;
+    console.log(`[DEBUG-SelectDate] selectedDate changed to: ${selectedDate}`);
+    console.log(`[DEBUG-SelectDate] window.__currentSelectedDate set to: ${(window as any).__currentSelectedDate}`);
 
   }, [selectedDate]);
   
@@ -431,6 +436,12 @@ function App() {
       dateToFetch = targetDate;  // Use provided date
       
     }
+    
+    // DEBUG: Log when loadData is called
+    console.log(`[DEBUG-LoadData] ===== START =====`);
+    console.log(`[DEBUG-LoadData] targetDate=${targetDate}, selectedDate=${selectedDate}, dateToFetch=${dateToFetch}`);
+    console.log(`[DEBUG-LoadData] window.__currentSelectedDate=${(window as any).__currentSelectedDate}`);
+    console.log(`[DEBUG-LoadData] forceFresh=${forceFresh}`);
     
     const catId = categoryId !== undefined ? categoryId : selectedCategory;
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
@@ -546,9 +557,19 @@ function App() {
           return a.kickoff.localeCompare(b.kickoff);
         });
         
-        setMatches(sortedMatches);
-        const grouped = totelepepService.groupMatchesByDate(sortedMatches);
-        setGroupedMatches(grouped);
+        // CRITICAL: Check if user is CURRENTLY viewing this date before updating UI
+        const currentViewDate = (window as any).__currentSelectedDate || selectedDate;
+        console.log(`[DEBUG-LoadData] Cache hit for ${dateToFetch}, currentViewDate=${currentViewDate}`);
+        console.log(`[DEBUG-LoadData] Should update UI from cache? ${dateToFetch === currentViewDate ? 'YES ✅' : 'NO ❌'}`);
+        
+        if (dateToFetch === currentViewDate) {
+          console.log(`[DEBUG-LoadData] ${dateToFetch}: User is viewing this date, updating UI from cache...`);
+          setMatches(sortedMatches);
+          const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+          setGroupedMatches(grouped);
+        } else {
+          console.log(`[DEBUG-LoadData] ${dateToFetch}: User is viewing ${currentViewDate}, skipping UI update`);
+        }
         
         // If cache is valid, mark as complete
         if (!expired && metadata?.isComplete) {
@@ -760,14 +781,21 @@ function App() {
       
       // After API fetch, refresh from IndexedDB if cache is now complete
       // This ensures we show the full cached data (with markets) instead of just API data
-      // But only if this is the date the user is viewing
-      if (dateToFetch === selectedDate) {
-        console.log(`[LoadData] ${dateToFetch}: Refreshing from IndexedDB after API fetch...`);
+      // CRITICAL: Use current selectedDate state (not stale closure) to check if user is viewing this date
+      const currentViewDate = (window as any).__currentSelectedDate || selectedDate;
+      console.log(`[DEBUG-LoadData] API returned for ${dateToFetch}`);
+      console.log(`[DEBUG-LoadData] currentViewDate=${currentViewDate}, selectedDate=${selectedDate}`);
+      console.log(`[DEBUG-LoadData] Should update UI? ${dateToFetch === currentViewDate ? 'YES ✅' : 'NO ❌'}`);
+      
+      if (dateToFetch === currentViewDate) {
+        console.log(`[DEBUG-LoadData] ${dateToFetch}: Current view is this date (selectedDate=${currentViewDate}), refreshing from IndexedDB after API fetch...`);
         try {
           const cacheKey = `date_${dateToFetch}_${catId || 'all'}_${compId || 'all'}_${sourceId}`;
           const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
           const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
           const expired = await isCacheExpired(cacheKey);
+          
+          console.log(`[DEBUG-LoadData] ${dateToFetch}: IndexedDB cache status: ${cachedMatches?.length || 0} matches, isComplete=${metadata?.isComplete}, expired=${expired}`);
           
           if (cachedMatches && cachedMatches.length > 0 && metadata?.isComplete && !expired) {
             // Filter out past matches
@@ -794,15 +822,15 @@ function App() {
             setMatches(sortedCachedMatches);
             const groupedCached = totelepepService.groupMatchesByDate(sortedCachedMatches);
             setGroupedMatches(groupedCached);
-            console.log(`[LoadData] ${dateToFetch}: Refreshed with ${sortedCachedMatches.length} matches from IndexedDB`);
+            console.log(`[DEBUG-LoadData] ${dateToFetch}: ✅ UI UPDATED with ${sortedCachedMatches.length} matches from IndexedDB`);
           } else {
-            console.log(`[LoadData] ${dateToFetch}: Cache not complete yet, keeping API data`);
+            console.log(`[DEBUG-LoadData] ${dateToFetch}: Cache not complete yet, keeping API data`);
           }
         } catch (error) {
-          console.error(`[LoadData] ${dateToFetch}: Error refreshing from IndexedDB:`, error);
+          console.error(`[DEBUG-LoadData] ${dateToFetch}: Error refreshing from IndexedDB:`, error);
         }
       } else {
-        console.log(`[LoadData] ${dateToFetch}: Skipping IndexedDB refresh (user is viewing ${selectedDate})`);
+        console.log(`[DEBUG-LoadData] ${dateToFetch}: ❌ SKIPPED IndexedDB refresh (user is viewing ${currentViewDate}, not ${dateToFetch})`);
       }
       
       setLastUpdated(new Date());
@@ -811,7 +839,9 @@ function App() {
       setError('Failed to load data. Please try again.');
     } finally {
       // Clear the loading guard
-      console.log(`[LoadData] ${dateToFetch}: Load complete, clearing guard`);
+      console.log(`[DEBUG-LoadData] ${dateToFetch}: Load complete, clearing guard`);
+      console.log(`[DEBUG-LoadData] ${dateToFetch}: Final selectedDate=${selectedDate}, window.__currentSelectedDate=${(window as any).__currentSelectedDate}`);
+      console.log(`[DEBUG-LoadData] ===== END =====\n`);
       (window as any).__loadingDate = null;
       setLoading(false);
     }
@@ -2158,7 +2188,13 @@ function App() {
     // Keep search filters when changing dates
     // setSearchTerm, setSearchMode, and setSearchOddsValue are NOT reset
     
+    console.log(`[DEBUG-DateClick] User clicked date: ${newDate}`);
+    console.log(`[DEBUG-DateClick] Previous selectedDate: ${selectedDate}`);
+    console.log(`[DEBUG-DateClick] Calling setSelectedDate(${newDate})`);
+    
     setSelectedDate(newDate);
+    
+    console.log(`[DEBUG-DateClick] Calling loadData(${newDate})`);
     
     // Handle "beyond" date - check if this date corresponds to Beyond entry
     const isBeyondDate = availableDatesWithCounts.find(d => 
