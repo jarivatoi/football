@@ -267,7 +267,6 @@ class TotelepepExtractor {
         
         // ALWAYS save basic match data to IndexedDB
         // This ensures data persists even when forceFresh=true (initial load)
-        console.log(`[Save] ${dateToUse || targetDate}: Saving ${totalMatches} matches to IndexedDB with cacheKey: ${cacheKey}`);
         for (let i = 0; i < totalMatches; i += chunkSize) {
           const chunk = matches.slice(i, i + chunkSize);
           const loadedCount = Math.min(i + chunkSize, totalMatches);
@@ -275,14 +274,12 @@ class TotelepepExtractor {
           
           // Save chunk to IndexedDB (basic data only, fast)
           await saveMatchesChunk(chunk, cacheKey, loadedCount, totalMatches, isComplete);
-          console.log(`[Save] ${dateToUse || targetDate}: Chunk ${i/chunkSize + 1} saved (${loadedCount}/${totalMatches}, isComplete=${isComplete})`);
           
           // Report progress
           if (onProgress) {
             onProgress(loadedCount, totalMatches);
           }
         }
-        console.log(`[Save] ${dateToUse || targetDate}: All matches saved to IndexedDB`);
         
         // ALWAYS fetch markets in background (even with forceFresh)
         // This ensures markets load automatically on first load
