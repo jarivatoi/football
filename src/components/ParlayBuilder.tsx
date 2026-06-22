@@ -1461,12 +1461,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     <span className="font-medium">-Rs {apiBreakdown.tax.toFixed(2)}</span>
                   </div>
                   {apiBreakdown.bonus > 0 && (() => {
-                    // Reverse calculate bonus percentage from API response
-                    // Formula: (stake - tax) × odds = basePayout (rounded to int)
-                    // bonus% = ((apiNetPayout - basePayout) / basePayout) × 100
-                    const basePayout = Math.round((apiBreakdown.stake - apiBreakdown.tax) * totalOdds);
-                    const rawPercentage = basePayout > 0 ? ((apiBreakdown.netPayout - basePayout) / basePayout) * 100 : 0;
-                    // Round to nearest integer
+                    // Calculate bonus percentage from API response
+                    // Formula: bonus% = (bonus / (netPayout - bonus)) × 100 (rounded to integer)
+                    const basePayoutWithoutBonus = apiBreakdown.netPayout - apiBreakdown.bonus;
+                    const rawPercentage = basePayoutWithoutBonus > 0 ? (apiBreakdown.bonus / basePayoutWithoutBonus) * 100 : 0;
+                    // Round the final percentage to nearest integer
                     const bonusPercentage = Math.round(rawPercentage);
                     return (
                       <div className="flex justify-between text-green-600">
@@ -1509,21 +1508,20 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   <span className="font-medium">-Rs {apiBreakdown.tax.toFixed(2)}</span>
                 </div>
                 {apiBreakdown.bonus > 0 && (() => {
-                  // Reverse calculate bonus percentage from API response
-                  // Formula: (stake - tax) × odds = basePayout (rounded to int)
-                  // bonus% = ((apiNetPayout - basePayout) / basePayout) × 100
-                  const basePayout = Math.round((apiBreakdown.stake - apiBreakdown.tax) * totalOdds);
-                  const rawPercentage = basePayout > 0 ? ((apiBreakdown.netPayout - basePayout) / basePayout) * 100 : 0;
-                  // Round to nearest integer
+                  // Calculate bonus percentage from API response
+                  // Formula: bonus% = (bonus / (netPayout - bonus)) × 100 (rounded to integer)
+                  const basePayoutWithoutBonus = apiBreakdown.netPayout - apiBreakdown.bonus;
+                  const rawPercentage = basePayoutWithoutBonus > 0 ? (apiBreakdown.bonus / basePayoutWithoutBonus) * 100 : 0;
+                  // Round the final percentage to nearest integer
                   const bonusPercentage = Math.round(rawPercentage);
                   
                   console.log('[Bonus Calculation Debug]:', {
                     stake: apiBreakdown.stake,
                     tax: apiBreakdown.tax,
                     totalOdds,
-                    basePayout,
                     netPayout: apiBreakdown.netPayout,
                     bonus: apiBreakdown.bonus,
+                    basePayoutWithoutBonus,
                     rawPercentage,
                     bonusPercentage
                   });
