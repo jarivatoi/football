@@ -420,7 +420,7 @@ function App() {
 
   }, [selectedDate]);
   
-  const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string, forceFresh: boolean = false, viewDate?: string) => {
+  const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string, forceFresh: boolean = false, viewDate?: string | null) => {
     setLoading(true);
     setError(null);
 
@@ -487,6 +487,14 @@ function App() {
     const loadKey = `${dateToFetch}_${catId}_${compId}_${sourceId}`;
     if ((window as any).__loadingDate === loadKey) {
       console.log(`[LoadData] ${dateToFetch}: Already loading, skipping duplicate call`);
+      
+      // BUT if this is a user-initiated click (viewDate provided), ensure UI shows loading state
+      if (viewDate === dateToFetch) {
+        console.log(`[LoadData] ${dateToFetch}: User clicked this date, ensuring UI shows loading`);
+        // Keep current matches visible until load completes
+        // Don't clear them - the original load will update UI when done
+      }
+      
       setLoading(false);
       return;
     }
@@ -553,16 +561,18 @@ function App() {
           return a.kickoff.localeCompare(b.kickoff);
         });
         
-        // Only update UI if this is the date the user is currently viewing
-        // Use viewDate parameter if provided (avoids stale state issues), otherwise use selectedDate
-        const dateToCheck = viewDate || selectedDate;
-        if (dateToFetch === dateToCheck) {
+        // Only update UI if this is the date the user is CURRENTLY viewing
+        // Use CURRENT selectedDate state (not stale viewDate from when load started)
+        // If viewDate is null, this is background loading - never update UI
+        if (viewDate === null) {
+          console.log(`[Cache] ${dateToFetch}: Background loading - skipping UI update`);
+        } else if (dateToFetch === selectedDate) {
           setMatches(sortedMatches);
           const grouped = totelepepService.groupMatchesByDate(sortedMatches);
           setGroupedMatches(grouped);
           console.log(`[Cache] ${dateToFetch}: Displaying ${sortedMatches.length} matches from cache (expired=${expired})`);
         } else {
-          console.log(`[Cache] ${dateToFetch}: Skipping UI update (user is viewing ${dateToCheck})`);
+          console.log(`[Cache] ${dateToFetch}: Skipping UI update (user is viewing ${selectedDate})`);
         }
         
         // If cache is valid, mark as complete
@@ -750,11 +760,13 @@ function App() {
       });
       
       
-      // Only update UI if this is the date the user is currently viewing
+      // Only update UI if this is the date the user is CURRENTLY viewing
       // This prevents auto-load from overwriting the current view
-      // Use viewDate parameter if provided (avoids stale state issues), otherwise use selectedDate
-      const dateToCheck = viewDate || selectedDate;
-      if (dateToFetch === dateToCheck) {
+      // Use CURRENT selectedDate state (not stale viewDate from when load started)
+      // If viewDate is null, this is background loading - never update UI
+      if (viewDate === null) {
+        console.log(`[LoadData] ${dateToFetch}: Background loading - skipping UI update`);
+      } else if (dateToFetch === selectedDate) {
         console.log(`[LoadData] ${dateToFetch}: Setting matches to state - ${sortedMatches.length} matches`);
         setMatches(sortedMatches);
         // Group matches by date
@@ -762,7 +774,7 @@ function App() {
         setGroupedMatches(grouped);
         console.log(`[LoadData] ${dateToFetch}: UI updated with ${sortedMatches.length} matches`);
       } else {
-        console.log(`[LoadData] ${dateToFetch}: Skipping UI update (user is viewing ${dateToCheck})`);
+        console.log(`[LoadData] ${dateToFetch}: Skipping UI update (user is viewing ${selectedDate})`);
       }
       
       // After API fetch, refresh from IndexedDB if cache is now complete
@@ -961,9 +973,9 @@ function App() {
         return;
       }
       
-      // Load the next date in background
+      // Load the next date in background (never update UI - pass null as viewDate)
       loadData(nextDate, categoryId === 'all' ? undefined : categoryId, 
-               competitionId === 'all' ? undefined : competitionId, false);
+               competitionId === 'all' ? undefined : competitionId, false, null);
     } catch (error) {
       console.error('[Auto-Load] Error loading next date:', error);
     }
@@ -2162,7 +2174,7 @@ function App() {
     setShowExtractor(false);
   };
 
-  const handleDateChange = (newDate: string) => {
+  const handleDateChange = async (newDate: string) => {
 
     // Turn off All Matches when a specific date is selected
     if (showAllMatches) {
@@ -2175,6 +2187,26 @@ function App() {
     
     setSelectedDate(newDate);
     
+    // Check if this date is currently loading in background (has partial progress)
+    const currentProgress = dateProgress[newDate];
+    const isLoadingInBackground = currentProgress && currentProgress.total > 0 && !currentProgress.isComplete;
+    
+    // Check if there's partial cache available
+    const sourceId = selectedSource?.id || 'totelepep';
+    const cacheKey = `date_${newDate}_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_${sourceId}`;
+    const { getCachedMatches } = await import('./utils/matchCache');
+    const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
+    const hasPartialCache = cachedMatches && cachedMatches.length > 0;
+    
+    // If date is loading in background BUT has partial cache, DON'T force fresh - use the cache
+    // If date is loading but NO cache yet, force fresh to get data from API
+    const forceFresh = isLoadingInBackground && !hasPartialCache;
+    if (forceFresh) {
+      console.log(`[Date Change] ${newDate} is loading with no cache, forcing fresh API fetch`);
+    } else if (isLoadingInBackground && hasPartialCache) {
+      console.log(`[Date Change] ${newDate} is loading, using partial cache (${cachedMatches.length} matches)`);
+    }
+    
     // Handle "beyond" date - check if this date corresponds to Beyond entry
     const isBeyondDate = availableDatesWithCounts.find(d => 
       d.date === newDate && (d.displayName.includes('Beyond') || d.displayName.includes('>>'))
@@ -2186,11 +2218,11 @@ function App() {
       const beyondDate = newDate.split('T')[0];
       
       // Pass the date - API will use inclusive=1 to return all matches from that date onwards
-      loadData(beyondDate, selectedCategory, selectedCompetition, false, newDate);
+      loadData(beyondDate, selectedCategory, selectedCompetition, forceFresh, newDate);
     } else {
       // For regular dates, load with current filters
       
-      loadData(newDate, selectedCategory, selectedCompetition, false, newDate);
+      loadData(newDate, selectedCategory, selectedCompetition, forceFresh, newDate);
     }
   };
   
