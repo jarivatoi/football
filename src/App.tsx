@@ -478,6 +478,14 @@ function App() {
       const expired = await isCacheExpired(cacheKey);
       
       // Log cache status
+      // STEP 2: Fetch fresh data from API (in background if we have cache)
+      console.log(`[API] Fetching from Totelepep for ${dateToFetch}...`);
+      
+      // Capture source ID and filters at load START to prevent stale values during auto-merge
+      const loadSourceId = selectedSource?.id || 'totelepep';
+      const loadCategory = catId || 'all';
+      const loadCompetition = compId || 'all';
+      
       if (cachedMatches && cachedMatches.length > 0) {
         const cacheAge = metadata?.lastUpdated ? Math.round((Date.now() - metadata.lastUpdated) / 60000) : 0;
         const matchesWithMarkets = cachedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
@@ -547,6 +555,12 @@ function App() {
                 isComplete: matchesWithMarkets === cachedMatches.length
               }
             }));
+            
+            // If date is complete and loaded from cache (not background loading), trigger auto-merge
+            if (matchesWithMarkets === cachedMatches.length && cachedMatches.length > 0) {
+              console.log(`[Auto-Merge] ${dateToFetch}: Complete from cache, merging into All Matches...`);
+              mergeDateIntoAllMatches(dateToFetch!, loadSourceId, loadCategory, loadCompetition);
+            }
           } else {
             console.log(`[Cache] ${dateToFetch}: Background loading in progress, preserving current progress state`);
           }
@@ -558,11 +572,6 @@ function App() {
       
       // STEP 2: Fetch fresh data from API (in background if we have cache)
       console.log(`[API] Fetching from Totelepep for ${dateToFetch}...`);
-      
-      // Capture source ID and filters at load START to prevent stale values during auto-merge
-      const loadSourceId = selectedSource?.id || 'totelepep';
-      const loadCategory = catId || 'all';
-      const loadCompetition = compId || 'all';
       
       // Track which dates have already triggered the "background loading complete" refresh
       const completedDates = new Set<string>();
@@ -952,6 +961,10 @@ function App() {
       
       console.log(`[All Matches] Cache check: ${cachedAllMatches?.length || 0} matches, ${expired ? 'EXPIRED' : 'VALID'}`);
       
+      if (cachedAllMatches && cachedAllMatches.length > 0 && !expired) {
+        console.log(`[All Matches] Using all_matches cache with ${cachedAllMatches.length} matches`);
+      }
+      
       if (!cachedAllMatches || cachedAllMatches.length === 0 || expired) {
         console.log('[All Matches] No combined cache - checking individual date caches...');
         
@@ -1169,16 +1182,53 @@ function App() {
         console.log('[Initial Load] Cleared all IndexedDB caches');
         
         // NOW it's safe to load data
-        loadCalendarList().then(() => {
+        loadCalendarList().then(async () => {
           const firstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
-          if (firstDate) {
+          const sourceId = selectedSource?.id || 'totelepep';
+          
+          // Check if all_matches cache exists and has data
+          const allMatchesCacheKey = `all_matches_all_all_${sourceId}`;
+          const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
+          const { matches: allMatchesCache, metadata: allMatchesMetadata } = await getCachedMatches(allMatchesCacheKey);
+          const allMatchesExpired = await isCacheExpired(allMatchesCacheKey);
+          
+          if (allMatchesCache && allMatchesCache.length > 0 && !allMatchesExpired && allMatchesMetadata?.isComplete) {
+            // Load ALL MATCHES from cache on initial load
+            console.log(`[Initial Load] Found all_matches cache with ${allMatchesCache.length} matches, loading...`);
+            
+            // Don't filter past matches here - let the UI filtering handle it
+            // This ensures the count matches what's displayed
+            const sortedMatches = allMatchesCache.sort((a, b) => {
+              const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
+              if (dateComparison !== 0) return dateComparison;
+              return a.kickoff.localeCompare(b.kickoff);
+            });
+            
+            // Set selectedDate to first date to avoid "no date" issues, but showAllMatches will override display
+            if (firstDate) {
+              setSelectedDate(firstDate);
+            }
+            
+            // Set ALL MATCHES mode FIRST, then data (ensures UI refreshes properly)
+            setShowAllMatches(true);
+            setMatches(sortedMatches);
+            const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+            setGroupedMatches(grouped);
+            console.log(`[Initial Load] Loaded ${sortedMatches.length} matches from all_matches cache`);
+            
+            // Still load the first date in background to ensure it's fresh
+            if (firstDate) {
+              (totelepepExtractor as any).cache = new Map();
+              loadData(firstDate, selectedCategory, selectedCompetition, true);
+            }
+          } else if (firstDate) {
+            // Load first date as fallback
             (totelepepExtractor as any).cache = new Map();
             loadData(firstDate, selectedCategory, selectedCompetition, true);
           }
           
           // Initialize progress state for all dates
           const calendarList = (totelepepExtractor as any).calendarList || [];
-          const sourceId = selectedSource?.id || 'totelepep';
           const currentCategory = selectedCategory || 'all';
           const currentCompetition = selectedCompetition || 'all';
           
