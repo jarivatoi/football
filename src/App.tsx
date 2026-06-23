@@ -1592,11 +1592,35 @@ function App() {
           filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
             // Parse the advanced filter code to extract criteria
             const upperSearch = searchTerm.toUpperCase().trim();
-            const oddsMatch = upperSearch.match(/^(\d{2,3})/);
-            if (!oddsMatch) return true; // Can't parse, let through
             
-            let targetOdds = parseFloat(oddsMatch[1]);
-            if (targetOdds > 10) targetOdds = targetOdds / 100;
+            // Parse range for "between" mode (e.g., "150-180H1", "150-180H1H")
+            // Must be two numbers separated by dash, where second number is NOT followed by + or -
+            let targetOddsMin = 0;
+            let targetOddsMax = 0;
+            let targetOdds = 0;
+            
+            if (searchMode === 'between' && searchTerm.includes('-')) {
+              // Match range like "150-180" - extract just the first two numbers
+              // The dash must be between two numbers, not part of UO line like "+1.5" or "-1.5"
+              const rangeMatch = searchTerm.match(/^(\d{2,3})-(\d{2,3})/);
+              if (rangeMatch) {
+                targetOddsMin = parseFloat(rangeMatch[1]);
+                targetOddsMax = parseFloat(rangeMatch[2]);
+                if (targetOddsMin > 10) targetOddsMin = targetOddsMin / 100;
+                if (targetOddsMax > 10) targetOddsMax = targetOddsMax / 100;
+                targetOdds = targetOddsMin; // Use min for non-range checks
+                console.log(`[Range Parse] ${searchTerm} -> min=${targetOddsMin}, max=${targetOddsMax}`);
+              } else {
+                return true; // Can't parse range, let through
+              }
+            } else {
+              const oddsMatch = upperSearch.match(/^(\d{2,3})/);
+              if (!oddsMatch) return true; // Can't parse, let through
+              targetOdds = parseFloat(oddsMatch[1]);
+              if (targetOdds > 10) targetOdds = targetOdds / 100;
+              targetOddsMin = targetOdds;
+              targetOddsMax = targetOdds;
+            }
             
             // Extract period (H1, H2, FT, ALL)
             let targetPeriod = 'ALL';
@@ -1618,6 +1642,31 @@ function App() {
             else if (upperSearch.includes('DC')) targetMarketType = 'DC';
             else if (upperSearch.includes('AH')) targetMarketType = 'AH';
             else if (upperSearch.includes('CS')) targetMarketType = 'CS';
+            
+            // Extract UO option (O=Over, U=Under) from line prefix (+/-)
+            // Examples: 150H1UO+1.5 (Over), 150H1UO-1.5 (Under), 150H1UO1.5 (both)
+            let uoOption: 'O' | 'U' | null = null;
+            let uoLine: string | null = null;
+            if (targetMarketType === 'UO') {
+              const uoIndex = upperSearch.indexOf('UO');
+              const afterUO = upperSearch.slice(uoIndex + 2);
+              if (afterUO.startsWith('+')) {
+                uoOption = 'O';
+                // Extract line number after + (e.g., +1.5 -> "1.5")
+                const lineMatch = afterUO.match(/^\+?(\d+\.\d+)/);
+                if (lineMatch) uoLine = lineMatch[1];
+              } else if (afterUO.startsWith('-')) {
+                uoOption = 'U';
+                // Extract line number after - (e.g., -1.5 -> "1.5")
+                const lineMatch = afterUO.match(/^-?(\d+\.\d+)/);
+                if (lineMatch) uoLine = lineMatch[1];
+              } else {
+                // No +/- prefix, check if there's a line number
+                const lineMatch = afterUO.match(/^(\d+\.\d+)/);
+                if (lineMatch) uoLine = lineMatch[1];
+                // If no +/- prefix, uoOption remains null (match both)
+              }
+            }
             
             // Extract BTTS option (Y=Yes, N=No) from the END of the search term
             // Examples: 190ALLbttsy, 190ALLbttsn
@@ -1650,23 +1699,27 @@ function App() {
                 if (positionFilter === 'home') {
                   return searchMode === 'eq' ? Math.abs(homeOdds - targetOdds) < 0.001 :
                          searchMode === 'gte' ? homeOdds >= targetOdds :
-                         searchMode === 'lte' ? homeOdds <= targetOdds : false;
+                         searchMode === 'lte' ? homeOdds <= targetOdds :
+                         searchMode === 'between' ? (homeOdds >= targetOddsMin && homeOdds <= targetOddsMax) : false;
                 }
                 if (positionFilter === 'draw') {
                   return searchMode === 'eq' ? Math.abs(drawOdds - targetOdds) < 0.001 :
                          searchMode === 'gte' ? drawOdds >= targetOdds :
-                         searchMode === 'lte' ? drawOdds <= targetOdds : false;
+                         searchMode === 'lte' ? drawOdds <= targetOdds :
+                         searchMode === 'between' ? (drawOdds >= targetOddsMin && drawOdds <= targetOddsMax) : false;
                 }
                 if (positionFilter === 'away') {
                   return searchMode === 'eq' ? Math.abs(awayOdds - targetOdds) < 0.001 :
                          searchMode === 'gte' ? awayOdds >= targetOdds :
-                         searchMode === 'lte' ? awayOdds <= targetOdds : false;
+                         searchMode === 'lte' ? awayOdds <= targetOdds :
+                         searchMode === 'between' ? (awayOdds >= targetOddsMin && awayOdds <= targetOddsMax) : false;
                 }
                 // No position filter - match any
                 const odds = [homeOdds, drawOdds, awayOdds];
                 return searchMode === 'eq' ? odds.some(o => Math.abs(o - targetOdds) < 0.001) :
                        searchMode === 'gte' ? odds.some(o => o >= targetOdds) :
-                       searchMode === 'lte' ? odds.some(o => o <= targetOdds) : false;
+                       searchMode === 'lte' ? odds.some(o => o <= targetOdds) :
+                       searchMode === 'between' ? odds.some(o => o >= targetOddsMin && o <= targetOddsMax) : false;
               }
               
               // For H1/H2 periods: Must have markets loaded
@@ -1730,7 +1783,8 @@ function App() {
                   // Check odds
                   return searchMode === 'eq' ? Math.abs(selOdds - targetOdds) < 0.001 :
                          searchMode === 'gte' ? selOdds >= targetOdds :
-                         searchMode === 'lte' ? selOdds <= targetOdds : false;
+                         searchMode === 'lte' ? selOdds <= targetOdds :
+                         searchMode === 'between' ? (selOdds >= targetOddsMin && selOdds <= targetOddsMax) : false;
                 });
               });
             }
@@ -1754,6 +1808,17 @@ function App() {
               const marketName = (market.name || '').toUpperCase();
               if (targetMarketType === 'BTTS' && !marketName.includes('BTTS') && !marketName.includes('BOTH')) return false;
               if (targetMarketType === 'UO' && !marketName.includes('OVER') && !marketName.includes('UNDER')) return false;
+              
+              // Check UO line if specified (e.g., +1.5, -2.5)
+              if (targetMarketType === 'UO' && uoLine) {
+                const marketLine = market.marketLine || market.name.match(/([+-]?\d+\.\d+)/)?.[1];
+                if (!marketLine) return false;
+                // Compare lines (remove +/- prefix for comparison)
+                const cleanMarketLine = marketLine.replace(/[+-]/, '');
+                const cleanParsedLine = uoLine.replace(/[+-]/, '');
+                if (cleanMarketLine !== cleanParsedLine) return false;
+              }
+              
               if (targetMarketType === 'DC' && !marketName.includes('DOUBLE')) return false;
               if (targetMarketType === 'AH' && !marketName.includes('ASIAN')) return false;
               if (targetMarketType === 'CS' && !marketName.includes('CORRECT')) return false;
@@ -1765,6 +1830,13 @@ function App() {
                 const selOdds = parseFloat(String(sel.odds));
                 if (isNaN(selOdds)) return false;
                 
+                // Check UO option (O=Over, U=Under)
+                if (uoOption) {
+                  const selName = (sel.name || '').toUpperCase();
+                  if (uoOption === 'O' && !selName.includes('OVER')) return false;
+                  if (uoOption === 'U' && !selName.includes('UNDER')) return false;
+                }
+                
                 // Check BTTS option (Y=Yes, N=No)
                 if (bttsOption) {
                   const selName = (sel.name || '').toUpperCase();
@@ -1774,7 +1846,8 @@ function App() {
                 
                 return searchMode === 'eq' ? Math.abs(selOdds - targetOdds) < 0.001 :
                        searchMode === 'gte' ? selOdds >= targetOdds :
-                       searchMode === 'lte' ? selOdds <= targetOdds : false;
+                       searchMode === 'lte' ? selOdds <= targetOdds :
+                       searchMode === 'between' ? (selOdds >= targetOddsMin && selOdds <= targetOddsMax) : false;
               });
             });
           });

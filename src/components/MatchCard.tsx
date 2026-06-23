@@ -355,6 +355,10 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
         hasAutoExpandedRef.current = false;
         return;
       }
+      
+      // Reset auto-expand flag when search term changes to allow re-expansion
+      hasAutoExpandedRef.current = false;
+      
       // Try to parse as advanced filter code
       let parsed;
       try {
@@ -667,7 +671,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   };
 
   // Check if an odds value matches the current search filter
-  const oddsMatchFilter = (odds: number | string, position?: 'home' | 'draw' | 'away', period?: string): boolean => {
+  const oddsMatchFilter = (odds: number | string, position?: 'home' | 'draw' | 'away', period?: string, selectionName?: string): boolean => {
     // Only process when there's a search term and we're NOT in matches mode
     if (!searchTerm || searchMode === 'matches') return false;
     
@@ -729,6 +733,16 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       if (parsed.option === 'A' && position !== 'away') {
         return false;
       }
+    }
+    
+    // Check UO option match (O = Over, U = Under)
+    if (parsed.option === 'O' || parsed.option === 'U') {
+      if (selectionName) {
+        const selName = selectionName.toLowerCase();
+        if (parsed.option === 'O' && !selName.includes('over')) return false;
+        if (parsed.option === 'U' && !selName.includes('under')) return false;
+      }
+      // If no selectionName provided, can't verify - return true
     }
     
     return true;
@@ -994,7 +1008,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                                   if (searchTerm && /\d{2,3}(H1|H2|2H|FT)/.test(searchTerm.toUpperCase())) {
                                     const selIndex = market.selections.findIndex((s: any) => s === selection);
                                   }
-                                  const matches = oddsMatchFilter(selection.odds, pos, market.periodCode);
+                                  const matches = oddsMatchFilter(selection.odds, pos, market.periodCode, selection.name);
                                   return matches ? 'bg-orange-500 text-white' : 'bg-gray-100 hover:bg-gray-200';
                                 })()
                           }`}
@@ -1005,7 +1019,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                               selection.name === 'X' || selection.name === 'Draw' || selection.name === 'X (Draw)' ? 'draw' :
                               selection.name === '2' || selection.name === 'Away' || selection.name === '2 (Away)' || selection.name === match.awayTeam ? 'away' :
                               undefined,
-                              market.periodCode
+                              market.periodCode,
+                              selection.name
                             ) ? 'text-white' : 'text-gray-600'}`}>{selection.name}</div>
                           <div className="font-bold">{formatOdds(selection.odds)}</div>
                         </button>
