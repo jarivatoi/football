@@ -418,6 +418,40 @@ function App() {
 
   }, [selectedDate]);
   
+  // Always refresh calendar when app becomes visible to get updated "today" date
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[App Visible] App returned to foreground, refreshing calendar...');
+        
+        // Always reload calendar to ensure we have the latest "today" date from API
+        await loadCalendarList(selectedCategory, selectedCompetition);
+        
+        // Check if the first date changed (meaning real-world date changed)
+        const newFirstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
+        if (newFirstDate && newFirstDate !== (window as any).__lastCalendarFirstDate) {
+          console.log(`[Date Changed] Calendar first date: ${(window as any).__lastCalendarFirstDate} -> ${newFirstDate}`);
+          console.log('[Date Changed] Clearing auto-load flags to restart sequential loading from new today...');
+          
+          // Clear auto-load flags to allow fresh sequential loading
+          (window as any).__autoLoadCompleted = null;
+          
+          // Update the stored first date
+          (window as any).__lastCalendarFirstDate = newFirstDate;
+        }
+      }
+    };
+    
+    // Store initial first date
+    (window as any).__lastCalendarFirstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [selectedCategory, selectedCompetition]);
+  
   const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string, forceFresh: boolean = false) => {
     setLoading(true);
     setError(null);
