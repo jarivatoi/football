@@ -1619,6 +1619,15 @@ function App() {
             else if (upperSearch.includes('AH')) targetMarketType = 'AH';
             else if (upperSearch.includes('CS')) targetMarketType = 'CS';
             
+            // Extract BTTS option (Y=Yes, N=No) from the END of the search term
+            // Examples: 190ALLbttsy, 190ALLbttsn
+            let bttsOption: 'Y' | 'N' | null = null;
+            if (targetMarketType === 'BTTS') {
+              const lastChars = upperSearch.slice(-1);
+              if (lastChars === 'Y') bttsOption = 'Y';
+              else if (lastChars === 'N') bttsOption = 'N';
+            }
+            
             // KEY RULE: If position filter is set but no market type specified, use 1X2 market
             // This handles: 150FTA, 150H1H, 150H2D, 150ALLA, etc.
             if (positionFilter && !targetMarketType) {
@@ -1755,6 +1764,13 @@ function App() {
               return market.selections.some(sel => {
                 const selOdds = parseFloat(String(sel.odds));
                 if (isNaN(selOdds)) return false;
+                
+                // Check BTTS option (Y=Yes, N=No)
+                if (bttsOption) {
+                  const selName = (sel.name || '').toUpperCase();
+                  if (bttsOption === 'Y' && !selName.includes('YES') && selName !== 'Y') return false;
+                  if (bttsOption === 'N' && !selName.includes('NO') && selName !== 'N') return false;
+                }
                 
                 return searchMode === 'eq' ? Math.abs(selOdds - targetOdds) < 0.001 :
                        searchMode === 'gte' ? selOdds >= targetOdds :
