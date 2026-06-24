@@ -20,6 +20,8 @@ interface DateSelectorProps {
   };
   onClearCache?: (date: string) => void; // Long-press callback for date
   onClearAllCache?: () => void; // Long-press callback for All Matches
+  filteredMatchCount?: number; // Filtered match count for display (e.g., 16/160)
+  totalAllMatchesCount?: number; // Total matches across all dates (for filtered count denominator)
 }
 
 const DateSelector: React.FC<DateSelectorProps> = ({ 
@@ -32,7 +34,9 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   dateProgress = {},
   allMatchesProgress,
   onClearCache,
-  onClearAllCache
+  onClearAllCache,
+  filteredMatchCount,
+  totalAllMatchesCount
 }) => {
   // Long-press state
   const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null);
@@ -190,17 +194,22 @@ const DateSelector: React.FC<DateSelectorProps> = ({
               }`}>
                 All Matches
               </div>
-              {/* Always show count, regardless of whether ALL MATCHES is active */}
-              {allMatchesProgress && (
+              {/* Show filtered count when filter is active, otherwise show progress */}
+              {filteredMatchCount !== undefined ? (
+                <div className={`text-[10px] ${
+                  showAllMatches ? 'text-blue-100' : 'text-gray-600'
+                }`}>
+                  ({filteredMatchCount}/{totalAllMatchesCount || totalMatches})
+                </div>
+              ) : allMatchesProgress ? (
                 <div className={`text-[10px] ${
                   showAllMatches ? (allMatchesProgress.isComplete ? 'text-green-100' : 'text-blue-100') : 'text-gray-600'
                 }`}>
                   ({allMatchesProgress.loaded}/{allMatchesProgress.total > 0 ? allMatchesProgress.total : '?'})
                 </div>
-              )}
-              {!allMatchesProgress && showAllMatches && (
+              ) : !allMatchesProgress && showAllMatches && (
                 <div className="text-[10px] text-blue-100">
-                  (?/?)
+                  (?/?) 
                 </div>
               )}
             </div>

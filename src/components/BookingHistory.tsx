@@ -348,45 +348,72 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
             
             {/* Action Buttons */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
-              {selectedBooking.apiSource === currentSourceId ? (
-                // Show both buttons when sources match
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      if (onRepeatBet) {
-                        onRepeatBet(selectedBooking);
+              {(() => {
+                // Check if at least one match hasn't kicked off yet
+                const now = new Date();
+                const hasUpcomingMatches = selectedBooking.selections.some((selection: any) => {
+                  if (!selection.kickoff) return true; // No kickoff time, assume upcoming
+                  
+                  let kickoffTime: Date;
+                  if (selection.kickoff.includes('T')) {
+                    kickoffTime = new Date(selection.kickoff);
+                  } else {
+                    // Assume format "HH:MM" with match date
+                    const matchDate = selection.matchDate || selectedBooking.selections[0]?.matchDate;
+                    if (matchDate) {
+                      // Parse date like "Sun 14 Jun 2026" or use kickoff format
+                      kickoffTime = new Date(`${matchDate}T${selection.kickoff}`);
+                    } else {
+                      // Try to parse kickoff directly
+                      kickoffTime = new Date(selection.kickoff);
+                    }
+                  }
+                  
+                  return kickoffTime > now;
+                });
+                
+                const canRepeatBet = selectedBooking.apiSource === currentSourceId && hasUpcomingMatches;
+                
+                return canRepeatBet ? (
+                  // Show both buttons when sources match AND there are upcoming matches
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        if (onRepeatBet) {
+                          onRepeatBet(selectedBooking);
+                          setSelectedBooking(null);
+                        }
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                    >
+                      <Repeat className="w-5 h-5" />
+                      Repeat Bet
+                    </button>
+                    <button
+                      onClick={() => {
+                        deleteBooking(selectedBooking.id);
                         setSelectedBooking(null);
-                      }
-                    }}
-                    className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-                  >
-                    <Repeat className="w-5 h-5" />
-                    Repeat Bet
-                  </button>
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                      Delete Booking
+                    </button>
+                  </div>
+                ) : (
+                  // Show only Delete button (full width) when sources don't match OR no upcoming matches
                   <button
                     onClick={() => {
                       deleteBooking(selectedBooking.id);
                       setSelectedBooking(null);
                     }}
-                    className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                    className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-5 h-5" />
                     Delete Booking
                   </button>
-                </div>
-              ) : (
-                // Show only Delete button (full width) when sources don't match
-                <button
-                  onClick={() => {
-                    deleteBooking(selectedBooking.id);
-                    setSelectedBooking(null);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-5 h-5" />
-                  Delete Booking
-                </button>
-              )}
+                );
+              })()}
             </div>
           </div>
         </div>

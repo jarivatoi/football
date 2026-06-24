@@ -838,7 +838,7 @@ function App() {
       
       // If API returns 0 matches, mark date as complete immediately (nothing to load)
       if (fetchedMatches.length === 0 && dateToFetch) {
-        console.warn(`[API] ${dateToFetch}: WARNING - API returned 0 matches! Marking as complete.`);
+        console.warn(`[API] ${dateToFetch}: WARNING - API returned 0 matches! Marking as complete and auto-loading next date.`);
         // Use state updater to avoid overwriting other dates' progress
         setDateProgress(prev => ({
           ...prev,
@@ -848,6 +848,10 @@ function App() {
             isComplete: true  // No matches = complete, don't block ALL MATCHES
           }
         }));
+        
+        // Trigger auto-load for next date (since this date is complete with 0 matches)
+        const sourceId = (totelepepExtractor as any).currentSourceId || selectedSource?.id || 'totelepep';
+        await autoLoadNextDate(dateToFetch, sourceId, catId || 'all', compId || 'all');
         
         // If API returns 0 but we have partial cache, use the cache instead
         if (cachedMatches && cachedMatches.length > 0) {
@@ -1577,11 +1581,18 @@ function App() {
       } else {
         // Quick 1X2 odds filtering (e.g., 130H, 150D, 200A, 110-125H)
         // OR advanced filter (e.g., 130ALL, 150H1BTTS)
-        let targetOdds = parseFloat(searchTerm);
+        
+        // Strip operator prefix (=, >, <) before parsing
+        let cleanSearchTerm = searchTerm;
+        if (cleanSearchTerm.startsWith('=') || cleanSearchTerm.startsWith('>') || cleanSearchTerm.startsWith('<')) {
+          cleanSearchTerm = cleanSearchTerm.substring(1);
+        }
+        
+        let targetOdds = parseFloat(cleanSearchTerm);
         let positionFilter: 'home' | 'draw' | 'away' | null = null;
         
         // Check for position suffix (H=Home, D=Draw, A=Away)
-        const upperSearch = searchTerm.toUpperCase().trim();
+        const upperSearch = cleanSearchTerm.toUpperCase().trim();
         
         // Detect if this is an advanced filter (has period code like ALL, H1, H2, FT)
         const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
@@ -1796,9 +1807,14 @@ function App() {
               targetMarketType = '1X2';
             }
             
-            // If no market type at all (no position, no specific market), let through
+            // If no market type at all (no position, no specific market), default to 1X2 for FT/ALL periods
             if (!targetMarketType) {
-              return true;
+              // For FT or ALL period, apply 1X2 filtering by default
+              if (targetPeriod === 'FT' || targetPeriod === 'ALL') {
+                targetMarketType = '1X2';
+              } else {
+                return true; // Can't filter other periods without market type
+              }
             }
             
             // 1X2 MARKET LOGIC: Use appropriate odds source based on period
@@ -2059,6 +2075,91 @@ function App() {
   }, [matches, groupedMatches, filteredGroupedMatches, showAllMatches]);
     
     const totalMatches = matches.length;
+  
+  // Calculate total filtered matches across ALL dates (not just currently viewed date)
+  const totalFilteredMatchesAllDates = React.useMemo(() => {
+    // If no filter active, return undefined (don't show filtered count)
+    if (searchMode === 'matches' && !searchTerm) return undefined;
+    
+    // Temporarily filter ALL groupedMatches (not just current date)
+    let count = 0;
+    Object.entries(groupedMatches).forEach(([date, dateMatches]) => {
+      let filteredDateMatches: TotelepepMatch[] = dateMatches as TotelepepMatch[];
+      
+      // Apply the same filter logic as filteredGroupedMatches
+      if (searchMode !== 'matches' && searchTerm) {
+        let cleanSearchTerm = searchTerm;
+        if (cleanSearchTerm.startsWith('=') || cleanSearchTerm.startsWith('>') || cleanSearchTerm.startsWith('<')) {
+          cleanSearchTerm = cleanSearchTerm.substring(1);
+        }
+        
+        let targetOdds = parseFloat(cleanSearchTerm);
+        let positionFilter: 'home' | 'draw' | 'away' | null = null;
+        const upperSearch = cleanSearchTerm.toUpperCase().trim();
+        const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
+        
+        if (upperSearch.endsWith('H') && !hasAdvancedFilter) {
+          positionFilter = 'home';
+          targetOdds = parseFloat(upperSearch.slice(0, -1));
+        } else if (upperSearch.endsWith('D') && !hasAdvancedFilter) {
+          positionFilter = 'draw';
+          targetOdds = parseFloat(upperSearch.slice(0, -1));
+        } else if (upperSearch.endsWith('A') && !hasAdvancedFilter) {
+          positionFilter = 'away';
+          targetOdds = parseFloat(upperSearch.slice(0, -1));
+        }
+        
+        if (!isNaN(targetOdds) && targetOdds > 10) {
+          targetOdds = targetOdds / 100;
+        }
+        
+        filteredDateMatches = dateMatches.filter(match => {
+          if (match.isOutright && !hasAdvancedFilter) return false;
+          
+          const homeOdds = parseFloat(String(match.homeOdds));
+          const drawOdds = parseFloat(String(match.drawOdds));
+          const awayOdds = parseFloat(String(match.awayOdds));
+          
+          if (isNaN(homeOdds) && isNaN(drawOdds) && isNaN(awayOdds)) {
+            return match.isOutright && hasAdvancedFilter;
+          }
+          
+          if (positionFilter) {
+            if (searchMode === 'eq') {
+              if (positionFilter === 'home') return Math.abs(homeOdds - targetOdds) < 0.001;
+              if (positionFilter === 'draw') return Math.abs(drawOdds - targetOdds) < 0.001;
+              if (positionFilter === 'away') return Math.abs(awayOdds - targetOdds) < 0.001;
+            } else if (searchMode === 'gte') {
+              if (positionFilter === 'home') return homeOdds >= targetOdds;
+              if (positionFilter === 'draw') return drawOdds >= targetOdds;
+              if (positionFilter === 'away') return awayOdds >= targetOdds;
+            } else if (searchMode === 'lte') {
+              if (positionFilter === 'home') return homeOdds <= targetOdds;
+              if (positionFilter === 'draw') return drawOdds <= targetOdds;
+              if (positionFilter === 'away') return awayOdds <= targetOdds;
+            }
+          } else {
+            if (searchMode === 'eq') {
+              return Math.abs(homeOdds - targetOdds) < 0.001 || 
+                     Math.abs(drawOdds - targetOdds) < 0.001 || 
+                     Math.abs(awayOdds - targetOdds) < 0.001;
+            } else if (searchMode === 'gte') {
+              return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
+            } else if (searchMode === 'lte') {
+              return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
+            }
+          }
+          return false;
+        });
+      }
+      
+      count += filteredDateMatches.length;
+    });
+    
+    return count;
+  }, [groupedMatches, searchMode, searchTerm]);
+  
+  // Keep old totalFilteredMatches for backward compatibility (current view only)
   const totalFilteredMatches = Object.values(filteredGroupedMatches)
     .reduce((sum, dateMatches) => sum + (dateMatches as TotelepepMatch[]).length, 0);
   
@@ -2847,6 +2948,8 @@ function App() {
           allMatchesProgress={allMatchesProgress || undefined}
           onClearCache={handleClearCache}
           onClearAllCache={handleClearAllCache}
+          filteredMatchCount={searchMode !== 'matches' && searchTerm ? (showAllMatches ? totalFilteredMatches : (totalFilteredMatchesAllDates || 0)) : undefined}
+          totalAllMatchesCount={Object.values(groupedMatches).flat().length}
         />
         
         {/* Search Bar */}
