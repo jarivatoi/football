@@ -247,18 +247,127 @@ function App() {
     
     setShowParlayBuilder(false);
     
-    // Reload calendar without any filters
-    
-    await loadCalendarList('', '');
-    
-    // Try to restore progress from IndexedDB cache for the new source
+    // Try to restore progress from IndexedDB cache for the new source BEFORE loading calendar
+    // This prevents loadCalendarList from overwriting existing caches
+    let restoredFromCache = false;
     try {
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
       
-      // First, try to restore individual date progress (for date-by-date loading)
+      // Check if selected date has valid cache with markets loaded
+      if (selectedDate) {
+        const selectedDateCacheKey = `date_${selectedDate}_all_all_${newSourceId}`;
+        console.log(`[Source Change] Checking cache for ${selectedDate}: key=${selectedDateCacheKey}`);
+        
+        const { matches: selectedDateMatches, metadata: selectedDateMetadata } = await getCachedMatches(selectedDateCacheKey);
+        const selectedDateExpired = await isCacheExpired(selectedDateCacheKey);
+        
+        // Only restore if cache has markets loaded (not just match list)
+        const matchesWithMarkets = selectedDateMatches?.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length || 0;
+        const hasMarketsLoaded = matchesWithMarkets > 0;
+        
+        console.log(`[Source Change] Cache status for ${selectedDate}:`, {
+          hasMatches: !!selectedDateMatches,
+          matchCount: selectedDateMatches?.length || 0,
+          matchesWithMarkets,
+          isComplete: selectedDateMetadata?.isComplete,
+          isExpired: selectedDateExpired,
+          hasMarketsLoaded
+        });
+        
+        // Restore if cache has ANY progress (markets loaded) and is not expired
+        const shouldRestore = selectedDateMatches && 
+                              selectedDateMatches.length > 0 && 
+                              !selectedDateExpired &&
+                              hasMarketsLoaded;
+        
+        if (shouldRestore) {
+          console.log(`[Source Change] Selected date ${selectedDate} has valid cache (${matchesWithMarkets}/${selectedDateMatches.length} with markets), restoring without API fetch...`);
+          
+          const sortedMatches = selectedDateMatches.sort((a, b) => {
+            const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
+            if (dateComparison !== 0) return dateComparison;
+            return a.kickoff.localeCompare(b.kickoff);
+          });
+          
+          setMatches(sortedMatches);
+          const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+          setGroupedMatches(grouped);
+          
+          // Update progress for this date
+          const progress: Record<string, { loaded: number; total: number; isComplete: boolean }> = {};
+          progress[selectedDate] = {
+            loaded: matchesWithMarkets,
+            total: sortedMatches.length,
+            isComplete: matchesWithMarkets === sortedMatches.length
+          };
+          setDateProgress(progress);
+          
+          setLastUpdated(new Date());
+          setLoading(false);
+          
+          console.log(`[Source Change] Restored ${selectedDate} progress: ${matchesWithMarkets}/${sortedMatches.length} markets loaded`);
+          restoredFromCache = true;
+          
+          // Still need to load calendar for date buttons, but AFTER restoring
+          await loadCalendarList('', '');
+          return;
+        }
+      }
+      
+      // Also check ALL MATCHES cache
+      if (!restoredFromCache) {
+        const allMatchesCacheKey = `all_matches_all_all_${newSourceId}`;
+        const { matches: allMatchesCache, metadata: allMatchesMetadata } = await getCachedMatches(allMatchesCacheKey);
+        const allMatchesExpired = await isCacheExpired(allMatchesCacheKey);
+        
+        if (allMatchesCache && allMatchesCache.length > 0 && !allMatchesExpired && allMatchesMetadata?.isComplete) {
+          const matchesWithMarkets = allMatchesCache.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
+          if (matchesWithMarkets > 0) {
+            console.log(`[Source Change] Found valid all_matches cache for ${newSourceId} with ${allMatchesCache.length} matches (${matchesWithMarkets} with markets), restoring...`);
+            
+            const sortedMatches = allMatchesCache.sort((a, b) => {
+              const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
+              if (dateComparison !== 0) return dateComparison;
+              return a.kickoff.localeCompare(b.kickoff);
+            });
+            
+            setMatches(sortedMatches);
+            const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+            setGroupedMatches(grouped);
+            
+            const progress: Record<string, { loaded: number; total: number; isComplete: boolean }> = {};
+            progress['all'] = {
+              loaded: matchesWithMarkets,
+              total: sortedMatches.length,
+              isComplete: matchesWithMarkets === sortedMatches.length
+            };
+            setDateProgress(progress);
+            
+            setShowAllMatches(true);
+            setLastUpdated(new Date());
+            setLoading(false);
+            
+            console.log(`[Source Change] Restored ALL MATCHES progress: ${matchesWithMarkets}/${sortedMatches.length} markets loaded`);
+            restoredFromCache = true;
+            
+            await loadCalendarList('', '');
+            return;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[Source Change] Error restoring cache:', error);
+    }
+    
+    // If no cache found, reload calendar and data
+    console.log('[Source Change] No valid cache found, reloading calendar and data');
+    await loadCalendarList('', '');
+    
+    // Try to restore individual date progress (for date-by-date loading)
+    try {
+      const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
       const progress: Record<string, { loaded: number; total: number; isComplete: boolean }> = {};
       
-      // Check each date in the calendar for cached progress
       const calendarList = (totelepepExtractor as any).calendarList || [];
       for (const dateEntry of calendarList) {
         const date = dateEntry.entryDate;
@@ -277,91 +386,12 @@ function App() {
         }
       }
       
-      // If we found any date progress, restore it
       if (Object.keys(progress).length > 0) {
         setDateProgress(progress);
         console.log(`[Source Change] Restored progress for ${Object.keys(progress).length} dates`);
       }
-      
-      // Also check if there's a valid all_matches cache (for ALL MATCHES view)
-      const allMatchesCacheKey = `all_matches_all_all_${newSourceId}`;
-      const { matches: allMatchesCache, metadata: allMatchesMetadata } = await getCachedMatches(allMatchesCacheKey);
-      const allMatchesExpired = await isCacheExpired(allMatchesCacheKey);
-      
-      if (allMatchesCache && allMatchesCache.length > 0 && !allMatchesExpired && allMatchesMetadata?.isComplete) {
-        console.log(`[Source Change] Found valid all_matches cache for ${newSourceId} with ${allMatchesCache.length} matches, restoring...`);
-        
-        // Restore from cache
-        const sortedMatches = allMatchesCache.sort((a, b) => {
-          const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
-          if (dateComparison !== 0) return dateComparison;
-          return a.kickoff.localeCompare(b.kickoff);
-        });
-        
-        setMatches(sortedMatches);
-        const grouped = totelepepService.groupMatchesByDate(sortedMatches);
-        setGroupedMatches(grouped);
-        
-        // Update progress for 'all' key
-        const matchesWithMarkets = sortedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
-        progress['all'] = {
-          loaded: matchesWithMarkets,
-          total: sortedMatches.length,
-          isComplete: matchesWithMarkets === sortedMatches.length
-        };
-        setDateProgress(progress);
-        
-        setShowAllMatches(true);
-        setLastUpdated(new Date());
-        setLoading(false);
-        
-        console.log(`[Source Change] Restored ALL MATCHES progress: ${matchesWithMarkets}/${sortedMatches.length} markets loaded`);
-        return;
-      }
-      
-      // Check if selected date has valid cache (don't force reload if cache is valid)
-      if (selectedDate) {
-        const selectedDateCacheKey = `date_${selectedDate}_all_all_${newSourceId}`;
-        const { matches: selectedDateMatches, metadata: selectedDateMetadata } = await getCachedMatches(selectedDateCacheKey);
-        const selectedDateExpired = await isCacheExpired(selectedDateCacheKey);
-        
-        const isSelectedDateComplete = selectedDateMatches && 
-                                       selectedDateMatches.length > 0 && 
-                                       selectedDateMetadata?.isComplete && 
-                                       !selectedDateExpired &&
-                                       selectedDateMatches.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
-        
-        if (isSelectedDateComplete) {
-          console.log(`[Source Change] Selected date ${selectedDate} has valid cache, restoring without API fetch...`);
-          
-          const sortedMatches = selectedDateMatches.sort((a, b) => {
-            const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
-            if (dateComparison !== 0) return dateComparison;
-            return a.kickoff.localeCompare(b.kickoff);
-          });
-          
-          setMatches(sortedMatches);
-          const grouped = totelepepService.groupMatchesByDate(sortedMatches);
-          setGroupedMatches(grouped);
-          
-          // Update progress for this date
-          const matchesWithMarkets = sortedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
-          progress[selectedDate] = {
-            loaded: matchesWithMarkets,
-            total: sortedMatches.length,
-            isComplete: matchesWithMarkets === sortedMatches.length
-          };
-          setDateProgress(progress);
-          
-          setLastUpdated(new Date());
-          setLoading(false);
-          
-          console.log(`[Source Change] Restored ${selectedDate} progress: ${matchesWithMarkets}/${sortedMatches.length} markets loaded`);
-          return;
-        }
-      }
     } catch (error) {
-      console.error('[Source Change] Error restoring cache:', error);
+      console.error('[Source Change] Error restoring progress:', error);
     }
     
     // If no cache found or error, reload data with new source
