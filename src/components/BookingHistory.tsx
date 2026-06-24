@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Trash2, History, X } from 'lucide-react';
+import { Trash2, History, X, Repeat } from 'lucide-react';
 import { SavedBooking, getAllBookingsFromDB, deleteBookingFromDB, clearAllBookingsFromDB } from '../utils/bookingStorage';
 import { createPortal } from 'react-dom';
 
@@ -17,9 +17,10 @@ interface BookingHistoryProps {
   showHistory: boolean;
   onClose: () => void;
   onBookingsCountChange: (count: number) => void;
+  onRepeatBet?: (booking: SavedBooking) => void;  // Callback to repeat bet
 }
 
-const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, onBookingsCountChange }) => {
+const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, onBookingsCountChange, onRepeatBet }) => {
   const [savedBookings, setSavedBookings] = useState<SavedBooking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<SavedBooking | null>(null);
 
@@ -344,18 +345,32 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
               </div>
             </div>
             
-            {/* Delete Button */}
+            {/* Action Buttons */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
-              <button
-                onClick={() => {
-                  deleteBooking(selectedBooking.id);
-                  setSelectedBooking(null);
-                }}
-                className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-              >
-                <Trash2 className="w-5 h-5" />
-                Delete Booking
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (onRepeatBet) {
+                      onRepeatBet(selectedBooking);
+                      setSelectedBooking(null);
+                    }
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                >
+                  <Repeat className="w-5 h-5" />
+                  Repeat Bet
+                </button>
+                <button
+                  onClick={() => {
+                    deleteBooking(selectedBooking.id);
+                    setSelectedBooking(null);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  Delete Booking
+                </button>
+              </div>
             </div>
           </div>
         </div>

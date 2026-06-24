@@ -204,30 +204,14 @@ function App() {
     // Cancel ALL background loading tasks from previous source
     totelepepExtractor.cancelAllBackgroundLoading();
     
-    // Clear in-memory cache
+    // Clear in-memory cache ONLY (keep IndexedDB caches for each source)
+    // This allows resuming progress when switching back to a source within TTL
     totelepepExtractor.clearCache();
     
-    // Clear ALL IndexedDB caches (old source data)
-    try {
-      const { clearCacheMatches, cleanupStaleDateCaches } = await import('./utils/matchCache');
-      // Use the NEW source ID since we're switching TO this source
-      const newSourceId = source.id;
-      
-      // Clear all date caches for NEW source (in case it has stale data)
-      const datesToClear = availableDates.length > 0 ? availableDates : [];
-      for (const date of datesToClear) {
-        const cacheKey = `date_${date}_all_all_${newSourceId}`;
-        await clearCacheMatches(cacheKey);
-      }
-      
-      // Clear All Matches cache for NEW source
-      const allMatchesCacheKey = `all_matches_all_all_${newSourceId}`;
-      await clearCacheMatches(allMatchesCacheKey);
-      
-      console.log(`[Source Change] Cleared all IndexedDB caches for source: ${newSourceId}`);
-    } catch (error) {
-      console.error('[Source Change] Error clearing IndexedDB:', error);
-    }
+    // DON'T clear IndexedDB caches - they're source-specific and expire naturally
+    // Cache keys include source ID: date_2026-06-18_all_all_totelepep
+    // Each has 30-minute TTL, so expired caches are ignored automatically
+    console.log(`[Source Change] Keeping IndexedDB caches for source: ${source.id} (expires after 30min)`);
     
     // Set loading state FIRST (prevents "No matches" flash)
     setLoading(true);
@@ -236,7 +220,7 @@ function App() {
     setMatches([]);
     setGroupedMatches({});
     
-    // Reset progress state
+    // Reset progress state (will be restored from cache if available)
     setDateProgress({});
     
     // Reset both category and competition filters when switching sources
@@ -246,16 +230,71 @@ function App() {
     setSelectedCompetition('');
     
     // Clear parlay selections since odds are source-specific
+    // But first, try to load betslip for the new source
+    const newSourceId = source.id;
+    loadBetslip(newSourceId).then(savedSelections => {
+      if (savedSelections && savedSelections.length > 0) {
+        console.log(`[Source Change] Restored ${savedSelections.length} betslip selections for ${newSourceId}`);
+        setParlaySelections(savedSelections);
+      } else {
+        setParlaySelections([]);
+      }
+    }).catch(() => {
+      setParlaySelections([]);
+    });
     
-    setParlaySelections([]);
     setShowParlayBuilder(false);
     
     // Reload calendar without any filters
     
     await loadCalendarList('', '');
     
-    // Reload data with new source (no filters)
-    console.log('[Source Change] Reloading data:', {
+    // Try to restore progress from IndexedDB cache for the new source
+    try {
+      const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
+      
+      // Check if there's a valid all_matches cache for this source
+      const allMatchesCacheKey = `all_matches_all_all_${newSourceId}`;
+      const { matches: allMatchesCache, metadata: allMatchesMetadata } = await getCachedMatches(allMatchesCacheKey);
+      const allMatchesExpired = await isCacheExpired(allMatchesCacheKey);
+      
+      if (allMatchesCache && allMatchesCache.length > 0 && !allMatchesExpired && allMatchesMetadata?.isComplete) {
+        console.log(`[Source Change] Found valid all_matches cache for ${newSourceId} with ${allMatchesCache.length} matches, restoring...`);
+        
+        // Restore from cache
+        const sortedMatches = allMatchesCache.sort((a, b) => {
+          const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
+          if (dateComparison !== 0) return dateComparison;
+          return a.kickoff.localeCompare(b.kickoff);
+        });
+        
+        setMatches(sortedMatches);
+        const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+        setGroupedMatches(grouped);
+        
+        // Restore progress state
+        const progress: Record<string, { loaded: number; total: number; isComplete: boolean }> = {};
+        const matchesWithMarkets = sortedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
+        progress['all'] = {
+          loaded: matchesWithMarkets,
+          total: sortedMatches.length,
+          isComplete: matchesWithMarkets === sortedMatches.length
+        };
+        setDateProgress(progress);
+        
+        setShowAllMatches(true);
+        setLastUpdated(new Date());
+        setLoading(false);
+        
+        console.log(`[Source Change] Restored progress: ${matchesWithMarkets}/${sortedMatches.length} markets loaded`);
+        return;
+      }
+    } catch (error) {
+      console.error('[Source Change] Error restoring cache:', error);
+    }
+    
+    // If no cache found or error, reload data with new source
+    console.log('[Source Change] No valid cache found, reloading data:', {
       showAllMatches,
       selectedDate,
       newSourceId: source.id,
@@ -1362,23 +1401,26 @@ function App() {
       }
     })();
     
-    // Load saved betslip from IndexedDB
-    loadBetslip().then(savedSelections => {
+    // Load saved betslip from IndexedDB (source-specific)
+    const sourceId = selectedSource?.id || 'totelepep';
+    loadBetslip(sourceId).then(savedSelections => {
       if (savedSelections && savedSelections.length > 0) {
+        console.log(`[Betslip] Loaded ${savedSelections.length} selections for source: ${sourceId}`);
         setParlaySelections(savedSelections);
       }
     });
   }, []); // Only run once on mount
   
-  // Save betslip to IndexedDB when selections change
+  // Save betslip to IndexedDB when selections change (source-specific)
   useEffect(() => {
+    const sourceId = selectedSource?.id || 'totelepep';
     if (parlaySelections.length > 0) {
-      saveBetslip(parlaySelections);
+      saveBetslip(parlaySelections, sourceId);
     } else {
-      // Clear betslip if no selections
-      clearBetslip();
+      // Clear betslip for this source if no selections
+      clearBetslip(sourceId);
     }
-  }, [parlaySelections]);
+  }, [parlaySelections, selectedSource]);
   
   // NOTE: Removed the useEffect that loaded data when selectedDate changed
   // This was causing race conditions with handleCategoryChange/handleCompetitionChange
@@ -2117,6 +2159,176 @@ function App() {
     setShowBookingHistory(false);
   };
   
+  // Handle Repeat Bet from booking history
+  const handleRepeatBet = async (booking: any) => {
+    try {
+      const { loadBetslip, saveBetslip, clearBetslip } = await import('./utils/matchCache');
+      const currentSourceId = selectedSource?.id || 'totelepep';
+      const bookingSourceId = booking.apiSource || 'totelepep';
+      
+      // Filter out past matches (kickoff already passed)
+      const now = new Date();
+      const validSelections = booking.selections.filter((sel: any) => {
+        if (!sel.date || !sel.kickoff) return true;
+        try {
+          const matchDateTime = new Date(`${sel.date}T${sel.kickoff}`);
+          return matchDateTime > now;
+        } catch {
+          return true;
+        }
+      });
+      
+      if (validSelections.length === 0) {
+        // Show toast - all matches have passed
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+          position: fixed;
+          bottom: 100px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #ef4444;
+          color: white;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          z-index: 10000;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        `;
+        toast.textContent = 'All matches have already kicked off';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+        return;
+      }
+      
+      // Check source mismatch
+      if (currentSourceId !== bookingSourceId) {
+        // Show toast - cannot combine different sources
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+          position: fixed;
+          bottom: 100px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #ef4444;
+          color: white;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          z-index: 10000;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        `;
+        toast.textContent = 'Cannot combine different sources';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+        return;
+      }
+      
+      // Load existing betslip for current source
+      const existingBetslip = await loadBetslip(currentSourceId);
+      
+      // Check for duplicate matches
+      const existingMatchIds = new Set(existingBetslip.map((s: any) => s.matchId));
+      const hasDuplicates = validSelections.some((sel: any) => existingMatchIds.has(sel.matchId));
+      
+      if (hasDuplicates && existingBetslip.length > 0) {
+        // Show confirmation dialog
+        const shouldCombine = window.confirm(
+          'Matches already exist in Betslip. Combine them?\n\n'
+          + 'Yes - Add booking matches to existing betslip\n'
+          + 'No - Clear betslip and add only booking matches'
+        );
+        
+        if (shouldCombine) {
+          // Merge: Add only new selections from booking
+          const newSelections = validSelections.filter(
+            (sel: any) => !existingMatchIds.has(sel.matchId)
+          );
+          const mergedBetslip = [...existingBetslip, ...newSelections];
+          await saveBetslip(mergedBetslip, currentSourceId);
+          setParlaySelections(mergedBetslip);
+          
+          // Show success toast
+          const toast = document.createElement('div');
+          toast.style.cssText = `
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          `;
+          toast.textContent = `Added ${newSelections.length} new matches to betslip`;
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 3000);
+        } else {
+          // Replace: Clear betslip and add only booking matches
+          await clearBetslip(currentSourceId);
+          await saveBetslip(validSelections, currentSourceId);
+          setParlaySelections(validSelections);
+          
+          // Show success toast
+          const toast = document.createElement('div');
+          toast.style.cssText = `
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          `;
+          toast.textContent = `Betslip replaced with ${validSelections.length} booking matches`;
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 3000);
+        }
+      } else {
+        // No duplicates - just add booking matches
+        const mergedBetslip = [...existingBetslip, ...validSelections];
+        await saveBetslip(mergedBetslip, currentSourceId);
+        setParlaySelections(mergedBetslip);
+        
+        // Show success toast
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+          position: fixed;
+          bottom: 100px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #10b981;
+          color: white;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 600;
+          z-index: 10000;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        `;
+        toast.textContent = `Added ${validSelections.length} matches to betslip`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+      }
+      
+      // Note: Fresh odds will be fetched when matches are displayed
+      // The odds in the betslip will be validated/updated when user views them
+      
+    } catch (error) {
+      console.error('[Repeat Bet] Error:', error);
+    }
+  };
+  
   // ========================================
   // EARLY RETURNS (AFTER ALL HOOKS AND HANDLERS)
   // ========================================
@@ -2788,6 +3000,7 @@ function App() {
         showHistory={showBookingHistory}
         onClose={handleCloseBookingHistory}
         onBookingsCountChange={setSavedBookingsCount}
+        onRepeatBet={handleRepeatBet}
       />
       
       {/* Clear All Confirmation Modal */}

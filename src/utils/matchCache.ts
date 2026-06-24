@@ -11,6 +11,9 @@ const BETSLIP_STORE_NAME = 'betslip'; // Betslip persistence
 const CHUNK_SIZE = 100; // Load and save in chunks of 100 matches
 const CACHE_EXPIRY = 30 * 60 * 1000; // 30 minutes - refresh odds data
 
+// Helper to get source-specific betslip key
+const getBetslipKey = (sourceId: string = 'default'): string => `betslip_${sourceId}`;
+
 interface MatchCacheEntry {
   id: string;
   cacheKey: string; // e.g., "date_2026-06-18_totelepep"
@@ -422,69 +425,110 @@ export const updateMatchesInCache = async (
 // BETSLIP PERSISTENCE
 // ========================================
 
-// Save betslip selections to IndexedDB
-export const saveBetslip = async (selections: any[]): Promise<void> => {
+// Save betslip selections to IndexedDB (source-specific)
+export const saveBetslip = async (selections: any[], sourceId: string = 'default'): Promise<void> => {
   try {
     const db = await openDB();
     const transaction = db.transaction(BETSLIP_STORE_NAME, 'readwrite');
     const store = transaction.objectStore(BETSLIP_STORE_NAME);
     
-    // Clear existing selections
-    store.clear();
+    const betslipKey = getBetslipKey(sourceId);
     
-    // Save new selections
+    // Clear existing selections for this source
+    const existingRequest = store.getAll();
+    existingRequest.onsuccess = () => {
+      const existing = existingRequest.result || [];
+      existing.forEach(item => {
+        if (item.betslipKey === betslipKey) {
+          store.delete(item.id);
+        }
+      });
+    };
+    
+    // Wait for deletion to complete
+    await new Promise<void>((resolve) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => resolve();
+    });
+    
+    // Start new transaction for saving
+    const saveTransaction = db.transaction(BETSLIP_STORE_NAME, 'readwrite');
+    const saveStore = saveTransaction.objectStore(BETSLIP_STORE_NAME);
+    
+    // Save new selections with source key
     selections.forEach((selection, index) => {
-      store.put({
-        id: `selection_${index}`,
+      saveStore.put({
+        id: `${betslipKey}_selection_${index}`,
+        betslipKey,
         ...selection,
         timestamp: Date.now()
       });
     });
 
     await new Promise<void>((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
+      saveTransaction.oncomplete = () => resolve();
+      saveTransaction.onerror = () => reject(saveTransaction.error);
     });
+    
+    console.log(`[Betslip] Saved ${selections.length} selections for source: ${sourceId}`);
   } catch (error) {
+    console.error('[Betslip] Error saving:', error);
   }
 };
 
-// Load betslip selections from IndexedDB
-export const loadBetslip = async (): Promise<any[]> => {
+// Load betslip selections from IndexedDB (source-specific)
+export const loadBetslip = async (sourceId: string = 'default'): Promise<any[]> => {
   try {
     const db = await openDB();
     const transaction = db.transaction(BETSLIP_STORE_NAME, 'readonly');
     const store = transaction.objectStore(BETSLIP_STORE_NAME);
     
+    const betslipKey = getBetslipKey(sourceId);
     const request = store.getAll();
     
     return new Promise<any[]>((resolve, reject) => {
       request.onsuccess = () => {
         const selections = request.result
+          .filter(item => item.betslipKey === betslipKey) // Filter by source
           .sort((a, b) => a.id.localeCompare(b.id)) // Maintain order
-          .map(({ id, timestamp, ...selection }) => selection); // Remove metadata
+          .map(({ id, betslipKey, timestamp, ...selection }) => selection); // Remove metadata
         resolve(selections);
       };
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
+    console.error('[Betslip] Error loading:', error);
     return [];
   }
 };
 
-// Clear betslip from IndexedDB
-export const clearBetslip = async (): Promise<void> => {
+// Clear betslip from IndexedDB (source-specific)
+export const clearBetslip = async (sourceId: string = 'default'): Promise<void> => {
   try {
     const db = await openDB();
     const transaction = db.transaction(BETSLIP_STORE_NAME, 'readwrite');
     const store = transaction.objectStore(BETSLIP_STORE_NAME);
     
-    store.clear();
+    const betslipKey = getBetslipKey(sourceId);
+    
+    // Only clear selections for this source
+    const request = store.getAll();
+    request.onsuccess = () => {
+      const items = request.result || [];
+      items.forEach(item => {
+        if (item.betslipKey === betslipKey) {
+          store.delete(item.id);
+        }
+      });
+    };
 
     await new Promise<void>((resolve, reject) => {
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
     });
+    
+    console.log(`[Betslip] Cleared selections for source: ${sourceId}`);
   } catch (error) {
+    console.error('[Betslip] Error clearing:', error);
   }
 };
