@@ -140,8 +140,8 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                         </div>
                         
                         {booking.apiSource && (
-                          <div className="text-xs text-gray-500 mb-3 text-center bg-gray-50 p-1 rounded">
-                            {booking.apiSource}
+                          <div className="text-lg font-bold text-gray-800 mb-3 text-center bg-yellow-400 p-2 rounded border border-yellow-500">
+                            {booking.apiSource.charAt(0).toUpperCase() + booking.apiSource.slice(1)}
                           </div>
                         )}
                       </div>
@@ -276,8 +276,8 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                 {/* Booking Reference Section */}
                 <div className="bg-white">
                   {selectedBooking.apiSource && (
-                    <div className="p-2 bg-blue-50 text-center border-b border-blue-200 -ml-1">
-                      <div className="text-xl font-bold text-blue-700">
+                    <div className="p-3 bg-yellow-400 text-center border-b border-yellow-500">
+                      <div className="text-4xl font-bold text-gray-800">
                         {selectedBooking.apiSource.charAt(0).toUpperCase() + selectedBooking.apiSource.slice(1)}
                       </div>
                     </div>
@@ -286,13 +286,6 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                   <div className="p-3 bg-green-500 text-white text-center">
                     <div className="text-xl font-bold">
                       Booking Ref# {selectedBooking.bookingRef}
-                    </div>
-                  </div>
-
-                  <div className="p-3 bg-yellow-400 text-center border-t border-yellow-500">
-                    <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
-                      <span>📱</span>
-                      <span>SMS BET{selectedBooking.bookingRef}</span>
                     </div>
                   </div>
 
