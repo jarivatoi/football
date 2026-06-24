@@ -504,7 +504,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onLogout }) => {
           fontSize: 18,
           fontWeight: 700
         }}>
-          <strong>User Directory</strong> ({sortedUsers.length} users)
+          <strong>User Directory</strong> ({sortedUsers.length} {sortedUsers.length === 1 ? 'user' : 'users'})
         </h3>
         
         {/* Search Bar */}

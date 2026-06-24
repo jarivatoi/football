@@ -52,6 +52,8 @@ function App() {
   } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showBookingHistory, setShowBookingHistory] = useState(false);
+  const [showRepeatBetModal, setShowRepeatBetModal] = useState(false);
+  const [repeatBetBooking, setRepeatBetBooking] = useState<any>(null);
   const [savedBookingsCount, setSavedBookingsCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -315,6 +317,48 @@ function App() {
         
         console.log(`[Source Change] Restored ALL MATCHES progress: ${matchesWithMarkets}/${sortedMatches.length} markets loaded`);
         return;
+      }
+      
+      // Check if selected date has valid cache (don't force reload if cache is valid)
+      if (selectedDate) {
+        const selectedDateCacheKey = `date_${selectedDate}_all_all_${newSourceId}`;
+        const { matches: selectedDateMatches, metadata: selectedDateMetadata } = await getCachedMatches(selectedDateCacheKey);
+        const selectedDateExpired = await isCacheExpired(selectedDateCacheKey);
+        
+        const isSelectedDateComplete = selectedDateMatches && 
+                                       selectedDateMatches.length > 0 && 
+                                       selectedDateMetadata?.isComplete && 
+                                       !selectedDateExpired &&
+                                       selectedDateMatches.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
+        
+        if (isSelectedDateComplete) {
+          console.log(`[Source Change] Selected date ${selectedDate} has valid cache, restoring without API fetch...`);
+          
+          const sortedMatches = selectedDateMatches.sort((a, b) => {
+            const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
+            if (dateComparison !== 0) return dateComparison;
+            return a.kickoff.localeCompare(b.kickoff);
+          });
+          
+          setMatches(sortedMatches);
+          const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+          setGroupedMatches(grouped);
+          
+          // Update progress for this date
+          const matchesWithMarkets = sortedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
+          progress[selectedDate] = {
+            loaded: matchesWithMarkets,
+            total: sortedMatches.length,
+            isComplete: matchesWithMarkets === sortedMatches.length
+          };
+          setDateProgress(progress);
+          
+          setLastUpdated(new Date());
+          setLoading(false);
+          
+          console.log(`[Source Change] Restored ${selectedDate} progress: ${matchesWithMarkets}/${sortedMatches.length} markets loaded`);
+          return;
+        }
       }
     } catch (error) {
       console.error('[Source Change] Error restoring cache:', error);
@@ -2186,6 +2230,60 @@ function App() {
     setShowBookingHistory(false);
   };
   
+  // Handle Repeat Bet Modal Actions
+  const handleRepeatBetYes = async () => {
+    if (!repeatBetBooking) return;
+    
+    const { validSelections, existingBetslip, existingMatchIds, showToast } = repeatBetBooking;
+    const { saveBetslip } = await import('./utils/matchCache');
+    const currentSourceId = selectedSource?.id || 'totelepep';
+    
+    // Replace duplicates: Remove old matches, add booking matches with fresh odds
+    const nonDuplicateMatches = existingBetslip.filter(
+      (s: any) => !existingMatchIds.has(s.matchId)
+    );
+    const mergedBetslip = [...nonDuplicateMatches, ...validSelections];
+    
+    await saveBetslip(mergedBetslip, currentSourceId);
+    setParlaySelections(mergedBetslip);
+    
+    const replacedCount = validSelections.filter((s: any) => existingMatchIds.has(s.matchId)).length;
+    const newCount = validSelections.filter((s: any) => !existingMatchIds.has(s.matchId)).length;
+    
+    if (replacedCount > 0 && newCount > 0) {
+      showToast(`Replaced ${replacedCount} ${replacedCount === 1 ? 'match' : 'matches'}, added ${newCount} ${newCount === 1 ? 'match' : 'matches'}`, 'success');
+    } else if (replacedCount > 0) {
+      showToast(`Replaced ${replacedCount} ${replacedCount === 1 ? 'match' : 'matches'} with fresh odds`, 'success');
+    } else {
+      showToast(`Added ${newCount} ${newCount === 1 ? 'new match' : 'new matches'} to betslip`, 'success');
+    }
+    
+    setShowRepeatBetModal(false);
+    setRepeatBetBooking(null);
+  };
+  
+  const handleRepeatBetNo = async () => {
+    if (!repeatBetBooking) return;
+    
+    const { validSelections, showToast } = repeatBetBooking;
+    const { clearBetslip, saveBetslip } = await import('./utils/matchCache');
+    const currentSourceId = selectedSource?.id || 'totelepep';
+    
+    // Clear betslip and add only booking matches
+    await clearBetslip(currentSourceId);
+    await saveBetslip(validSelections, currentSourceId);
+    setParlaySelections(validSelections);
+    
+    showToast(`Betslip replaced with ${validSelections.length} booking matches`, 'success');
+    setShowRepeatBetModal(false);
+    setRepeatBetBooking(null);
+  };
+  
+  const handleRepeatBetCancel = () => {
+    setShowRepeatBetModal(false);
+    setRepeatBetBooking(null);
+  };
+  
   // Handle Repeat Bet from booking history
   const handleRepeatBet = async (booking: any) => {
     // Helper function to show toast at top with animation
@@ -2217,7 +2315,6 @@ function App() {
     try {
       const { loadBetslip, saveBetslip, clearBetslip } = await import('./utils/matchCache');
       const currentSourceId = selectedSource?.id || 'totelepep';
-      const bookingSourceId = booking.apiSource || 'totelepep';
       
       // Filter out past matches (kickoff already passed)
       const now = new Date();
@@ -2244,36 +2341,23 @@ function App() {
       const hasDuplicates = validSelections.some((sel: any) => existingMatchIds.has(sel.matchId));
       
       if (hasDuplicates && existingBetslip.length > 0) {
-        // Show confirmation dialog
-        const shouldCombine = window.confirm(
-          'Matches already exist in Betslip. Combine them?\n\n'
-          + 'Yes - Add booking matches to existing betslip\n'
-          + 'No - Clear betslip and add only booking matches'
-        );
-        
-        if (shouldCombine) {
-          // Merge: Add only new selections from booking
-          const newSelections = validSelections.filter(
-            (sel: any) => !existingMatchIds.has(sel.matchId)
-          );
-          const mergedBetslip = [...existingBetslip, ...newSelections];
-          await saveBetslip(mergedBetslip, currentSourceId);
-          setParlaySelections(mergedBetslip);
-          showToast(`Added ${newSelections.length} new matches to betslip`, 'success');
-        } else {
-          // Replace: Clear betslip and add only booking matches
-          await clearBetslip(currentSourceId);
-          await saveBetslip(validSelections, currentSourceId);
-          setParlaySelections(validSelections);
-          showToast(`Betslip replaced with ${validSelections.length} booking matches`, 'success');
-        }
-      } else {
-        // No duplicates - just add booking matches
-        const mergedBetslip = [...existingBetslip, ...validSelections];
-        await saveBetslip(mergedBetslip, currentSourceId);
-        setParlaySelections(mergedBetslip);
-        showToast(`Added ${validSelections.length} matches to betslip`, 'success');
+        // Show confirmation modal
+        setRepeatBetBooking({
+          booking,
+          validSelections,
+          existingBetslip,
+          existingMatchIds,
+          showToast
+        });
+        setShowRepeatBetModal(true);
+        return;
       }
+      
+      // No duplicates - just add booking matches
+      const mergedBetslip = [...existingBetslip, ...validSelections];
+      await saveBetslip(mergedBetslip, currentSourceId);
+      setParlaySelections(mergedBetslip);
+      showToast(`Added ${validSelections.length} matches to betslip`, 'success');
       
     } catch (error) {
       console.error('[Repeat Bet] Error:', error);
@@ -2955,6 +3039,74 @@ function App() {
         onRepeatBet={handleRepeatBet}
         currentSourceId={selectedSource?.id}
       />
+      
+      {/* Repeat Bet Confirmation Modal */}
+      {showRepeatBetModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md mx-4 overflow-hidden animate-modal-fade-in">
+            {/* Header */}
+            <div className="bg-blue-600 px-6 py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-white">Repeat Bet</h3>
+              </div>
+            </div>
+            
+            {/* Content */}
+            <div className="px-6 py-4">
+              <p className="text-gray-700 text-base mb-2">
+                Some matches already exist in your betslip.
+              </p>
+              <p className="text-gray-600 text-sm mb-4">
+                Would you like to replace them with fresh odds from this booking?
+              </p>
+              
+              <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                <div className="text-sm text-gray-700 space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Matches to replace:</span>
+                    <span className="font-semibold text-blue-600">
+                      {repeatBetBooking?.validSelections?.filter((s: any) => repeatBetBooking?.existingMatchIds?.has(s.matchId)).length || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">New matches:</span>
+                    <span className="font-semibold text-green-600">
+                      {repeatBetBooking?.validSelections?.filter((s: any) => !repeatBetBooking?.existingMatchIds?.has(s.matchId)).length || 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="border-t border-gray-200 px-6 py-4 flex gap-3">
+              <button
+                onClick={handleRepeatBetCancel}
+                className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRepeatBetNo}
+                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors"
+              >
+                No
+              </button>
+              <button
+                onClick={handleRepeatBetYes}
+                className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Clear All Confirmation Modal */}
       {showClearAllModal && (
