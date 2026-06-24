@@ -276,9 +276,9 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                 {/* Booking Reference Section */}
                 <div className="bg-white">
                   {selectedBooking.apiSource && (
-                    <div className="p-2 bg-blue-50 text-center border-b border-blue-200">
+                    <div className="p-2 bg-blue-50 text-center border-b border-blue-200 -ml-1">
                       <div className="text-xl font-bold text-blue-700">
-                        {selectedBooking.apiSource}
+                        {selectedBooking.apiSource.charAt(0).toUpperCase() + selectedBooking.apiSource.slice(1)}
                       </div>
                     </div>
                   )}

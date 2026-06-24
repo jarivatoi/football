@@ -1654,7 +1654,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
               {/* Booking Reference */}
               <div className="p-3 bg-green-500 text-white text-center">
-                <div className="text-xl font-bold">
+                <div className="text-2xl font-bold">
                   Booking Ref# {lastResult.ticketNo}
                 </div>
               </div>
