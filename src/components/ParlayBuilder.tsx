@@ -845,7 +845,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       netPayout: netPayoutToSave,
       timestamp: Date.now(),
       formattedDateTime: formatBookingDateTime(Date.now()),
-      apiSource: selectedSource?.displayName
+      apiSource: selectedSource?.id  // Save source ID (e.g., 'totelepep') not displayName
     };
     
     try {

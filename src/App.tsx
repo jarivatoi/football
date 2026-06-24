@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+ing that toast import React, { useState, useEffect } from 'react';
 import { RefreshCw, Search, Calendar, AlertCircle, Calculator, Database, Lightbulb, Trash2, Play, Pause, X, Ticket } from 'lucide-react';
 import { Target } from 'lucide-react';
 import DateGroupedMatches from './components/DateGroupedMatches';
@@ -253,7 +253,35 @@ function App() {
     try {
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
       
-      // Check if there's a valid all_matches cache for this source
+      // First, try to restore individual date progress (for date-by-date loading)
+      const progress: Record<string, { loaded: number; total: number; isComplete: boolean }> = {};
+      
+      // Check each date in the calendar for cached progress
+      const calendarList = (totelepepExtractor as any).calendarList || [];
+      for (const dateEntry of calendarList) {
+        const date = dateEntry.entryDate;
+        const dateCacheKey = `date_${date}_all_all_${newSourceId}`;
+        const { matches: dateMatches, metadata: dateMetadata } = await getCachedMatches(dateCacheKey);
+        const dateExpired = await isCacheExpired(dateCacheKey);
+        
+        if (dateMatches && dateMatches.length > 0 && !dateExpired) {
+          const matchesWithMarkets = dateMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
+          progress[date] = {
+            loaded: matchesWithMarkets,
+            total: dateMatches.length,
+            isComplete: matchesWithMarkets === dateMatches.length
+          };
+          console.log(`[Source Change] ${date}: ${matchesWithMarkets}/${dateMatches.length} markets loaded`);
+        }
+      }
+      
+      // If we found any date progress, restore it
+      if (Object.keys(progress).length > 0) {
+        setDateProgress(progress);
+        console.log(`[Source Change] Restored progress for ${Object.keys(progress).length} dates`);
+      }
+      
+      // Also check if there's a valid all_matches cache (for ALL MATCHES view)
       const allMatchesCacheKey = `all_matches_all_all_${newSourceId}`;
       const { matches: allMatchesCache, metadata: allMatchesMetadata } = await getCachedMatches(allMatchesCacheKey);
       const allMatchesExpired = await isCacheExpired(allMatchesCacheKey);
@@ -272,8 +300,7 @@ function App() {
         const grouped = totelepepService.groupMatchesByDate(sortedMatches);
         setGroupedMatches(grouped);
         
-        // Restore progress state
-        const progress: Record<string, { loaded: number; total: number; isComplete: boolean }> = {};
+        // Update progress for 'all' key
         const matchesWithMarkets = sortedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
         progress['all'] = {
           loaded: matchesWithMarkets,
@@ -286,7 +313,7 @@ function App() {
         setLastUpdated(new Date());
         setLoading(false);
         
-        console.log(`[Source Change] Restored progress: ${matchesWithMarkets}/${sortedMatches.length} markets loaded`);
+        console.log(`[Source Change] Restored ALL MATCHES progress: ${matchesWithMarkets}/${sortedMatches.length} markets loaded`);
         return;
       }
     } catch (error) {
@@ -2161,6 +2188,32 @@ function App() {
   
   // Handle Repeat Bet from booking history
   const handleRepeatBet = async (booking: any) => {
+    // Helper function to show toast at top with animation
+    const showToast = (message: string, type: 'success' | 'error') => {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${type === 'success' ? '#10b981' : '#ef4444'};
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: slide-down 0.3s ease-out;
+      `;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = 'slide-up 0.3s ease-out';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    };
+    
     try {
       const { loadBetslip, saveBetslip, clearBetslip } = await import('./utils/matchCache');
       const currentSourceId = selectedSource?.id || 'totelepep';
@@ -2179,49 +2232,7 @@ function App() {
       });
       
       if (validSelections.length === 0) {
-        // Show toast - all matches have passed
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-          position: fixed;
-          bottom: 100px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: #ef4444;
-          color: white;
-          padding: 12px 24px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          z-index: 10000;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        `;
-        toast.textContent = 'All matches have already kicked off';
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-        return;
-      }
-      
-      // Check source mismatch
-      if (currentSourceId !== bookingSourceId) {
-        // Show toast - cannot combine different sources
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-          position: fixed;
-          bottom: 100px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: #ef4444;
-          color: white;
-          padding: 12px 24px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          z-index: 10000;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        `;
-        toast.textContent = 'Cannot combine different sources';
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
+        showToast('All matches have already kicked off', 'error');
         return;
       }
       
@@ -2248,84 +2259,25 @@ function App() {
           const mergedBetslip = [...existingBetslip, ...newSelections];
           await saveBetslip(mergedBetslip, currentSourceId);
           setParlaySelections(mergedBetslip);
-          
-          // Show success toast
-          const toast = document.createElement('div');
-          toast.style.cssText = `
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #10b981;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            z-index: 10000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-          `;
-          toast.textContent = `Added ${newSelections.length} new matches to betslip`;
-          document.body.appendChild(toast);
-          setTimeout(() => toast.remove(), 3000);
+          showToast(`Added ${newSelections.length} new matches to betslip`, 'success');
         } else {
           // Replace: Clear betslip and add only booking matches
           await clearBetslip(currentSourceId);
           await saveBetslip(validSelections, currentSourceId);
           setParlaySelections(validSelections);
-          
-          // Show success toast
-          const toast = document.createElement('div');
-          toast.style.cssText = `
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #10b981;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            z-index: 10000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-          `;
-          toast.textContent = `Betslip replaced with ${validSelections.length} booking matches`;
-          document.body.appendChild(toast);
-          setTimeout(() => toast.remove(), 3000);
+          showToast(`Betslip replaced with ${validSelections.length} booking matches`, 'success');
         }
       } else {
         // No duplicates - just add booking matches
         const mergedBetslip = [...existingBetslip, ...validSelections];
         await saveBetslip(mergedBetslip, currentSourceId);
         setParlaySelections(mergedBetslip);
-        
-        // Show success toast
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-          position: fixed;
-          bottom: 100px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: #10b981;
-          color: white;
-          padding: 12px 24px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 600;
-          z-index: 10000;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        `;
-        toast.textContent = `Added ${validSelections.length} matches to betslip`;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
+        showToast(`Added ${validSelections.length} matches to betslip`, 'success');
       }
-      
-      // Note: Fresh odds will be fetched when matches are displayed
-      // The odds in the betslip will be validated/updated when user views them
       
     } catch (error) {
       console.error('[Repeat Bet] Error:', error);
+      showToast('Failed to repeat bet', 'error');
     }
   };
   
@@ -3001,6 +2953,7 @@ function App() {
         onClose={handleCloseBookingHistory}
         onBookingsCountChange={setSavedBookingsCount}
         onRepeatBet={handleRepeatBet}
+        currentSourceId={selectedSource?.id}
       />
       
       {/* Clear All Confirmation Modal */}

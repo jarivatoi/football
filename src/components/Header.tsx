@@ -158,7 +158,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-3xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 -ml-1">
             {/* API Source Dropdown */}
             <div className="relative flex items-center gap-2" data-source-dropdown>
               <button

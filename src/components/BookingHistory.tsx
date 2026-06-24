@@ -18,9 +18,10 @@ interface BookingHistoryProps {
   onClose: () => void;
   onBookingsCountChange: (count: number) => void;
   onRepeatBet?: (booking: SavedBooking) => void;  // Callback to repeat bet
+  currentSourceId?: string;  // Current API source ID for comparison
 }
 
-const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, onBookingsCountChange, onRepeatBet }) => {
+const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, onBookingsCountChange, onRepeatBet, currentSourceId }) => {
   const [savedBookings, setSavedBookings] = useState<SavedBooking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<SavedBooking | null>(null);
 
@@ -347,30 +348,45 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
             
             {/* Action Buttons */}
             <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    if (onRepeatBet) {
-                      onRepeatBet(selectedBooking);
+              {selectedBooking.apiSource === currentSourceId ? (
+                // Show both buttons when sources match
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (onRepeatBet) {
+                        onRepeatBet(selectedBooking);
+                        setSelectedBooking(null);
+                      }
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                  >
+                    <Repeat className="w-5 h-5" />
+                    Repeat Bet
+                  </button>
+                  <button
+                    onClick={() => {
+                      deleteBooking(selectedBooking.id);
                       setSelectedBooking(null);
-                    }
-                  }}
-                  className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-                >
-                  <Repeat className="w-5 h-5" />
-                  Repeat Bet
-                </button>
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                    Delete Booking
+                  </button>
+                </div>
+              ) : (
+                // Show only Delete button (full width) when sources don't match
                 <button
                   onClick={() => {
                     deleteBooking(selectedBooking.id);
                     setSelectedBooking(null);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                  className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-5 h-5" />
                   Delete Booking
                 </button>
-              </div>
+              )}
             </div>
           </div>
         </div>
