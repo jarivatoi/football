@@ -43,9 +43,16 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
   
   // Auto-scroll to bottom when viewing a booking
   useEffect(() => {
-    if (selectedBooking && bookingDetailRef.current) {
+    if (selectedBooking) {
       setTimeout(() => {
-        bookingDetailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        // Find the scrollable container in the modal and scroll to bottom
+        const modal = bookingDetailRef.current?.closest('.max-h-\\[90vh\\]');
+        if (modal) {
+          const scrollableContent = modal.querySelector('.overflow-y-auto');
+          if (scrollableContent) {
+            scrollableContent.scrollTop = scrollableContent.scrollHeight;
+          }
+        }
       }, 100);
     }
   }, [selectedBooking]);

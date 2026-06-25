@@ -1111,8 +1111,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         
         // Auto-scroll to booking result after successful bet
         setTimeout(() => {
-          if (bookingResultRef.current) {
-            bookingResultRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          // Find the scrollable parent container and scroll it to bottom
+          const scrollableContainer = bookingResultRef.current?.closest('.overflow-y-auto') || 
+                                     bookingResultRef.current?.parentElement?.querySelector('.overflow-y-auto');
+          if (scrollableContainer) {
+            scrollableContainer.scrollTop = scrollableContainer.scrollHeight;
           }
         }, 100);
         
