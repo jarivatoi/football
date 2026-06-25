@@ -2247,13 +2247,21 @@ function App() {
     // Merge with availableDatesWithCounts
     // - For loaded dates (selected date or All Matches): shows filtered count
     // - For unloaded dates: shows original count (can't filter unloaded data)
-    return availableDatesWithCounts.map(dateEntry => ({
-      ...dateEntry,
-      // Use filtered count if available (loaded date), otherwise show original count
-      matchCount: filteredCounts[dateEntry.date] !== undefined 
-        ? filteredCounts[dateEntry.date] 
-        : dateEntry.matchCount
-    }));
+    return availableDatesWithCounts.map(dateEntry => {
+      // When All Matches is active, NEVER show filtered counts on individual date buttons
+      // Only the All Matches button itself shows the filtered count
+      if (showAllMatches) {
+        return dateEntry; // Return original counts for all date buttons
+      } else {
+        // Single date mode: Show filtered count for the selected date if loaded
+        return {
+          ...dateEntry,
+          matchCount: filteredCounts[dateEntry.date] !== undefined 
+            ? filteredCounts[dateEntry.date] 
+            : dateEntry.matchCount
+        };
+      }
+    });
   }, [filteredGroupedMatches, availableDatesWithCounts, searchMode, searchTerm, showAllMatches]);
 
   // Debug: Log grouped matches to see what dates we have
