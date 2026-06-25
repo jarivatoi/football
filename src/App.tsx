@@ -2236,22 +2236,89 @@ function App() {
       return availableDatesWithCounts;
     }
     
-    // When search filter is active, calculate filtered counts for ALL dates
+    // When search filter is active, calculate filtered counts for ALL dates in groupedMatches
     const filteredCounts: Record<string, number> = {};
     
-    // Get filtered counts from filteredGroupedMatches (contains the filtered matches)
-    Object.entries(filteredGroupedMatches).forEach(([date, dateMatches]) => {
-      filteredCounts[date] = dateMatches?.length || 0;
+    // Filter ALL loaded dates (not just the currently selected one)
+    Object.entries(groupedMatches).forEach(([date, dateMatches]) => {
+      let filteredDateMatches = dateMatches as any[];
+      
+      // Apply the same filter logic
+      let cleanSearchTerm = searchTerm;
+      if (cleanSearchTerm.startsWith('=') || cleanSearchTerm.startsWith('>') || cleanSearchTerm.startsWith('<')) {
+        cleanSearchTerm = cleanSearchTerm.substring(1);
+      }
+      
+      let targetOdds = parseFloat(cleanSearchTerm);
+      let positionFilter: 'home' | 'draw' | 'away' | null = null;
+      const upperSearch = cleanSearchTerm.toUpperCase().trim();
+      const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
+      
+      if (upperSearch.endsWith('H') && !hasAdvancedFilter) {
+        positionFilter = 'home';
+        targetOdds = parseFloat(upperSearch.slice(0, -1));
+      } else if (upperSearch.endsWith('D') && !hasAdvancedFilter) {
+        positionFilter = 'draw';
+        targetOdds = parseFloat(upperSearch.slice(0, -1));
+      } else if (upperSearch.endsWith('A') && !hasAdvancedFilter) {
+        positionFilter = 'away';
+        targetOdds = parseFloat(upperSearch.slice(0, -1));
+      }
+      
+      if (!isNaN(targetOdds) && targetOdds > 10) {
+        targetOdds = targetOdds / 100;
+      }
+      
+      filteredDateMatches = dateMatches.filter((match: any) => {
+        if (match.isOutright && !hasAdvancedFilter) return false;
+        
+        const homeOdds = parseFloat(String(match.homeOdds));
+        const drawOdds = parseFloat(String(match.drawOdds));
+        const awayOdds = parseFloat(String(match.awayOdds));
+        
+        if (isNaN(homeOdds) && isNaN(drawOdds) && isNaN(awayOdds)) {
+          return match.isOutright && hasAdvancedFilter;
+        }
+        
+        if (positionFilter) {
+          if (searchMode === 'eq') {
+            if (positionFilter === 'home') return Math.abs(homeOdds - targetOdds) < 0.001;
+            if (positionFilter === 'draw') return Math.abs(drawOdds - targetOdds) < 0.001;
+            if (positionFilter === 'away') return Math.abs(awayOdds - targetOdds) < 0.001;
+          } else if (searchMode === 'gte') {
+            if (positionFilter === 'home') return homeOdds >= targetOdds;
+            if (positionFilter === 'draw') return drawOdds >= targetOdds;
+            if (positionFilter === 'away') return awayOdds >= targetOdds;
+          } else if (searchMode === 'lte') {
+            if (positionFilter === 'home') return homeOdds <= targetOdds;
+            if (positionFilter === 'draw') return drawOdds <= targetOdds;
+            if (positionFilter === 'away') return awayOdds <= targetOdds;
+          }
+        } else {
+          if (searchMode === 'eq') {
+            return Math.abs(homeOdds - targetOdds) < 0.001 || 
+                   Math.abs(drawOdds - targetOdds) < 0.001 || 
+                   Math.abs(awayOdds - targetOdds) < 0.001;
+          } else if (searchMode === 'gte') {
+            return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
+          } else if (searchMode === 'lte') {
+            return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
+          }
+        }
+        return false;
+      });
+      
+      filteredCounts[date] = filteredDateMatches.length;
     });
     
     // Merge with availableDatesWithCounts
-    // Show filtered/original counts for all dates
+    // Show filtered/original counts for all dates when filter is active
     return availableDatesWithCounts.map(dateEntry => {
       const filteredCount = filteredCounts[dateEntry.date];
       const originalCount = dateEntry.matchCount;
       
-      // If we have filtered data for this date, show (filtered/original)
-      // Otherwise show original count
+      // If we have filtered data for this date, show filtered count
+      // Otherwise show original count (date not loaded yet)
       if (filteredCount !== undefined) {
         return {
           ...dateEntry,
@@ -2262,7 +2329,7 @@ function App() {
         return dateEntry;
       }
     });
-  }, [filteredGroupedMatches, availableDatesWithCounts, searchMode, searchTerm, showAllMatches]);
+  }, [groupedMatches, availableDatesWithCounts, searchMode, searchTerm]);
 
   // Debug: Log grouped matches to see what dates we have
   useEffect(() => {
