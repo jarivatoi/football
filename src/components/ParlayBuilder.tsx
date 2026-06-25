@@ -729,11 +729,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   // Effect to show the "Place New Bet" button after a successful booking
   useEffect(() => {
     if (lastResult && lastResult.success) {
-      // Small delay to ensure the success message is visible before showing the button
-      const timer = setTimeout(() => {
-        setShowNewBetButton(true);
-      }, 2000);
-      return () => clearTimeout(timer);
+      setShowNewBetButton(true);
     } else {
       setShowNewBetButton(false);
     }
@@ -1034,6 +1030,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       
       // Consider successful ONLY if we have a ticket AND no bet errors
       if (hasTicket && !hasBetErrors && !hasErrors) {
+        console.log('[Bet Success] Branch 1 - Bet successful, saving booking...');
+        console.log('[Auto-Scroll] Setting lastResult...');
         setLastResult({
           success: true,
           message: 'Booking successful!',
@@ -1041,6 +1039,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           potentialPayout: bookingResult.potentialPayout,
           fullResponse: bookingResult
         });
+        console.log('[Auto-Scroll] lastResult set, extracting tax/bonus...');
         
         // Auto-save booking to IndexedDB with API response data
         // Extract tax and bonus from bookingResult (same logic as apiBreakdown)
@@ -1049,6 +1048,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         let taxToSave = 0;
         let bonusToSave = 0;
         let netPayoutToSave = parseFloat((bookingResult.potentialPayout || '0').replace(/,/g, '')) || 0;
+        console.log('[Auto-Scroll] netPayoutToSave:', netPayoutToSave);
         
         if (isMultiBet) {
           // Multi-bet: use top-level fields
@@ -1059,6 +1059,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           taxToSave = betList.reduce((sum: number, bet: any) => sum + (parseFloat((bet.taxAmount || '0').replace(/,/g, '')) || 0), 0);
           bonusToSave = betList.reduce((sum: number, bet: any) => sum + (parseFloat((bet.bonusAmount || '0').replace(/,/g, '')) || 0), 0);
         }
+        console.log('[Auto-Scroll] taxToSave:', taxToSave, 'bonusToSave:', bonusToSave);
         
         saveBooking({
           ticketNo: bookingResult.ticketNo || '',
@@ -1069,6 +1070,23 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           bonus: bonusToSave,
           netPayout: netPayoutToSave
         });
+        console.log('[Auto-Scroll] saveBooking called successfully');
+        
+        // Auto-scroll to booking result after successful bet
+        setTimeout(() => {
+          console.log('[Auto-Scroll] Timeout triggered, attempting to scroll...');
+          if (bookingResultRef.current) {
+            console.log('[Auto-Scroll] Found scroll container:', bookingResultRef.current);
+            const bookingResult = bookingResultRef.current.querySelector('.border-green-500');
+            console.log('[Auto-Scroll] Found booking result:', bookingResult);
+            if (bookingResult) {
+              console.log('[Auto-Scroll] Scrolling into view...');
+              bookingResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          } else {
+            console.log('[Auto-Scroll] No scroll container found');
+          }
+        }, 300);
         
         // Don't clear selections or reset bet amount - let user decide
         setIsPlacing(false);
@@ -1109,15 +1127,33 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           netPayout: netPayoutToSave
         });
         
+        console.log('[Auto-Scroll] About to call saveBooking...');
+        saveBooking({
+          ticketNo: bookingResult.ticketNo || '',
+          selections: [...selections],
+          stake: betAmount,
+          potentialWin: bookingResult.potentialPayout,
+          tax: taxToSave,
+          bonus: bonusToSave,
+          netPayout: netPayoutToSave
+        });
+        console.log('[Auto-Scroll] saveBooking called, scheduling scroll...');
+        
         // Auto-scroll to booking result after successful bet
         setTimeout(() => {
-          // Find the scrollable parent container and scroll it to bottom
-          const scrollableContainer = bookingResultRef.current?.closest('.overflow-y-auto') || 
-                                     bookingResultRef.current?.parentElement?.querySelector('.overflow-y-auto');
-          if (scrollableContainer) {
-            scrollableContainer.scrollTop = scrollableContainer.scrollHeight;
+          console.log('[Auto-Scroll] Timeout triggered, attempting to scroll...');
+          if (bookingResultRef.current) {
+            console.log('[Auto-Scroll] Found scroll container:', bookingResultRef.current);
+            const bookingResult = bookingResultRef.current.querySelector('.border-green-500');
+            console.log('[Auto-Scroll] Found booking result:', bookingResult);
+            if (bookingResult) {
+              console.log('[Auto-Scroll] Scrolling into view...');
+              bookingResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          } else {
+            console.log('[Auto-Scroll] No scroll container found');
           }
-        }, 100);
+        }, 300);
         
         // Don't clear selections or reset bet amount - let user decide
         setIsPlacing(false);
@@ -1299,7 +1335,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       </div>
 
       {/* Selections - Scrollable */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div ref={bookingResultRef} className="flex-1 overflow-y-auto p-4">
         <div className="space-y-3">
           {selections.map((selection, index) => (
             <div
@@ -1653,8 +1689,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             </div>
 
             {/* Booking Reference Section - Capture Target */}
-            <div ref={bookingResultRef}>
-              <div ref={bookingRefRef} className="bg-white">
+            <div ref={bookingRefRef} className="bg-white">
               {/* API Source - Above Booking Reference */}
               {selectedSource && (
                 <div className="p-2 bg-blue-50 text-center border-b border-blue-200">
@@ -1707,7 +1742,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               </div>
             </div>
             </div> {/* End of bookingRefRef wrapper */}
-            </div> {/* End of bookingResultRef wrapper */}
 
             {/* Place New Bet Button */}
             {showNewBetButton && (
