@@ -2378,6 +2378,8 @@ function App() {
     Object.entries(allLoadedMatches).forEach(([date, dateMatches]) => {
       let filteredDateMatches = dateMatches as any[];
       
+      console.log(`[FilteredDates] Filtering ${date}: ${dateMatches.length} total matches`);
+      
       // Apply the same filter logic
       let cleanSearchTerm = searchTerm;
       if (cleanSearchTerm.startsWith('=') || cleanSearchTerm.startsWith('>') || cleanSearchTerm.startsWith('<')) {
@@ -2479,6 +2481,7 @@ function App() {
       });
       
       filteredCounts[date] = filteredDateMatches.length;
+      console.log(`[FilteredDates] ${date}: Final filtered count = ${filteredDateMatches.length}`);
     });
     
     // Merge with availableDatesWithCounts
@@ -2508,15 +2511,27 @@ function App() {
   
   // Accumulate all loaded dates' matches into allLoadedMatches
   useEffect(() => {
+    console.log('[AllLoadedMatches] groupedMatches changed, merging...');
+    console.log('[AllLoadedMatches] groupedMatches dates:', Object.keys(groupedMatches));
+    console.log('[AllLoadedMatches] allLoadedMatches before:', Object.keys(allLoadedMatches));
+    
     // Merge new groupedMatches into allLoadedMatches
     setAllLoadedMatches(prev => {
       const updated = { ...prev };
       
       // Add/update each date from groupedMatches
       Object.entries(groupedMatches).forEach(([date, dateMatches]) => {
-        updated[date] = dateMatches;
+        // Only update if the new data has MORE matches (more complete)
+        const existingMatches = updated[date];
+        if (!existingMatches || dateMatches.length > existingMatches.length) {
+          console.log(`[AllLoadedMatches] Updating ${date}: ${existingMatches?.length || 0} -> ${dateMatches.length} matches`);
+          updated[date] = dateMatches;
+        } else {
+          console.log(`[AllLoadedMatches] Keeping ${date}: ${existingMatches.length} matches (new data has only ${dateMatches.length})`);
+        }
       });
       
+      console.log('[AllLoadedMatches] allLoadedMatches after:', Object.keys(updated));
       return updated;
     });
   }, [groupedMatches]);
