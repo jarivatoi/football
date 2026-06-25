@@ -1162,6 +1162,47 @@ function App() {
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
 
     try {
+      // If allLoadedMatches already has data, use it directly instead of reloading from cache
+      const loadedDates = Object.keys(allLoadedMatches);
+      if (loadedDates.length > 0) {
+        console.log(`[All Matches] Using allLoadedMatches with ${loadedDates.length} dates:`, loadedDates);
+        
+        // Combine all matches from allLoadedMatches
+        const allMatches = Object.values(allLoadedMatches).flat();
+        
+        // Filter out kickoff-passed matches
+        const now = new Date();
+        const validMatches = allMatches.filter((m: any) => {
+          if (!m.kickoff) return true;
+          let kickoffTime: Date;
+          if (m.kickoff.includes('T')) {
+            kickoffTime = new Date(m.kickoff);
+          } else {
+            const matchDate = m.date;
+            kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
+          }
+          return kickoffTime > now;
+        });
+        
+        // Sort by date and time
+        const sortedMatches = validMatches.sort((a, b) => {
+          const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
+          if (dateComparison !== 0) return dateComparison;
+          return a.kickoff.localeCompare(b.kickoff);
+        });
+        
+        console.log(`[All Matches] Loaded ${sortedMatches.length} matches from allLoadedMatches`);
+        setMatches(sortedMatches);
+        const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+        setGroupedMatches(grouped);
+        
+        setLastUpdated(new Date());
+        setLoading(false);
+        return;
+      }
+      
+      // Fall back to loading from cache if allLoadedMatches is empty
+      console.log('[All Matches] allLoadedMatches is empty, loading from cache...');
       // Load from All Matches progressive cache
       const sourceId = selectedSource?.id || 'totelepep';
       const cacheKey = `all_matches_${catId || 'all'}_${compId || 'all'}_${sourceId}`;
@@ -3225,7 +3266,7 @@ function App() {
           allMatchesProgress={allMatchesProgress || undefined}
           onClearCache={handleClearCache}
           onClearAllCache={handleClearAllCache}
-          filteredMatchCount={searchMode !== 'matches' && searchTerm ? (showAllMatches ? cumulativeFilteredCount?.filtered : (totalFilteredMatchesAllDates || 0)) : undefined}
+          filteredMatchCount={searchMode !== 'matches' && searchTerm ? cumulativeFilteredCount?.filtered : undefined}
           totalAllMatchesCount={cumulativeFilteredCount?.total || Object.values(groupedMatches).flat().length}
           originalDateCounts={availableDatesWithCounts.reduce((acc, entry) => { acc[entry.date] = entry.matchCount; return acc; }, {} as Record<string, number>)}
         />
