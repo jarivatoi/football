@@ -77,6 +77,8 @@ function App() {
 
   const [matches, setMatches] = useState<TotelepepMatch[]>([]);
   const [groupedMatches, setGroupedMatches] = useState<Record<string, TotelepepMatch[]>>({});
+  // Accumulate all loaded dates' matches (persists even when switching dates)
+  const [allLoadedMatches, setAllLoadedMatches] = useState<Record<string, TotelepepMatch[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -221,6 +223,7 @@ function App() {
     // Clear current matches immediately
     setMatches([]);
     setGroupedMatches({});
+    setAllLoadedMatches({});
     
     // Reset progress state (will be restored from cache if available)
     setDateProgress({});
@@ -712,7 +715,13 @@ function App() {
           const grouped = totelepepService.groupMatchesByDate(sortedMatches);
           setGroupedMatches(grouped);
         } else {
-          console.log(`[DEBUG-LoadData] ${dateToFetch}: User is viewing ${currentViewDate}, skipping UI update`);
+          // Still add to allLoadedMatches so filtered counts work for background-loaded dates
+          const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+          setAllLoadedMatches(prev => ({
+            ...prev,
+            ...grouped
+          }));
+          console.log(`[DEBUG-LoadData] ${dateToFetch}: Added to allLoadedMatches from cache (${sortedMatches.length} matches), user is viewing ${currentViewDate}`);
         }
         
         // If cache is valid, mark as complete
@@ -924,7 +933,13 @@ function App() {
         setGroupedMatches(grouped);
         console.log(`[LoadData] ${dateToFetch}: UI updated with ${sortedMatches.length} matches`);
       } else {
-        console.log(`[LoadData] ${dateToFetch}: Skipping UI update (user is viewing ${selectedDate})`);
+        // Still add to allLoadedMatches so filtered counts work for background-loaded dates
+        const grouped = totelepepService.groupMatchesByDate(sortedMatches);
+        setAllLoadedMatches(prev => ({
+          ...prev,
+          ...grouped
+        }));
+        console.log(`[LoadData] ${dateToFetch}: Added to allLoadedMatches (${sortedMatches.length} matches), user is viewing ${selectedDate}`);
       }
       
       // After API fetch, refresh from IndexedDB if cache is now complete
@@ -1183,6 +1198,7 @@ function App() {
           console.log('[All Matches] No complete date caches found - please load individual dates first');
           setMatches([]);
           setGroupedMatches({});
+          setAllLoadedMatches({});
           setAllMatchesProgress({
             loaded: 0,
             total: 0,
@@ -2163,6 +2179,125 @@ function App() {
   const totalFilteredMatches = Object.values(filteredGroupedMatches)
     .reduce((sum, dateMatches) => sum + (dateMatches as TotelepepMatch[]).length, 0);
   
+  // Calculate cumulative filtered count across ALL loaded dates (for All Matches button)
+  const cumulativeFilteredCount = React.useMemo(() => {
+    // Only calculate when filter is active
+    if (searchMode === 'matches' && !searchTerm) return undefined;
+    
+    let totalFiltered = 0;
+    let totalMatches = 0;
+    
+    // Filter ALL loaded dates (from allLoadedMatches) and sum up the counts
+    Object.entries(allLoadedMatches).forEach(([date, dateMatches]) => {
+      let filteredDateMatches = dateMatches as any[];
+      
+      // Apply the same filter logic
+      let cleanSearchTerm = searchTerm;
+      if (cleanSearchTerm.startsWith('=') || cleanSearchTerm.startsWith('>') || cleanSearchTerm.startsWith('<')) {
+        cleanSearchTerm = cleanSearchTerm.substring(1);
+      }
+      
+      let targetOdds = parseFloat(cleanSearchTerm);
+      let positionFilter: 'home' | 'draw' | 'away' | null = null;
+      const upperSearch = cleanSearchTerm.toUpperCase().trim();
+      const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
+      
+      if (upperSearch.endsWith('H') && !hasAdvancedFilter) {
+        positionFilter = 'home';
+        targetOdds = parseFloat(upperSearch.slice(0, -1));
+      } else if (upperSearch.endsWith('D') && !hasAdvancedFilter) {
+        positionFilter = 'draw';
+        targetOdds = parseFloat(upperSearch.slice(0, -1));
+      } else if (upperSearch.endsWith('A') && !hasAdvancedFilter) {
+        positionFilter = 'away';
+        targetOdds = parseFloat(upperSearch.slice(0, -1));
+      }
+      
+      if (!isNaN(targetOdds) && targetOdds > 10) {
+        targetOdds = targetOdds / 100;
+      }
+      
+      // Parse range for "between" mode
+      let targetOddsMin = targetOdds;
+      let targetOddsMax = targetOdds;
+      if (searchMode === 'between' && searchTerm.includes('-')) {
+        const rangeParts = cleanSearchTerm.split('-');
+        if (rangeParts.length === 2) {
+          let minStr = rangeParts[0].trim();
+          let maxStr = rangeParts[1].trim();
+          
+          // Remove position/period suffix from max value
+          const suffixMatch = maxStr.match(/^(\d+\.?\d*)(H1|H2|2H|FT|ALL|H|D|A)?$/i);
+          if (suffixMatch) {
+            maxStr = suffixMatch[1];
+          }
+          
+          targetOddsMin = parseFloat(minStr);
+          targetOddsMax = parseFloat(maxStr);
+          
+          if (!isNaN(targetOddsMin) && targetOddsMin > 10) {
+            targetOddsMin = targetOddsMin / 100;
+          }
+          if (!isNaN(targetOddsMax) && targetOddsMax > 10) {
+            targetOddsMax = targetOddsMax / 100;
+          }
+        }
+      }
+      
+      filteredDateMatches = dateMatches.filter((match: any) => {
+        if (match.isOutright && !hasAdvancedFilter) return false;
+        
+        const homeOdds = parseFloat(String(match.homeOdds));
+        const drawOdds = parseFloat(String(match.drawOdds));
+        const awayOdds = parseFloat(String(match.awayOdds));
+        
+        if (isNaN(homeOdds) && isNaN(drawOdds) && isNaN(awayOdds)) {
+          return match.isOutright && hasAdvancedFilter;
+        }
+        
+        if (positionFilter) {
+          if (searchMode === 'eq') {
+            if (positionFilter === 'home') return Math.abs(homeOdds - targetOdds) < 0.001;
+            if (positionFilter === 'draw') return Math.abs(drawOdds - targetOdds) < 0.001;
+            if (positionFilter === 'away') return Math.abs(awayOdds - targetOdds) < 0.001;
+          } else if (searchMode === 'gte') {
+            if (positionFilter === 'home') return homeOdds >= targetOdds;
+            if (positionFilter === 'draw') return drawOdds >= targetOdds;
+            if (positionFilter === 'away') return awayOdds >= targetOdds;
+          } else if (searchMode === 'lte') {
+            if (positionFilter === 'home') return homeOdds <= targetOdds;
+            if (positionFilter === 'draw') return drawOdds <= targetOdds;
+            if (positionFilter === 'away') return awayOdds <= targetOdds;
+          } else if (searchMode === 'between') {
+            if (positionFilter === 'home') return homeOdds >= targetOddsMin && homeOdds <= targetOddsMax;
+            if (positionFilter === 'draw') return drawOdds >= targetOddsMin && drawOdds <= targetOddsMax;
+            if (positionFilter === 'away') return awayOdds >= targetOddsMin && awayOdds <= targetOddsMax;
+          }
+        } else {
+          if (searchMode === 'eq') {
+            return Math.abs(homeOdds - targetOdds) < 0.001 || 
+                   Math.abs(drawOdds - targetOdds) < 0.001 || 
+                   Math.abs(awayOdds - targetOdds) < 0.001;
+          } else if (searchMode === 'gte') {
+            return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
+          } else if (searchMode === 'lte') {
+            return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
+          } else if (searchMode === 'between') {
+            return (homeOdds >= targetOddsMin && homeOdds <= targetOddsMax) ||
+                   (drawOdds >= targetOddsMin && drawOdds <= targetOddsMax) ||
+                   (awayOdds >= targetOddsMin && awayOdds <= targetOddsMax);
+          }
+        }
+        return false;
+      });
+      
+      totalFiltered += filteredDateMatches.length;
+      totalMatches += dateMatches.length;
+    });
+    
+    return { filtered: totalFiltered, total: totalMatches };
+  }, [allLoadedMatches, searchMode, searchTerm]);
+  
   // Store upcoming match counts by date for debug display
   if (typeof window !== 'undefined') {
     const upcomingCounts: Record<string, number> = {};
@@ -2236,11 +2371,11 @@ function App() {
       return availableDatesWithCounts;
     }
     
-    // When search filter is active, calculate filtered counts for ALL dates in groupedMatches
+    // When search filter is active, calculate filtered counts for ALL loaded dates
     const filteredCounts: Record<string, number> = {};
     
-    // Filter ALL loaded dates (not just the currently selected one)
-    Object.entries(groupedMatches).forEach(([date, dateMatches]) => {
+    // Filter ALL loaded dates (from allLoadedMatches, not just groupedMatches)
+    Object.entries(allLoadedMatches).forEach(([date, dateMatches]) => {
       let filteredDateMatches = dateMatches as any[];
       
       // Apply the same filter logic
@@ -2269,6 +2404,33 @@ function App() {
         targetOdds = targetOdds / 100;
       }
       
+      // Parse range for "between" mode
+      let targetOddsMin = targetOdds;
+      let targetOddsMax = targetOdds;
+      if (searchMode === 'between' && searchTerm.includes('-')) {
+        const rangeParts = cleanSearchTerm.split('-');
+        if (rangeParts.length === 2) {
+          let minStr = rangeParts[0].trim();
+          let maxStr = rangeParts[1].trim();
+          
+          // Remove position/period suffix from max value
+          const suffixMatch = maxStr.match(/^(\d+\.?\d*)(H1|H2|2H|FT|ALL|H|D|A)?$/i);
+          if (suffixMatch) {
+            maxStr = suffixMatch[1];
+          }
+          
+          targetOddsMin = parseFloat(minStr);
+          targetOddsMax = parseFloat(maxStr);
+          
+          if (!isNaN(targetOddsMin) && targetOddsMin > 10) {
+            targetOddsMin = targetOddsMin / 100;
+          }
+          if (!isNaN(targetOddsMax) && targetOddsMax > 10) {
+            targetOddsMax = targetOddsMax / 100;
+          }
+        }
+      }
+      
       filteredDateMatches = dateMatches.filter((match: any) => {
         if (match.isOutright && !hasAdvancedFilter) return false;
         
@@ -2293,6 +2455,10 @@ function App() {
             if (positionFilter === 'home') return homeOdds <= targetOdds;
             if (positionFilter === 'draw') return drawOdds <= targetOdds;
             if (positionFilter === 'away') return awayOdds <= targetOdds;
+          } else if (searchMode === 'between') {
+            if (positionFilter === 'home') return homeOdds >= targetOddsMin && homeOdds <= targetOddsMax;
+            if (positionFilter === 'draw') return drawOdds >= targetOddsMin && drawOdds <= targetOddsMax;
+            if (positionFilter === 'away') return awayOdds >= targetOddsMin && awayOdds <= targetOddsMax;
           }
         } else {
           if (searchMode === 'eq') {
@@ -2303,6 +2469,10 @@ function App() {
             return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
           } else if (searchMode === 'lte') {
             return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
+          } else if (searchMode === 'between') {
+            return (homeOdds >= targetOddsMin && homeOdds <= targetOddsMax) ||
+                   (drawOdds >= targetOddsMin && drawOdds <= targetOddsMax) ||
+                   (awayOdds >= targetOddsMin && awayOdds <= targetOddsMax);
           }
         }
         return false;
@@ -2329,11 +2499,26 @@ function App() {
         return dateEntry;
       }
     });
-  }, [groupedMatches, availableDatesWithCounts, searchMode, searchTerm]);
+  }, [allLoadedMatches, availableDatesWithCounts, searchMode, searchTerm]);
 
   // Debug: Log grouped matches to see what dates we have
   useEffect(() => {
     
+  }, [groupedMatches]);
+  
+  // Accumulate all loaded dates' matches into allLoadedMatches
+  useEffect(() => {
+    // Merge new groupedMatches into allLoadedMatches
+    setAllLoadedMatches(prev => {
+      const updated = { ...prev };
+      
+      // Add/update each date from groupedMatches
+      Object.entries(groupedMatches).forEach(([date, dateMatches]) => {
+        updated[date] = dateMatches;
+      });
+      
+      return updated;
+    });
   }, [groupedMatches]);
 
   // ========================================
@@ -2827,6 +3012,7 @@ function App() {
     // Clear current matches immediately
     setMatches([]);
     setGroupedMatches({});
+    setAllLoadedMatches({});
     
     // Reset progress for this date
     setDateProgress(prev => ({
@@ -2917,6 +3103,7 @@ function App() {
     // Clear current matches immediately
     setMatches([]);
     setGroupedMatches({});
+    setAllLoadedMatches({});
     
     // Reset all progress
     setDateProgress({});
@@ -3023,8 +3210,8 @@ function App() {
           allMatchesProgress={allMatchesProgress || undefined}
           onClearCache={handleClearCache}
           onClearAllCache={handleClearAllCache}
-          filteredMatchCount={searchMode !== 'matches' && searchTerm ? (showAllMatches ? totalFilteredMatches : (totalFilteredMatchesAllDates || 0)) : undefined}
-          totalAllMatchesCount={Object.values(groupedMatches).flat().length}
+          filteredMatchCount={searchMode !== 'matches' && searchTerm ? (showAllMatches ? cumulativeFilteredCount?.filtered : (totalFilteredMatchesAllDates || 0)) : undefined}
+          totalAllMatchesCount={cumulativeFilteredCount?.total || Object.values(groupedMatches).flat().length}
           originalDateCounts={availableDatesWithCounts.reduce((acc, entry) => { acc[entry.date] = entry.matchCount; return acc; }, {} as Record<string, number>)}
         />
         
