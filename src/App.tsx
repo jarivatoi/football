@@ -2236,7 +2236,7 @@ function App() {
       return availableDatesWithCounts;
     }
     
-    // When search filter is active, calculate filtered counts
+    // When search filter is active, calculate filtered counts for ALL dates
     const filteredCounts: Record<string, number> = {};
     
     // Get filtered counts from filteredGroupedMatches (contains the filtered matches)
@@ -2245,21 +2245,21 @@ function App() {
     });
     
     // Merge with availableDatesWithCounts
-    // - For loaded dates (selected date or All Matches): shows filtered count
-    // - For unloaded dates: shows original count (can't filter unloaded data)
+    // Show filtered/original counts for all dates
     return availableDatesWithCounts.map(dateEntry => {
-      // When All Matches is active, NEVER show filtered counts on individual date buttons
-      // Only the All Matches button itself shows the filtered count
-      if (showAllMatches) {
-        return dateEntry; // Return original counts for all date buttons
-      } else {
-        // Single date mode: Show filtered count for the selected date if loaded
+      const filteredCount = filteredCounts[dateEntry.date];
+      const originalCount = dateEntry.matchCount;
+      
+      // If we have filtered data for this date, show (filtered/original)
+      // Otherwise show original count
+      if (filteredCount !== undefined) {
         return {
           ...dateEntry,
-          matchCount: filteredCounts[dateEntry.date] !== undefined 
-            ? filteredCounts[dateEntry.date] 
-            : dateEntry.matchCount
+          matchCount: filteredCount // Show filtered count
         };
+      } else {
+        // Date not loaded yet, show original count
+        return dateEntry;
       }
     });
   }, [filteredGroupedMatches, availableDatesWithCounts, searchMode, searchTerm, showAllMatches]);
@@ -2958,6 +2958,7 @@ function App() {
           onClearAllCache={handleClearAllCache}
           filteredMatchCount={searchMode !== 'matches' && searchTerm ? (showAllMatches ? totalFilteredMatches : (totalFilteredMatchesAllDates || 0)) : undefined}
           totalAllMatchesCount={Object.values(groupedMatches).flat().length}
+          originalDateCounts={availableDatesWithCounts.reduce((acc, entry) => { acc[entry.date] = entry.matchCount; return acc; }, {} as Record<string, number>)}
         />
         
         {/* Search Bar */}

@@ -22,6 +22,7 @@ interface DateSelectorProps {
   onClearAllCache?: () => void; // Long-press callback for All Matches
   filteredMatchCount?: number; // Filtered match count for display (e.g., 16/160)
   totalAllMatchesCount?: number; // Total matches across all dates (for filtered count denominator)
+  originalDateCounts?: Record<string, number>; // Original match counts per date (for filtered display)
 }
 
 const DateSelector: React.FC<DateSelectorProps> = ({ 
@@ -36,7 +37,8 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   onClearCache,
   onClearAllCache,
   filteredMatchCount,
-  totalAllMatchesCount
+  totalAllMatchesCount,
+  originalDateCounts
 }) => {
   // Long-press state
   const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null);
@@ -124,7 +126,11 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                 <div className={`text-[10px] ${
                   isSelected && isComplete ? 'text-green-100' : isSelected ? 'text-blue-100' : 'text-gray-500'
                 }`}>
-                  {dateStr && `${dateStr} `}({dateInfo.matchCount})
+                  {dateStr && `${dateStr} `}(
+                    {originalDateCounts && originalDateCounts[dateInfo.date] && dateInfo.matchCount !== originalDateCounts[dateInfo.date]
+                      ? `${dateInfo.matchCount}/${originalDateCounts[dateInfo.date]}`
+                      : dateInfo.matchCount}
+                  )
                 </div>
               </div>
               
