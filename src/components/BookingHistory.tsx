@@ -24,6 +24,7 @@ interface BookingHistoryProps {
 const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, onBookingsCountChange, onRepeatBet, currentSourceId }) => {
   const [savedBookings, setSavedBookings] = useState<SavedBooking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<SavedBooking | null>(null);
+  const bookingDetailRef = React.useRef<HTMLDivElement>(null);
 
   // Load bookings when modal opens
   useEffect(() => {
@@ -39,6 +40,15 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
       loadBookings();
     }
   }, [showHistory, onBookingsCountChange]);
+  
+  // Auto-scroll to bottom when viewing a booking
+  useEffect(() => {
+    if (selectedBooking && bookingDetailRef.current) {
+      setTimeout(() => {
+        bookingDetailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 100);
+    }
+  }, [selectedBooking]);
 
   // Format timestamp to readable date/time
   const formatBookingDateTime = (timestamp: number): string => {
@@ -212,7 +222,7 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
             </div>
             
             {/* Booking Content */}
-            <div className="flex-1 overflow-y-auto p-4">
+            <div ref={bookingDetailRef} className="flex-1 overflow-y-auto p-4">
               {(() => { console.log('📋 Selected booking data:', selectedBooking); return null; })()}
               {/* Matches */}
               <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white">

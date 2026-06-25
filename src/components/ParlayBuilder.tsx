@@ -706,6 +706,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   onBookingsCountChange
 }) => {
   const [betAmount, setBetAmount] = useState<number>(50);
+  const bookingResultRef = React.useRef<HTMLDivElement>(null);
   const [isPlacing, setIsPlacing] = useState(false);
   const [lastResult, setLastResult] = useState<{
     success: boolean;
@@ -1107,6 +1108,13 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           bonus: bonusToSave,
           netPayout: netPayoutToSave
         });
+        
+        // Auto-scroll to booking result after successful bet
+        setTimeout(() => {
+          if (bookingResultRef.current) {
+            bookingResultRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+          }
+        }, 100);
         
         // Don't clear selections or reset bet amount - let user decide
         setIsPlacing(false);
@@ -1642,7 +1650,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             </div>
 
             {/* Booking Reference Section - Capture Target */}
-            <div ref={bookingRefRef} className="bg-white">
+            <div ref={bookingResultRef}>
+              <div ref={bookingRefRef} className="bg-white">
               {/* API Source - Above Booking Reference */}
               {selectedSource && (
                 <div className="p-2 bg-blue-50 text-center border-b border-blue-200">
@@ -1695,6 +1704,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               </div>
             </div>
             </div> {/* End of bookingRefRef wrapper */}
+            </div> {/* End of bookingResultRef wrapper */}
 
             {/* Place New Bet Button */}
             {showNewBetButton && (
