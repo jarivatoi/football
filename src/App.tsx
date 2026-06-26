@@ -3011,9 +3011,18 @@ function App() {
                               sel.name === '2' || sel.name === 'Away' ? 'away' :
                               `${marketBookNo}-${sel.name}`;
           
-          // Skip the main bet selection
-          if (selPriceType === priceType) return;
+          // Skip the main bet selection - compare priceType
+          if (selPriceType === priceType) {
+            console.log('[BetRefund] Skipping main bet:', selPriceType);
+            return;
+          }
           
+          // Also skip if selection name matches priceType (for quick 1X2)
+          if (priceType === 'home' && (sel.name === '1' || sel.name === 'Home')) return;
+          if (priceType === 'draw' && (sel.name === 'X' || sel.name === 'Draw')) return;
+          if (priceType === 'away' && (sel.name === '2' || sel.name === 'Away')) return;
+          
+          console.log('[BetRefund] Adding refund option:', selPriceType, sel.name);
           refundOptions.push({
             matchId,
             priceType: selPriceType,

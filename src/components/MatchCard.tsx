@@ -674,6 +674,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   // Long-press handler for Bet Refund Mode
   const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null);
   const [isPressing, setIsPressing] = useState(false);
+  const [longPressTriggered, setLongPressTriggered] = useState(false);
   
   const handlePressStart = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => {
     console.log('[LongPress] Press started');
@@ -685,9 +686,11 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     
     const numericOdds = typeof odds === 'string' ? parseFloat(odds) : odds;
     setIsPressing(true);
+    setLongPressTriggered(false); // Reset flag
     
     const timer = setTimeout(() => {
       console.log('[LongPress] 3 seconds elapsed, triggering!');
+      setLongPressTriggered(true); // Mark that long-press triggered
       onLongPress(matchId, priceType, numericOdds, marketBookNo, marketCode, marketId, marketLine, periodCode, marketDisplayName, optionCode, optionNo);
       setIsPressing(false);
     }, 3000); // 3 seconds
@@ -702,6 +705,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       setPressTimer(null);
     }
     setIsPressing(false);
+    // Reset flag after a short delay
+    setTimeout(() => setLongPressTriggered(false), 100);
   };
 
   // Check if an odds value matches the current search filter
@@ -850,6 +855,11 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                // Prevent normal click if long-press was triggered
+                if (longPressTriggered) {
+                  console.log('[LongPress] Preventing normal click after long-press');
+                  return;
+                }
                 onPriceClick(match.id, 'home', match.homeOdds, match.marketBookNo, match.marketCode);
               }}
               onMouseDown={(e) => {
@@ -879,6 +889,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                if (longPressTriggered) return;
                 onPriceClick(match.id, 'draw', match.drawOdds, match.marketBookNo, match.marketCode);
               }}
               onMouseDown={(e) => {
@@ -908,6 +919,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                if (longPressTriggered) return;
                 onPriceClick(match.id, 'away', match.awayOdds, match.marketBookNo, match.marketCode);
               }}
               onMouseDown={(e) => {
