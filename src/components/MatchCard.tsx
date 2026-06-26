@@ -745,6 +745,16 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       // If no selectionName provided, can't verify - return true
     }
     
+    // Check BTTS option match (Y = Yes, N = No)
+    if (parsed.option === 'Y' || parsed.option === 'N') {
+      if (selectionName) {
+        const selName = selectionName.toUpperCase();
+        if (parsed.option === 'Y' && !selName.includes('YES') && selName !== 'Y' && !selName.includes('BOTH')) return false;
+        if (parsed.option === 'N' && !selName.includes('NO') && selName !== 'N' && !selName.includes('NOT')) return false;
+      }
+      // If no selectionName provided, can't verify - return true
+    }
+    
     return true;
   };
 

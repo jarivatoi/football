@@ -1856,6 +1856,7 @@ function App() {
               const lastChars = upperSearch.slice(-1);
               if (lastChars === 'Y') bttsOption = 'Y';
               else if (lastChars === 'N') bttsOption = 'N';
+              console.log(`[BTTS Filter] Detected bttsOption: ${bttsOption} from ${upperSearch}`);
             }
             
             // KEY RULE: If position filter is set but no market type specified, use 1X2 market
@@ -1990,9 +1991,19 @@ function App() {
                     market.periodCode !== 'H1' && market.periodCode !== 'H2') return false;
               }
               
-              // Check market type
+              // Check market type - use marketCode, marketDisplayName, AND name
               const marketName = (market.name || '').toUpperCase();
-              if (targetMarketType === 'BTTS' && !marketName.includes('BTTS') && !marketName.includes('BOTH')) return false;
+              const marketDisplayName = (market.marketDisplayName || '').toUpperCase();
+              const marketCode = (market.marketCode || '').toUpperCase();
+              
+              // BTTS: Check all possible field names
+              if (targetMarketType === 'BTTS') {
+                const hasBTTS = marketName.includes('BTTS') || marketName.includes('BOTH') ||
+                               marketDisplayName.includes('BTTS') || marketDisplayName.includes('BOTH') ||
+                               marketCode === 'BT' || marketCode === 'BTTS';
+                if (!hasBTTS) return false;
+              }
+              
               if (targetMarketType === 'UO' && !marketName.includes('OVER') && !marketName.includes('UNDER')) return false;
               
               // Check UO line if specified (e.g., +1.5, -2.5)
