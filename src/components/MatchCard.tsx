@@ -673,25 +673,35 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
 
   // Long-press handler for Bet Refund Mode
   const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isPressing, setIsPressing] = useState(false);
   
   const handlePressStart = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => {
+    console.log('[LongPress] Press started');
     // Only activate if parlay builder is empty (check via parent)
-    if (!onLongPress) return;
+    if (!onLongPress) {
+      console.log('[LongPress] No onLongPress handler');
+      return;
+    }
     
     const numericOdds = typeof odds === 'string' ? parseFloat(odds) : odds;
+    setIsPressing(true);
     
     const timer = setTimeout(() => {
+      console.log('[LongPress] 3 seconds elapsed, triggering!');
       onLongPress(matchId, priceType, numericOdds, marketBookNo, marketCode, marketId, marketLine, periodCode, marketDisplayName, optionCode, optionNo);
+      setIsPressing(false);
     }, 3000); // 3 seconds
     
     setPressTimer(timer);
   };
 
   const handlePressEnd = () => {
+    console.log('[LongPress] Press ended');
     if (pressTimer) {
       clearTimeout(pressTimer);
       setPressTimer(null);
     }
+    setIsPressing(false);
   };
 
   // Check if an odds value matches the current search filter
@@ -842,7 +852,20 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                 e.stopPropagation();
                 onPriceClick(match.id, 'home', match.homeOdds, match.marketBookNo, match.marketCode);
               }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handlePressStart(match.id, 'home', match.homeOdds, match.marketBookNo, match.marketCode, match.marketId);
+              }}
+              onMouseUp={handlePressEnd}
+              onMouseLeave={handlePressEnd}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                handlePressStart(match.id, 'home', match.homeOdds, match.marketBookNo, match.marketCode, match.marketId);
+              }}
+              onTouchEnd={handlePressEnd}
               className={`w-full flex items-center justify-between py-2 px-4 rounded text-sm font-medium transition-all ${
+                isPressing ? 'opacity-70 scale-95' : ''
+              } ${
                 isSelected('home')
                   ? 'bg-blue-600 text-white'
                   : oddsMatchFilter(match.homeOdds, 'home')
@@ -858,7 +881,20 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                 e.stopPropagation();
                 onPriceClick(match.id, 'draw', match.drawOdds, match.marketBookNo, match.marketCode);
               }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handlePressStart(match.id, 'draw', match.drawOdds, match.marketBookNo, match.marketCode, match.marketId);
+              }}
+              onMouseUp={handlePressEnd}
+              onMouseLeave={handlePressEnd}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                handlePressStart(match.id, 'draw', match.drawOdds, match.marketBookNo, match.marketCode, match.marketId);
+              }}
+              onTouchEnd={handlePressEnd}
               className={`w-full flex items-center justify-between py-2 px-4 rounded text-sm font-medium transition-all ${
+                isPressing ? 'opacity-70 scale-95' : ''
+              } ${
                 isSelected('draw')
                   ? 'bg-blue-600 text-white'
                   : oddsMatchFilter(match.drawOdds, 'draw')
@@ -874,7 +910,20 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                 e.stopPropagation();
                 onPriceClick(match.id, 'away', match.awayOdds, match.marketBookNo, match.marketCode);
               }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handlePressStart(match.id, 'away', match.awayOdds, match.marketBookNo, match.marketCode, match.marketId);
+              }}
+              onMouseUp={handlePressEnd}
+              onMouseLeave={handlePressEnd}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                handlePressStart(match.id, 'away', match.awayOdds, match.marketBookNo, match.marketCode, match.marketId);
+              }}
+              onTouchEnd={handlePressEnd}
               className={`w-full flex items-center justify-between py-2 px-4 rounded text-sm font-medium transition-all ${
+                isPressing ? 'opacity-70 scale-95' : ''
+              } ${
                 isSelected('away')
                   ? 'bg-blue-600 text-white'
                   : oddsMatchFilter(match.awayOdds, 'away')
@@ -1041,6 +1090,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                           }}
                           onTouchEnd={handlePressEnd}
                           className={`flex-1 min-w-[80px] py-2 px-2 rounded text-sm font-medium transition-all ${
+                            isPressing ? 'opacity-70 scale-95' : ''
+                          } ${
                             isSelectedMarket
                               ? 'bg-blue-600 text-white'
                               : (() => {

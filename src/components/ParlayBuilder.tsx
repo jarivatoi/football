@@ -695,6 +695,10 @@ interface ParlayBuilderProps {
   onBookingsCountChange?: (count: number) => void;  // Notify parent of booking count changes
   onInitiateBetRefund?: (matchId: string, priceType: string, odds: number, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => void;  // Long-press handler
   onSetSelections?: (selections: ParlaySelection[]) => void;  // Set selections directly
+  betRefundMode?: boolean;  // Bet Refund Mode active
+  mainBetSelection?: ParlaySelection | null;  // Main bet for refund mode
+  refundSelections?: ParlaySelection[];  // Available refund options
+  onExitBetRefundMode?: () => void;  // Exit bet refund mode
 }
 
 const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
@@ -707,7 +711,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   onHideHistoryModal,
   onBookingsCountChange,
   onInitiateBetRefund,
-  onSetSelections
+  onSetSelections,
+  betRefundMode = false,
+  mainBetSelection = null,
+  refundSelections = [],
+  onExitBetRefundMode
 }) => {
   const [betAmount, setBetAmount] = useState<number>(50);
   const bookingResultRef = React.useRef<HTMLDivElement>(null);
@@ -730,10 +738,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   const bookingRefRef = useRef<HTMLDivElement>(null); // Ref for booking reference section
   const [selectedBooking, setSelectedBooking] = useState<SavedBooking | null>(null); // View full booking details
   
-  // Bet Refund Mode states
-  const [betRefundMode, setBetRefundMode] = useState(false);
-  const [mainBetSelection, setMainBetSelection] = useState<ParlaySelection | null>(null);
-  const [refundSelections, setRefundSelections] = useState<ParlaySelection[]>([]);
+  // Bet Refund Mode states - now from props, only keep UI state locally
   const [selectedRefundIndex, setSelectedRefundIndex] = useState<number>(0);
   const [refundModeType, setRefundModeType] = useState<'budget' | 'profit'>('budget');
   const [budgetAmount, setBudgetAmount] = useState<number>(2000);
@@ -1462,8 +1467,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             <h3 className="text-lg font-bold text-purple-800">🎯 Bet Refund Mode</h3>
             <button
               onClick={() => {
-                setBetRefundMode(false);
-                setMainBetSelection(null);
+                if (onExitBetRefundMode) onExitBetRefundMode();
                 if (onSetSelections) onSetSelections([]);
               }}
               className="text-purple-600 hover:text-purple-800 text-sm font-medium"

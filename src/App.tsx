@@ -88,6 +88,7 @@ function App() {
   const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
   const [showBetRefundMode, setShowBetRefundMode] = useState(false);
   const [betRefundMainSelection, setBetRefundMainSelection] = useState<ParlaySelection | null>(null);
+  const [betRefundOptions, setBetRefundOptions] = useState<ParlaySelection[]>([]);
   const [showExtractor, setShowExtractor] = useState(false);
   const [showEndpointDiscovery, setShowEndpointDiscovery] = useState(false);
   const [showResponseAnalyzer, setShowResponseAnalyzer] = useState(false);
@@ -3038,6 +3039,7 @@ function App() {
     
     // Set Bet Refund Mode
     setBetRefundMainSelection(mainSelection);
+    setBetRefundOptions(refundOptions);
     setShowBetRefundMode(true);
     
     // Add main selection to parlay builder
@@ -3526,6 +3528,14 @@ function App() {
             onHideHistoryModal={handleCloseBookingHistory}
             onBookingsCountChange={setSavedBookingsCount}
             onSetSelections={setParlaySelections}
+            betRefundMode={showBetRefundMode}
+            mainBetSelection={betRefundMainSelection}
+            refundSelections={betRefundOptions}
+            onExitBetRefundMode={() => {
+              setShowBetRefundMode(false);
+              setBetRefundMainSelection(null);
+              setBetRefundOptions([]);
+            }}
           />
         ) : (
           // Show empty state when no selections but panel is still open
