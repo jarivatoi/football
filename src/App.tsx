@@ -3043,8 +3043,12 @@ function App() {
     setShowBetRefundMode(true);
     setShowParlayBuilder(true); // Open the parlay builder panel
     
-    // Add main selection to parlay builder
-    setParlaySelections([mainSelection]);
+    // Add main selection + first refund option to parlay builder
+    if (refundOptions.length > 0) {
+      setParlaySelections([mainSelection, refundOptions[0]]);
+    } else {
+      setParlaySelections([mainSelection]);
+    }
   };
 
   const handleRemoveSelection = (matchId: string, priceType?: string) => {

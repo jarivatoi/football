@@ -1461,7 +1461,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       </div>
 
       {/* Bet Refund Mode UI */}
-      {betRefundMode && mainBetSelection && selections.length === 2 && (
+      {betRefundMode && mainBetSelection && selections.length >= 1 && (
         <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-bold text-purple-800">🎯 Bet Refund Mode</h3>
