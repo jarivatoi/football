@@ -2997,11 +2997,16 @@ function App() {
     // Find other options from the same market for refund dropdown
     const refundOptions: ParlaySelection[] = [];
     
+    console.log('[BetRefund] Building refund options, priceType:', priceType);
+    console.log('[BetRefund] match.allMarkets exists:', !!match.allMarkets);
+    
     if (match.allMarkets && match.allMarkets.length > 0) {
       // Find the market that contains this selection
       const sourceMarket = match.allMarkets.find(m => 
         m.marketBookNo === marketBookNo || m.id === marketId
       );
+      
+      console.log('[BetRefund] Found sourceMarket:', !!sourceMarket);
       
       if (sourceMarket) {
         // Get all other selections from this market (excluding the main bet)
@@ -3011,18 +3016,15 @@ function App() {
                               sel.name === '2' || sel.name === 'Away' ? 'away' :
                               `${marketBookNo}-${sel.name}`;
           
-          // Skip the main bet selection - compare priceType
+          console.log('[BetRefund] Checking selection:', sel.name, '-> priceType:', selPriceType, 'vs main:', priceType);
+          
+          // Skip the main bet selection
           if (selPriceType === priceType) {
-            console.log('[BetRefund] Skipping main bet:', selPriceType);
+            console.log('[BetRefund] SKIPPING (matches priceType)');
             return;
           }
           
-          // Also skip if selection name matches priceType (for quick 1X2)
-          if (priceType === 'home' && (sel.name === '1' || sel.name === 'Home')) return;
-          if (priceType === 'draw' && (sel.name === 'X' || sel.name === 'Draw')) return;
-          if (priceType === 'away' && (sel.name === '2' || sel.name === 'Away')) return;
-          
-          console.log('[BetRefund] Adding refund option:', selPriceType, sel.name);
+          console.log('[BetRefund] ADDING refund option:', selPriceType);
           refundOptions.push({
             matchId,
             priceType: selPriceType,
@@ -3044,7 +3046,50 @@ function App() {
           });
         });
       }
+    } else {
+      // Fallback for quick 1X2 when allMarkets not loaded - create from top-level odds
+      console.log('[BetRefund] Using fallback - creating from top-level odds');
+      
+      const quickOptions = [
+        { priceType: 'home', odds: match.homeOdds, name: '1' },
+        { priceType: 'draw', odds: match.drawOdds, name: 'X' },
+        { priceType: 'away', odds: match.awayOdds, name: '2' }
+      ];
+      
+      quickOptions.forEach(opt => {
+        if (opt.priceType === priceType) {
+          console.log('[BetRefund] SKIPPING main bet:', opt.priceType);
+          return;
+        }
+        if (!opt.odds || opt.odds === 0) {
+          console.log('[BetRefund] SKIPPING invalid odds:', opt.priceType);
+          return;
+        }
+        
+        console.log('[BetRefund] ADDING fallback option:', opt.priceType, opt.odds);
+        refundOptions.push({
+          matchId,
+          priceType: opt.priceType,
+          odds: opt.odds,
+          homeTeam: match.homeTeam,
+          awayTeam: match.awayTeam,
+          league: match.league,
+          kickoff: match.kickoff,
+          matchDate: match.date,
+          marketBookNo,
+          marketCode,
+          marketId,
+          marketLine,
+          periodCode: 'FT',
+          marketDisplayName: '1 X 2',
+          optionCode: opt.name,
+          optionNo: opt.name,
+          competitionId: match.competitionId
+        });
+      });
     }
+    
+    console.log('[BetRefund] Total refund options:', refundOptions.length);
     
     // Set Bet Refund Mode
     setBetRefundMainSelection(mainSelection);
