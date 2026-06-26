@@ -1604,6 +1604,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               refundStake = mainStake / refundRatio;
               totalPaid = (mainStake + refundStake) * TAX_RATE;
               profit = (mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER) - totalPaid;
+              
+              console.log('[BetRefund Target Profit] profit:', profit, 'targetProfit:', targetProfit, 'match:', Math.abs(profit - targetProfit) < 0.01);
             }
 
             return (
