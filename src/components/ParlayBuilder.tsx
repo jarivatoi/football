@@ -1559,23 +1559,51 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           {(() => {
             const mainOdds = typeof mainBetSelection.odds === 'string' ? parseFloat(mainBetSelection.odds) : mainBetSelection.odds;
             const refundOdds = typeof selections[1]?.odds === 'string' ? parseFloat(selections[1].odds) : selections[1]?.odds || 0;
-            const TAX_RATE = 0.8772;
+            const TAX_RATE = 0.8772; // After 14% tax
+            
+            // Check if this API source gives bonus (from previous bet if available)
+            const hasBonus = apiBreakdown && apiBreakdown.bonus > 0;
+            const bonusPercentage = hasBonus ? (apiBreakdown.bonus / (apiBreakdown.netPayout - apiBreakdown.bonus)) * 100 : 0;
+            const BONUS_MULTIPLIER = hasBonus ? (1 + bonusPercentage / 100) : 1;
             
             let mainStake = 0, refundStake = 0, totalPaid = 0, profit = 0;
             
             if (refundModeType === 'budget') {
+              // Budget mode: Calculate stakes to get budget back on refund
               const effectiveRefundStake = budgetAmount / refundOdds;
               refundStake = effectiveRefundStake / TAX_RATE;
               const totalPreTax = budgetAmount / TAX_RATE;
               mainStake = totalPreTax - refundStake;
-              profit = (mainStake * TAX_RATE * mainOdds) - budgetAmount;
+              // Profit includes bonus if available
+              profit = (mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER) - budgetAmount;
               totalPaid = budgetAmount;
             } else {
-              const ratio = refundOdds / (refundOdds - 1);
-              refundStake = targetProfit / (TAX_RATE * (mainOdds - 1) * ratio);
-              mainStake = refundStake * ratio;
+              // Target Profit mode: Calculate stakes for EXACT target profit AFTER tax and bonus
+              // Formula: We need profit AFTER tax to equal targetProfit
+              // profit_after_tax = (mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER) - totalPaid
+              // totalPaid = (mainStake + refundStake) * TAX_RATE
+              // refund condition: refundStake * TAX_RATE * refundOdds = totalPaid
+              
+              // From refund condition: refundStake = totalPaid / (TAX_RATE * refundOdds)
+              // From profit condition: targetProfit = mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER - totalPaid
+              // => totalPaid = mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER - targetProfit
+              
+              // Also: totalPaid = (mainStake + refundStake) * TAX_RATE
+              // => totalPaid = mainStake * TAX_RATE + refundStake * TAX_RATE
+              // => totalPaid = mainStake * TAX_RATE + totalPaid / refundOdds
+              // => totalPaid * (1 - 1/refundOdds) = mainStake * TAX_RATE
+              // => totalPaid = mainStake * TAX_RATE * refundOdds / (refundOdds - 1)
+              
+              // Substitute into profit equation:
+              // mainStake * TAX_RATE * refundOdds / (refundOdds - 1) = mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER - targetProfit
+              // => targetProfit = mainStake * TAX_RATE * (mainOdds * BONUS_MULTIPLIER - refundOdds / (refundOdds - 1))
+              // => mainStake = targetProfit / (TAX_RATE * (mainOdds * BONUS_MULTIPLIER - refundOdds / (refundOdds - 1)))
+              
+              const refundRatio = refundOdds / (refundOdds - 1);
+              mainStake = targetProfit / (TAX_RATE * (mainOdds * BONUS_MULTIPLIER - refundRatio));
+              refundStake = mainStake / refundRatio;
               totalPaid = (mainStake + refundStake) * TAX_RATE;
-              profit = (mainStake * TAX_RATE * mainOdds) - totalPaid;
+              profit = (mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER) - totalPaid;
             }
 
             return (
@@ -1607,6 +1635,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     <span className="text-gray-700">If Refund Wins:</span>
                     <span className="font-bold text-blue-700">Rs 0.00 (full refund)</span>
                   </div>
+                  {hasBonus && (
+                    <div className="mt-2 pt-2 border-t border-green-300 text-xs text-green-600">
+                      ℹ️ Includes {bonusPercentage.toFixed(0)}% bonus from API source
+                    </div>
+                  )}
                 </div>
               </div>
             );
