@@ -3041,6 +3041,7 @@ function App() {
     setBetRefundMainSelection(mainSelection);
     setBetRefundOptions(refundOptions);
     setShowBetRefundMode(true);
+    setShowParlayBuilder(true); // Open the parlay builder panel
     
     // Add main selection to parlay builder
     setParlaySelections([mainSelection]);
