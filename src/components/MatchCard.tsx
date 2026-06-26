@@ -10,9 +10,10 @@ interface MatchCardProps {
   searchMode?: 'matches' | 'eq' | 'gte' | 'lte' | 'between'; // Search filter mode
   searchTerm?: string; // Search term for odds highlighting
   onMarketsLoaded?: (matchId: string, markets: any[]) => void; // Callback when markets load
+  onLongPress?: (matchId: string, priceType: string, odds: number, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => void;  // Long-press handler for Bet Refund Mode
 }
 
-const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '', onMarketsLoaded }) => {
+const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '', onMarketsLoaded, onLongPress }) => {
   
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoadingMarkets, setIsLoadingMarkets] = useState(false);
@@ -670,6 +671,29 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     return num.toFixed(2);
   };
 
+  // Long-press handler for Bet Refund Mode
+  const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null);
+  
+  const handlePressStart = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => {
+    // Only activate if parlay builder is empty (check via parent)
+    if (!onLongPress) return;
+    
+    const numericOdds = typeof odds === 'string' ? parseFloat(odds) : odds;
+    
+    const timer = setTimeout(() => {
+      onLongPress(matchId, priceType, numericOdds, marketBookNo, marketCode, marketId, marketLine, periodCode, marketDisplayName, optionCode, optionNo);
+    }, 3000); // 3 seconds
+    
+    setPressTimer(timer);
+  };
+
+  const handlePressEnd = () => {
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      setPressTimer(null);
+    }
+  };
+
   // Check if an odds value matches the current search filter
   const oddsMatchFilter = (odds: number | string, position?: 'home' | 'draw' | 'away', period?: string, selectionName?: string): boolean => {
     // Only process when there's a search term and we're NOT in matches mode
@@ -994,6 +1018,28 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                               );
                             }
                           }}
+                          onMouseDown={() => {
+                            // For 1X2 markets, use simple priceTypes
+                            const periodCode = market.periodCode || 'FT';
+                            const priceTypeSuffix = periodCode === 'FT' ? '' : `-${periodCode}`;
+                            const priceType = selection.name === '1' || selection.name === 'Home' || selection.name === '1 (Home)' || selection.name === match.homeTeam ? `home${priceTypeSuffix}` :
+                                             selection.name === 'X' || selection.name === 'Draw' || selection.name === 'X (Draw)' ? `draw${priceTypeSuffix}` :
+                                             selection.name === '2' || selection.name === 'Away' || selection.name === '2 (Away)' || selection.name === match.awayTeam ? `away${priceTypeSuffix}` :
+                                             `${market.marketBookNo}-${selection.name}`;
+                            handlePressStart(match.id, priceType, selection.odds, market.marketBookNo, market.marketCode, market.id, market.marketLine, market.periodCode, market.marketDisplayName, selection.optionCode, selection.optionNo);
+                          }}
+                          onMouseUp={handlePressEnd}
+                          onMouseLeave={handlePressEnd}
+                          onTouchStart={() => {
+                            const periodCode = market.periodCode || 'FT';
+                            const priceTypeSuffix = periodCode === 'FT' ? '' : `-${periodCode}`;
+                            const priceType = selection.name === '1' || selection.name === 'Home' || selection.name === '1 (Home)' || selection.name === match.homeTeam ? `home${priceTypeSuffix}` :
+                                             selection.name === 'X' || selection.name === 'Draw' || selection.name === 'X (Draw)' ? `draw${priceTypeSuffix}` :
+                                             selection.name === '2' || selection.name === 'Away' || selection.name === '2 (Away)' || selection.name === match.awayTeam ? `away${priceTypeSuffix}` :
+                                             `${market.marketBookNo}-${selection.name}`;
+                            handlePressStart(match.id, priceType, selection.odds, market.marketBookNo, market.marketCode, market.id, market.marketLine, market.periodCode, market.marketDisplayName, selection.optionCode, selection.optionNo);
+                          }}
+                          onTouchEnd={handlePressEnd}
                           className={`flex-1 min-w-[80px] py-2 px-2 rounded text-sm font-medium transition-all ${
                             isSelectedMarket
                               ? 'bg-blue-600 text-white'

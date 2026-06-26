@@ -86,6 +86,8 @@ function App() {
   const [searchOddsValue, setSearchOddsValue] = useState<string>('');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [parlaySelections, setParlaySelections] = useState<ParlaySelection[]>([]);
+  const [showBetRefundMode, setShowBetRefundMode] = useState(false);
+  const [betRefundMainSelection, setBetRefundMainSelection] = useState<ParlaySelection | null>(null);
   const [showExtractor, setShowExtractor] = useState(false);
   const [showEndpointDiscovery, setShowEndpointDiscovery] = useState(false);
   const [showResponseAnalyzer, setShowResponseAnalyzer] = useState(false);
@@ -2963,6 +2965,85 @@ function App() {
     }
   };
 
+  const handleLongPress = (matchId: string, priceType: string, odds: number, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => {
+    // Only activate when parlay builder is empty
+    if (parlaySelections.length > 0) return;
+    
+    const match = matches.find(m => m.id === matchId);
+    if (!match) return;
+    
+    // Create main bet selection
+    const mainSelection: ParlaySelection = {
+      matchId,
+      priceType,
+      odds,
+      homeTeam: match.homeTeam,
+      awayTeam: match.awayTeam,
+      league: match.league,
+      kickoff: match.kickoff,
+      matchDate: match.date,
+      marketBookNo,
+      marketCode,
+      marketId,
+      marketLine,
+      periodCode,
+      marketDisplayName,
+      optionCode,
+      optionNo,
+      competitionId: match.competitionId
+    };
+    
+    // Find other options from the same market for refund dropdown
+    const refundOptions: ParlaySelection[] = [];
+    
+    if (match.allMarkets && match.allMarkets.length > 0) {
+      // Find the market that contains this selection
+      const sourceMarket = match.allMarkets.find(m => 
+        m.marketBookNo === marketBookNo || m.id === marketId
+      );
+      
+      if (sourceMarket) {
+        // Get all other selections from this market (excluding the main bet)
+        sourceMarket.selections.forEach(sel => {
+          const selPriceType = sel.name === '1' || sel.name === 'Home' ? 'home' :
+                              sel.name === 'X' || sel.name === 'Draw' ? 'draw' :
+                              sel.name === '2' || sel.name === 'Away' ? 'away' :
+                              `${marketBookNo}-${sel.name}`;
+          
+          // Skip the main bet selection
+          if (selPriceType === priceType) return;
+          
+          refundOptions.push({
+            matchId,
+            priceType: selPriceType,
+            odds: sel.odds,
+            homeTeam: match.homeTeam,
+            awayTeam: match.awayTeam,
+            league: match.league,
+            kickoff: match.kickoff,
+            matchDate: match.date,
+            marketBookNo,
+            marketCode,
+            marketId,
+            marketLine,
+            periodCode: sourceMarket.periodCode,
+            marketDisplayName: sourceMarket.marketDisplayName,
+            optionCode: sel.optionCode,
+            optionNo: sel.optionNo,
+            competitionId: match.competitionId
+          });
+        });
+      }
+    }
+    
+    // Set Bet Refund Mode
+    setBetRefundMainSelection(mainSelection);
+    setShowBetRefundMode(true);
+    
+    // Add main selection to parlay builder
+    setParlaySelections([mainSelection]);
+  };
+
   const handleRemoveSelection = (matchId: string, priceType?: string) => {
     setParlaySelections(prev => {
       // Remove the specific selection
@@ -3412,6 +3493,7 @@ function App() {
           groupedMatches={filteredGroupedMatches}
           loading={loading}
           onPriceClick={handlePriceClick}
+          onLongPress={handleLongPress}
           selectedPrices={parlaySelections.map((s, index) => `${s.matchId}-${s.priceType}`)}
           apiSourceName={selectedSource.displayName}
           searchMode={searchMode}
@@ -3443,6 +3525,7 @@ function App() {
             showHistoryModal={showBookingHistory}
             onHideHistoryModal={handleCloseBookingHistory}
             onBookingsCountChange={setSavedBookingsCount}
+            onSetSelections={setParlaySelections}
           />
         ) : (
           // Show empty state when no selections but panel is still open

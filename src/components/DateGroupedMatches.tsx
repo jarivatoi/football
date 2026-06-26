@@ -6,7 +6,8 @@ import MatchCard from './MatchCard';
 interface DateGroupedMatchesProps {
   groupedMatches: Record<string, TotelepepMatch[]>;
   loading: boolean;
-  onPriceClick: (matchId: string, priceType: string, odds: number | string) => void;
+  onPriceClick: (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => void;
+  onLongPress?: (matchId: string, priceType: string, odds: number, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => void;
   selectedPrices: string[];
   apiSourceName?: string; // API source display name for loading message
   searchMode?: 'matches' | 'eq' | 'gte' | 'lte' | 'between'; // Search filter mode
@@ -20,6 +21,7 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
   groupedMatches, 
   loading,
   onPriceClick,
+  onLongPress,
   selectedPrices,
   apiSourceName = 'Totelepep', // Default to Totelepep if not provided
   searchMode = 'matches',
@@ -161,6 +163,7 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
                   key={`${date}-${match.id}-${index}`}
                   match={match}
                   onPriceClick={onPriceClick}
+                  onLongPress={onLongPress}
                   selectedPrices={selectedPrices}
                   searchMode={searchMode}
                   searchTerm={searchTerm}

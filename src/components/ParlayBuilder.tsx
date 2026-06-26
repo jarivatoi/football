@@ -693,6 +693,8 @@ interface ParlayBuilderProps {
   showHistoryModal?: boolean;  // Trigger to show booking history
   onHideHistoryModal?: () => void;  // Callback to hide history modal
   onBookingsCountChange?: (count: number) => void;  // Notify parent of booking count changes
+  onInitiateBetRefund?: (matchId: string, priceType: string, odds: number, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => void;  // Long-press handler
+  onSetSelections?: (selections: ParlaySelection[]) => void;  // Set selections directly
 }
 
 const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
@@ -703,7 +705,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   selectedSource,
   showHistoryModal = false,
   onHideHistoryModal,
-  onBookingsCountChange
+  onBookingsCountChange,
+  onInitiateBetRefund,
+  onSetSelections
 }) => {
   const [betAmount, setBetAmount] = useState<number>(50);
   const bookingResultRef = React.useRef<HTMLDivElement>(null);
@@ -725,6 +729,15 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   const parlayBuilderRef = useRef<HTMLDivElement>(null);
   const bookingRefRef = useRef<HTMLDivElement>(null); // Ref for booking reference section
   const [selectedBooking, setSelectedBooking] = useState<SavedBooking | null>(null); // View full booking details
+  
+  // Bet Refund Mode states
+  const [betRefundMode, setBetRefundMode] = useState(false);
+  const [mainBetSelection, setMainBetSelection] = useState<ParlaySelection | null>(null);
+  const [refundSelections, setRefundSelections] = useState<ParlaySelection[]>([]);
+  const [selectedRefundIndex, setSelectedRefundIndex] = useState<number>(0);
+  const [refundModeType, setRefundModeType] = useState<'budget' | 'profit'>('budget');
+  const [budgetAmount, setBudgetAmount] = useState<number>(2000);
+  const [targetProfit, setTargetProfit] = useState<number>(500);
 
   // Effect to show the "Place New Bet" button after a successful booking
   useEffect(() => {
@@ -1441,6 +1454,161 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           </div>
         ))}
       </div>
+
+      {/* Bet Refund Mode UI */}
+      {betRefundMode && mainBetSelection && selections.length === 2 && (
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-purple-800">🎯 Bet Refund Mode</h3>
+            <button
+              onClick={() => {
+                setBetRefundMode(false);
+                setMainBetSelection(null);
+                if (onSetSelections) onSetSelections([]);
+              }}
+              className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+            >
+              Exit Mode
+            </button>
+          </div>
+
+          {/* Main Bet Display */}
+          <div className="bg-white rounded-lg p-3 mb-3 border border-purple-200">
+            <div className="text-xs text-purple-600 font-semibold mb-1">MAIN BET</div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-bold text-gray-800">{mainBetSelection.homeTeam} vs {mainBetSelection.awayTeam}</div>
+                <div className="text-sm text-gray-600">{mainBetSelection.priceType.replace(/-/g, ' ')} @ {typeof mainBetSelection.odds === 'string' ? mainBetSelection.odds : mainBetSelection.odds.toFixed(2)}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Refund Bet Dropdown */}
+          <div className="bg-white rounded-lg p-3 mb-3 border border-purple-200">
+            <div className="text-xs text-purple-600 font-semibold mb-1">REFUND BET</div>
+            <select
+              value={selectedRefundIndex}
+              onChange={(e) => {
+                const idx = parseInt(e.target.value);
+                setSelectedRefundIndex(idx);
+                if (refundSelections[idx]) {
+                  // Update the second selection in parlay
+                  if (onSetSelections) onSetSelections([mainBetSelection, refundSelections[idx]]);
+                }
+              }}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {refundSelections.map((sel, idx) => (
+                <option key={idx} value={idx}>
+                  {sel.priceType.replace(/-/g, ' ')} @ {typeof sel.odds === 'string' ? sel.odds : sel.odds.toFixed(2)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Mode Toggle */}
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => setRefundModeType('budget')}
+              className={`flex-1 py-2 px-3 rounded-lg font-medium text-sm transition-all ${
+                refundModeType === 'budget'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-white text-purple-600 border border-purple-300'
+              }`}
+            >
+              💵 Budget Mode
+            </button>
+            <button
+              onClick={() => setRefundModeType('profit')}
+              className={`flex-1 py-2 px-3 rounded-lg font-medium text-sm transition-all ${
+                refundModeType === 'profit'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-white text-purple-600 border border-purple-300'
+              }`}
+            >
+              🎯 Target Profit
+            </button>
+          </div>
+
+          {/* Input Field */}
+          <div className="bg-white rounded-lg p-3 mb-3 border border-purple-200">
+            <label className="text-xs text-gray-600 font-semibold block mb-2">
+              {refundModeType === 'budget' ? 'Total Budget (Rs)' : 'Target Profit (Rs)'}
+            </label>
+            <input
+              type="number"
+              value={refundModeType === 'budget' ? budgetAmount : targetProfit}
+              onChange={(e) => {
+                const val = parseFloat(e.target.value) || 0;
+                if (refundModeType === 'budget') {
+                  setBudgetAmount(val);
+                } else {
+                  setTargetProfit(val);
+                }
+              }}
+              className="w-full p-3 text-2xl font-bold border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder={refundModeType === 'budget' ? '2000' : '500'}
+            />
+          </div>
+
+          {/* Calculation Results */}
+          {(() => {
+            const mainOdds = typeof mainBetSelection.odds === 'string' ? parseFloat(mainBetSelection.odds) : mainBetSelection.odds;
+            const refundOdds = typeof selections[1]?.odds === 'string' ? parseFloat(selections[1].odds) : selections[1]?.odds || 0;
+            const TAX_RATE = 0.8772;
+            
+            let mainStake = 0, refundStake = 0, totalPaid = 0, profit = 0;
+            
+            if (refundModeType === 'budget') {
+              const effectiveRefundStake = budgetAmount / refundOdds;
+              refundStake = effectiveRefundStake / TAX_RATE;
+              const totalPreTax = budgetAmount / TAX_RATE;
+              mainStake = totalPreTax - refundStake;
+              profit = (mainStake * TAX_RATE * mainOdds) - budgetAmount;
+              totalPaid = budgetAmount;
+            } else {
+              const ratio = refundOdds / (refundOdds - 1);
+              refundStake = targetProfit / (TAX_RATE * (mainOdds - 1) * ratio);
+              mainStake = refundStake * ratio;
+              totalPaid = (mainStake + refundStake) * TAX_RATE;
+              profit = (mainStake * TAX_RATE * mainOdds) - totalPaid;
+            }
+
+            return (
+              <div className="bg-white rounded-lg p-3 border-2 border-purple-300">
+                <div className="text-xs text-purple-600 font-semibold mb-2">💰 STAKES & OUTCOMES</div>
+                
+                <div className="space-y-2 mb-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Main Bet Stake:</span>
+                    <span className="font-bold text-gray-800">Rs {mainStake.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Refund Bet Stake:</span>
+                    <span className="font-bold text-gray-800">Rs {refundStake.toFixed(2)}</span>
+                  </div>
+                  <div className="border-t border-purple-200 pt-2 flex justify-between text-sm">
+                    <span className="text-gray-600">Total Paid (after tax):</span>
+                    <span className="font-bold text-purple-800">Rs {totalPaid.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <div className="bg-green-50 rounded-lg p-2 border border-green-200">
+                  <div className="text-xs text-green-600 font-semibold mb-1">🎯 OUTCOMES</div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-700">If Main Wins:</span>
+                    <span className="font-bold text-green-700">+Rs {profit.toFixed(2)} profit</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-700">If Refund Wins:</span>
+                    <span className="font-bold text-blue-700">Rs 0.00 (full refund)</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       <div className="border-t pt-4">
         {/* Prominent Stake Input */}
