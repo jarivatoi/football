@@ -1455,7 +1455,14 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           </div>
           <div className="flex items-center gap-6">
             <button
-              onClick={onClearAll}
+              onClick={() => {
+                onClearAll();
+                // Exit bet refund mode when clearing all selections
+                if (betRefundMode) {
+                  if (onExitBetRefundMode) onExitBetRefundMode();
+                  if (onSetSelections) onSetSelections([]);
+                }
+              }}
               className="text-red-600 hover:text-red-800 text-sm font-medium flex items-center gap-1"
             >
               <Trash2 className="w-4 h-4" />
@@ -1586,78 +1593,19 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
       {/* Bet Refund Mode UI */}
       {betRefundMode && mainBetSelection && selections.length >= 1 && (
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg p-4 mb-4">
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg p-4 mb-4 overflow-y-auto max-h-[calc(100vh-200px)]">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-bold text-purple-800">🎯 Bet Refund Mode</h3>
             <button
               onClick={() => {
                 if (onExitBetRefundMode) onExitBetRefundMode();
                 if (onSetSelections) onSetSelections([]);
+                if (onClose) onClose(); // Hide the parlay builder
               }}
               className="text-purple-600 hover:text-purple-800 text-sm font-medium"
             >
               Exit Mode
             </button>
-          </div>
-
-          {/* Main Bet Dropdown - Shows all 3 outcomes */}
-          <div className="bg-white rounded-lg p-3 mb-3 border border-purple-200">
-            <div className="text-xs text-purple-600 font-semibold mb-1">MAIN BET</div>
-            <select
-              value={mainBetIndex}
-              onChange={(e) => {
-                const idx = parseInt(e.target.value);
-                setMainBetIndex(idx);
-                // If refund bet is now same as main bet, reset it
-                if (selectedRefundIndex === idx) {
-                  // Find first available option that's not the main bet
-                  const nextIdx = allOutcomes.findIndex((_, i) => i !== idx);
-                  if (nextIdx >= 0) {
-                    setSelectedRefundIndex(nextIdx);
-                    if (onSetSelections) onSetSelections([allOutcomes[idx], allOutcomes[nextIdx]]);
-                  }
-                } else {
-                  // Update selections with new main bet and current refund bet
-                  if (allOutcomes[selectedRefundIndex] && allOutcomes[idx]) {
-                    if (onSetSelections) onSetSelections([allOutcomes[idx], allOutcomes[selectedRefundIndex]]);
-                  }
-                }
-              }}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              {allOutcomes.map((sel, idx) => (
-                <option key={idx} value={idx}>
-                  {sel.priceType.replace(/-/g, ' ')} @ {typeof sel.odds === 'string' ? sel.odds : sel.odds.toFixed(2)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Refund Bet Dropdown - Excludes main bet selection */}
-          <div className="bg-white rounded-lg p-3 mb-3 border border-purple-200">
-            <div className="text-xs text-purple-600 font-semibold mb-1">REFUND BET</div>
-            <select
-              value={selectedRefundIndex}
-              onChange={(e) => {
-                const idx = parseInt(e.target.value);
-                setSelectedRefundIndex(idx);
-                // Update selections with main bet and selected refund bet
-                if (allOutcomes[idx] && allOutcomes[mainBetIndex]) {
-                  if (onSetSelections) onSetSelections([allOutcomes[mainBetIndex], allOutcomes[idx]]);
-                }
-              }}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              {allOutcomes.filter((_, idx) => idx !== mainBetIndex).map((sel, idx) => {
-                // Get the actual index in allOutcomes
-                const actualIdx = idx >= mainBetIndex ? idx + 1 : idx;
-                return (
-                  <option key={actualIdx} value={idx}>
-                    {sel.priceType.replace(/-/g, ' ')} @ {typeof sel.odds === 'string' ? sel.odds : sel.odds.toFixed(2)}
-                  </option>
-                );
-              })}
-            </select>
           </div>
 
           {/* Mode Toggle */}
@@ -1684,6 +1632,121 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             </button>
           </div>
 
+          {/* Match Info */}
+          {mainBetSelection && (
+            <div className="bg-white rounded-lg p-3 mb-3 border border-purple-200">
+              <div className="text-sm font-semibold text-gray-800">
+                {mainBetSelection.homeTeam} v {mainBetSelection.awayTeam}
+              </div>
+              {mainBetSelection.matchDate && (
+                <div className="text-xs text-gray-500 mt-1">
+                  {(() => {
+                    try {
+                      const date = new Date(mainBetSelection.matchDate);
+                      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                      const day = days[date.getDay()];
+                      const dateNum = date.getDate();
+                      const month = months[date.getMonth()];
+                      return `${day} ${dateNum} ${month}`;
+                    } catch {
+                      return mainBetSelection.matchDate;
+                    }
+                  })()}
+                </div>
+              )}
+              <div className="text-xs text-gray-500">
+                {mainBetSelection.kickoff}
+              </div>
+            </div>
+          )}
+
+          {/* Main Bet Dropdown - Shows all outcomes */}
+          <div className="bg-white rounded-lg p-3 mb-3 border border-purple-200">
+            <div className="text-xs text-purple-600 font-semibold mb-1">MAIN BET</div>
+            <select
+              value={mainBetIndex}
+              onChange={(e) => {
+                const idx = parseInt(e.target.value);
+                setMainBetIndex(idx);
+                // If refund bet is now same as main bet, reset it
+                if (selectedRefundIndex === idx) {
+                  // Find first available option that's not the main bet
+                  const nextIdx = allOutcomes.findIndex((_, i) => i !== idx);
+                  if (nextIdx >= 0) {
+                    setSelectedRefundIndex(nextIdx);
+                    if (onSetSelections) onSetSelections([allOutcomes[idx], allOutcomes[nextIdx]]);
+                  }
+                } else {
+                  // Update selections with new main bet and current refund bet
+                  if (allOutcomes[selectedRefundIndex] && allOutcomes[idx]) {
+                    if (onSetSelections) onSetSelections([allOutcomes[idx], allOutcomes[selectedRefundIndex]]);
+                  }
+                }
+              }}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {allOutcomes.map((sel, idx) => (
+                <option key={idx} value={idx}>
+                  {(() => {
+                    // Show selection name @ odds
+                    let selectionName = '';
+                    if (sel.priceType === 'home') selectionName = sel.homeTeam;
+                    else if (sel.priceType === 'draw') selectionName = 'Draw';
+                    else if (sel.priceType === 'away') selectionName = sel.awayTeam;
+                    else if (sel.priceType === 'over') selectionName = 'Over';
+                    else if (sel.priceType === 'under') selectionName = 'Under';
+                    else if (sel.priceType === 'btts_yes') selectionName = 'Yes';
+                    else if (sel.priceType === 'btts_no') selectionName = 'No';
+                    else selectionName = sel.priceType.replace(/-/g, ' ');
+                    
+                    return `${selectionName} @ ${typeof sel.odds === 'string' ? sel.odds : sel.odds.toFixed(2)}`;
+                  })()}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Refund Bet Dropdown - Excludes main bet selection */}
+          <div className="bg-white rounded-lg p-3 mb-3 border border-purple-200">
+            <div className="text-xs text-purple-600 font-semibold mb-1">REFUND BET</div>
+            <select
+              value={selectedRefundIndex}
+              onChange={(e) => {
+                const idx = parseInt(e.target.value);
+                setSelectedRefundIndex(idx);
+                // Update selections with main bet and selected refund bet
+                if (allOutcomes[idx] && allOutcomes[mainBetIndex]) {
+                  if (onSetSelections) onSetSelections([allOutcomes[mainBetIndex], allOutcomes[idx]]);
+                }
+              }}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {allOutcomes.filter((_, idx) => idx !== mainBetIndex).map((sel, idx) => {
+                // Get the actual index in allOutcomes
+                const actualIdx = idx >= mainBetIndex ? idx + 1 : idx;
+                return (
+                  <option key={actualIdx} value={idx}>
+                    {(() => {
+                      // Show selection name @ odds
+                      let selectionName = '';
+                      if (sel.priceType === 'home') selectionName = sel.homeTeam;
+                      else if (sel.priceType === 'draw') selectionName = 'Draw';
+                      else if (sel.priceType === 'away') selectionName = sel.awayTeam;
+                      else if (sel.priceType === 'over') selectionName = 'Over';
+                      else if (sel.priceType === 'under') selectionName = 'Under';
+                      else if (sel.priceType === 'btts_yes') selectionName = 'Yes';
+                      else if (sel.priceType === 'btts_no') selectionName = 'No';
+                      else selectionName = sel.priceType.replace(/-/g, ' ');
+                      
+                      return `${selectionName} @ ${typeof sel.odds === 'string' ? sel.odds : sel.odds.toFixed(2)}`;
+                    })()}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
           {/* Input Field */}
           <div className="bg-white rounded-lg p-3 mb-3 border border-purple-200">
             <label className="text-xs text-gray-600 font-semibold block mb-2">
@@ -1691,17 +1754,17 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             </label>
             <input
               type="number"
-              value={refundModeType === 'budget' ? budgetAmount : targetProfit}
+              value={refundModeType === 'budget' ? (budgetAmount === 0 ? '' : budgetAmount) : (targetProfit === 0 ? '' : targetProfit)}
               onChange={(e) => {
-                const val = parseFloat(e.target.value) || 0;
+                const val = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
                 if (refundModeType === 'budget') {
                   setBudgetAmount(val);
                 } else {
                   setTargetProfit(val);
                 }
               }}
-              className="w-full p-3 text-2xl font-bold border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder={refundModeType === 'budget' ? '2000' : '500'}
+              className="w-full p-3 text-2xl font-bold border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-center"
+              placeholder="0"
             />
           </div>
 
@@ -1723,14 +1786,22 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             let mainStake = 0, refundStake = 0, totalPaid = 0, profit = 0;
             
             if (refundModeType === 'budget') {
-              // Budget mode: Calculate stakes to get budget back on refund
-              const effectiveRefundStake = budgetAmount / refundOdds;
-              refundStake = effectiveRefundStake / TAX_RATE;
-              const totalPreTax = budgetAmount / TAX_RATE;
-              mainStake = totalPreTax - refundStake;
+              // Budget mode: mainStake + refundStake = budgetAmount (exact)
+              // refundStake * TAX_RATE * refundOdds = totalPaid (budget back on refund)
+              // totalPaid = (mainStake + refundStake) * TAX_RATE
+              // 
+              // From refund condition: refundStake = totalPaid / (TAX_RATE * refundOdds)
+              // But totalPaid = budgetAmount * TAX_RATE (after tax)
+              // So: refundStake = (budgetAmount * TAX_RATE) / (TAX_RATE * refundOdds) = budgetAmount / refundOdds
+              // And: mainStake = budgetAmount - refundStake
+              
+              // Calculate stakes and round to nearest integer for API
+              const rawRefundStake = budgetAmount / refundOdds;
+              refundStake = Math.round(rawRefundStake);
+              mainStake = budgetAmount - refundStake; // Ensure exact sum
+              totalPaid = (mainStake + refundStake) * TAX_RATE;
               // Profit includes bonus if available
-              profit = (mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER) - budgetAmount;
-              totalPaid = budgetAmount;
+              profit = (mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER) - totalPaid;
             } else {
               // Target Profit mode: Calculate stakes for EXACT target profit AFTER tax and bonus
               // Formula: We need profit AFTER tax to equal targetProfit
@@ -1754,8 +1825,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               // => mainStake = targetProfit / (TAX_RATE * (mainOdds * BONUS_MULTIPLIER - refundOdds / (refundOdds - 1)))
               
               const refundRatio = refundOdds / (refundOdds - 1);
-              mainStake = targetProfit / (TAX_RATE * (mainOdds * BONUS_MULTIPLIER - refundRatio));
-              refundStake = mainStake * (refundRatio - 1);
+              const rawMainStake = targetProfit / (TAX_RATE * (mainOdds * BONUS_MULTIPLIER - refundRatio));
+              mainStake = Math.round(rawMainStake);
+              const rawRefundStake = mainStake * (refundRatio - 1);
+              refundStake = Math.round(rawRefundStake);
               totalPaid = (mainStake + refundStake) * TAX_RATE;
               profit = (mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER) - totalPaid;
               
@@ -1786,15 +1859,15 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 <div className="space-y-2 mb-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Main Bet Stake:</span>
-                    <span className="font-bold text-gray-800">Rs {mainStake.toFixed(2)}</span>
+                    <span className="font-bold text-gray-800">Rs {mainStake.toFixed(0)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Refund Bet Stake:</span>
-                    <span className="font-bold text-gray-800">Rs {refundStake.toFixed(2)}</span>
+                    <span className="font-bold text-gray-800">Rs {refundStake.toFixed(0)}</span>
                   </div>
                   <div className="border-t border-purple-200 pt-2 flex justify-between text-sm">
-                    <span className="text-gray-600">Total Paid (after tax):</span>
-                    <span className="font-bold text-purple-800">Rs {totalPaid.toFixed(2)}</span>
+                    <span className="text-gray-600">Total Bet:</span>
+                    <span className="font-bold text-purple-800">Rs {refundModeType === 'budget' ? budgetAmount.toFixed(0) : totalPaid.toFixed(0)}</span>
                   </div>
                 </div>
 
@@ -1806,7 +1879,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-700">If Refund Wins:</span>
-                    <span className="font-bold text-blue-700">Rs 0.00 (full refund)</span>
+                    <span className="font-bold text-blue-700">Rs {refundModeType === 'budget' ? budgetAmount.toFixed(0) : totalPaid.toFixed(0)} (Full Refund)</span>
                   </div>
                   {hasBonus ? (
                     <div className="mt-2 pt-2 border-t border-green-300 text-xs text-green-600">
@@ -1829,46 +1902,50 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       )}
 
       <div className="border-t pt-4">
-        {/* Prominent Stake Input */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <label className="block text-lg font-bold text-gray-800">
-              💰 Enter Your Stake
-            </label>
-            <div className="text-sm text-gray-600">Total Odds</div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium text-2xl font-bold">
-                  Rs
-                </span>
-                <input
-                  type="number"
-                  min="25"
-                  step="10"
-                  value={betAmount || ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Allow clearing the input completely
-                    if (value === '') {
-                      setBetAmount(0);
-                    } else {
-                      setBetAmount(parseInt(value) || 0);
-                    }
-                  }}
-                  className="w-full pl-20 pr-4 py-3 text-2xl font-bold border-2 border-yellow-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                  placeholder={selections.length === 1 && selectedSource?.id === 'superscore' ? "25" : "50"}
-                />
+        {/* Prominent Stake Input - Hidden in Bet Refund Mode */}
+        {!betRefundMode && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-lg font-bold text-gray-800">
+                💰 Enter Your Stake
+              </label>
+              <div className="text-sm text-gray-600">Total Odds</div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 font-medium text-2xl font-bold">
+                    Rs
+                  </span>
+                  <input
+                    type="number"
+                    min="25"
+                    step="10"
+                    value={betAmount || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Allow clearing the input completely
+                      if (value === '') {
+                        setBetAmount(0);
+                      } else {
+                        setBetAmount(parseInt(value) || 0);
+                      }
+                    }}
+                    className="w-full pl-20 pr-4 py-3 text-2xl font-bold border-2 border-yellow-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                    placeholder={selections.length === 1 && selectedSource?.id === 'superscore' ? "25" : "50"}
+                  />
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-blue-600 bg-white px-4 py-3 rounded-lg border">
+                {totalOdds.toFixed(2)}
               </div>
             </div>
-            <div className="text-2xl font-bold text-blue-600 bg-white px-4 py-3 rounded-lg border">
-              {totalOdds.toFixed(2)}
-            </div>
           </div>
-        </div>
+        )}
 
-        <div className="bg-blue-50 p-4 rounded-lg mb-4">
+        {/* Potential Return Section - Hidden in Bet Refund Mode */}
+        {!betRefundMode && (
+          <div className="bg-blue-50 p-4 rounded-lg mb-4">
           {/* Show Potential Return when stake has been edited (betAmount differs from apiBreakdown.stake) */}
           {lastResult && apiBreakdown && betAmount !== apiBreakdown.stake ? (
             <>
@@ -1990,9 +2067,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             </div>
           )}
         </div>
+        )}
 
-        {/* Booking Result Display - Betslip Style */}
-        {lastResult && lastResult.success && lastResult.fullResponse && selections.length > 0 && (
+        {/* Booking Result Display - Betslip Style - Hidden in Bet Refund Mode */}
+        {!betRefundMode && lastResult && lastResult.success && lastResult.fullResponse && selections.length > 0 && (
           <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white">
             {/* Bet Selections */}
             <div className="max-h-60 overflow-y-auto">
