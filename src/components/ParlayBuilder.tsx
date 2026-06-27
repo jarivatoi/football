@@ -743,6 +743,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   const [refundModeType, setRefundModeType] = useState<'budget' | 'profit'>('budget');
   const [budgetAmount, setBudgetAmount] = useState<number>(2000);
   const [targetProfit, setTargetProfit] = useState<number>(500);
+  
+  // Background bonus detection state
+  const [isDetectingBonus, setIsDetectingBonus] = useState(false);
+  const [detectedBonusPercentage, setDetectedBonusPercentage] = useState<number>(0);
 
   // Effect to show the "Place New Bet" button after a successful booking
   useEffect(() => {
@@ -778,6 +782,114 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       }
     }
   }, [showHistoryModal, onHideHistoryModal]);
+
+  // Background bonus detection when Bet Refund Mode activates (runs only once)
+  const hasAttemptedDetection = useRef(false);
+  
+  useEffect(() => {
+    // Only run once per Bet Refund Mode activation
+    if (!betRefundMode || !mainBetSelection || isDetectingBonus || hasAttemptedDetection.current) {
+      return;
+    }
+
+    hasAttemptedDetection.current = true;
+
+    // If we already have apiBreakdown with bonus data from a recent successful bet, use it
+    if (apiBreakdown && apiBreakdown.bonus > 0) {
+      const basePayoutWithoutBonus = apiBreakdown.netPayout - apiBreakdown.bonus;
+      const rawPercentage = basePayoutWithoutBonus > 0 ? (apiBreakdown.bonus / basePayoutWithoutBonus) * 100 : 0;
+      const bonusPercentage = Math.round(rawPercentage);
+      setDetectedBonusPercentage(bonusPercentage);
+      console.log('[Bonus Detection] ✅ Using existing apiBreakdown bonus:', bonusPercentage, '%');
+      return;
+    }
+
+    // If apiBreakdown exists but has no bonus, use 0%
+    if (apiBreakdown && apiBreakdown.bonus === 0) {
+      setDetectedBonusPercentage(0);
+      console.log('[Bonus Detection] ℹ️ No bonus in recent bet');
+      return;
+    }
+
+    // Place background reference bet to detect bonus (only once)
+    const detectBonus = async () => {
+      setIsDetectingBonus(true);
+      console.log('[Bonus Detection] Placing Rs 50 reference bet to detect bonus...');
+
+      try {
+        // Place a Rs 50 reference bet
+        const referenceStake = 50;
+        const result: any = await placeTotelepepBet([mainBetSelection], referenceStake, selectedSource);
+
+        console.log('[Bonus Detection] Reference bet response:', result);
+
+        // Check if reference bet was successful
+        if (!result.success) {
+          console.log('[Bonus Detection] ❌ Reference bet failed:', result.errorMessage);
+          
+          // Show error and exit bet refund mode
+          setToast(`⚠️ Betting mode failed: ${result.errorMessage || 'Unable to place bet'}`);
+          setTimeout(() => setToast(null), 5000);
+          
+          // Exit bet refund mode after showing error
+          setTimeout(() => {
+            if (onExitBetRefundMode) onExitBetRefundMode();
+            if (onSetSelections) onSetSelections([]);
+          }, 1500);
+          
+          setDetectedBonusPercentage(0);
+          return;
+        }
+
+        // Extract bonus from successful response
+        const betList = result.betList;
+        const isMultiBet = !betList || betList.length === 0;
+
+        let bonusAmount = 0;
+        let netPayout = 0;
+
+        if (isMultiBet) {
+          bonusAmount = parseFloat((result.bonusAmount || '0').replace(/,/g, '')) || 0;
+          netPayout = parseFloat((result.potentialPayout || '0').replace(/,/g, '')) || 0;
+        } else if (betList && betList.length > 0) {
+          bonusAmount = parseFloat((betList[0].bonusAmount || '0').replace(/,/g, '')) || 0;
+          netPayout = parseFloat((betList[0].potentialPayout || '0').replace(/,/g, '')) || 0;
+        }
+
+        // Calculate bonus percentage
+        if (bonusAmount > 0 && netPayout > 0) {
+          const basePayoutWithoutBonus = netPayout - bonusAmount;
+          const rawPercentage = basePayoutWithoutBonus > 0 ? (bonusAmount / basePayoutWithoutBonus) * 100 : 0;
+          const bonusPercentage = Math.round(rawPercentage);
+          setDetectedBonusPercentage(bonusPercentage);
+          console.log('[Bonus Detection] ✅ Detected bonus from reference bet:', bonusPercentage, '%');
+        } else {
+          setDetectedBonusPercentage(0);
+          console.log('[Bonus Detection] ℹ️ No bonus in reference bet response');
+        }
+
+        // DON'T save to ParlayBuilder history - bet exists in user's account but not shown in UI
+        // Don't update lastResult or UI state
+      } catch (error) {
+        console.error('[Bonus Detection] Error placing reference bet:', error);
+        
+        // Show error and exit
+        setToast('⚠️ Betting mode failed: Network error');
+        setTimeout(() => setToast(null), 5000);
+        
+        setTimeout(() => {
+          if (onExitBetRefundMode) onExitBetRefundMode();
+          if (onSetSelections) onSetSelections([]);
+        }, 1500);
+        
+        setDetectedBonusPercentage(0);
+      } finally {
+        setIsDetectingBonus(false);
+      }
+    };
+
+    detectBonus();
+  }, [betRefundMode, mainBetSelection, selectedSource]);
 
   // SMS Bet functionality with long press
   const handleSmsPressStart = () => {
@@ -1561,9 +1673,13 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             const refundOdds = typeof selections[1]?.odds === 'string' ? parseFloat(selections[1].odds) : selections[1]?.odds || 0;
             const TAX_RATE = 0.8772; // After 14% tax
             
-            // Check if this API source gives bonus (from previous bet if available)
-            const hasBonus = apiBreakdown && apiBreakdown.bonus > 0;
-            const bonusPercentage = hasBonus ? (apiBreakdown.bonus / (apiBreakdown.netPayout - apiBreakdown.bonus)) * 100 : 0;
+            // Check for bonus: use detected bonus from background test bet, or fallback to apiBreakdown
+            const apiHasBonus = apiBreakdown && apiBreakdown.bonus > 0;
+            const apiBonusPercentage = apiHasBonus ? (apiBreakdown.bonus / (apiBreakdown.netPayout - apiBreakdown.bonus)) * 100 : 0;
+            
+            // Priority: 1. Detected bonus from background test bet, 2. apiBreakdown from previous user bet, 3. No bonus
+            const hasBonus = detectedBonusPercentage > 0 || apiHasBonus;
+            const bonusPercentage = detectedBonusPercentage > 0 ? detectedBonusPercentage : apiBonusPercentage;
             const BONUS_MULTIPLIER = hasBonus ? (1 + bonusPercentage / 100) : 1;
             
             let mainStake = 0, refundStake = 0, totalPaid = 0, profit = 0;
@@ -1601,11 +1717,28 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               
               const refundRatio = refundOdds / (refundOdds - 1);
               mainStake = targetProfit / (TAX_RATE * (mainOdds * BONUS_MULTIPLIER - refundRatio));
-              refundStake = mainStake / refundRatio;
+              refundStake = mainStake * (refundRatio - 1);
               totalPaid = (mainStake + refundStake) * TAX_RATE;
               profit = (mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER) - totalPaid;
               
-              console.log('[BetRefund Target Profit] profit:', profit, 'targetProfit:', targetProfit, 'match:', Math.abs(profit - targetProfit) < 0.01);
+              console.log('[BetRefund Target Profit] ========== DEBUG ==========');
+              console.log('  Target Profit:', targetProfit);
+              console.log('  Main Odds:', mainOdds, 'Refund Odds:', refundOdds);
+              console.log('  TAX_RATE:', TAX_RATE, 'BONUS_MULTIPLIER:', BONUS_MULTIPLIER);
+              console.log('  Detected Bonus (background bet):', detectedBonusPercentage > 0, '(', detectedBonusPercentage, '%)');
+              console.log('  API Bonus (from last user bet):', apiHasBonus, '(', apiBonusPercentage.toFixed(1), '%)');
+              console.log('  Using Bonus:', hasBonus, '(', bonusPercentage.toFixed(1), '%)');
+              if (!apiBreakdown && detectedBonusPercentage === 0) {
+                console.log('  ⚠️ No bonus data yet - placing background test bet...');
+              }
+              console.log('  Calculated Main Stake:', mainStake);
+              console.log('  Calculated Refund Stake:', refundStake);
+              console.log('  Total Paid (after tax):', totalPaid);
+              console.log('  Main Payout (after tax + bonus):', mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER);
+              console.log('  Calculated Profit:', profit);
+              console.log('  Profit Match Target?', Math.abs(profit - targetProfit) < 0.01);
+              console.log('  Difference:', profit - targetProfit);
+              console.log('  ================================================');
             }
 
             return (
@@ -1637,9 +1770,17 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     <span className="text-gray-700">If Refund Wins:</span>
                     <span className="font-bold text-blue-700">Rs 0.00 (full refund)</span>
                   </div>
-                  {hasBonus && (
+                  {hasBonus ? (
                     <div className="mt-2 pt-2 border-t border-green-300 text-xs text-green-600">
-                      ℹ️ Includes {bonusPercentage.toFixed(0)}% bonus from API source
+                      ✅ Includes {bonusPercentage.toFixed(0)}% bonus (detected)
+                    </div>
+                  ) : isDetectingBonus ? (
+                    <div className="mt-2 pt-2 border-t border-yellow-200 text-xs text-yellow-600">
+                      🔍 Detecting bonus structure...
+                    </div>
+                  ) : (
+                    <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-500">
+                      ℹ️ No bonus for this API source
                     </div>
                   )}
                 </div>

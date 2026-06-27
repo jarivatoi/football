@@ -8,6 +8,8 @@ export interface ApiSource {
   name: string;
   baseUrl: string;
   displayName: string;
+  hasBonus?: boolean;  // Whether this API source provides bonus on payouts
+  bonusPercentage?: number;  // Default bonus percentage (if known, e.g., 10 for 10%)
 }
 
 export const API_SOURCES: ApiSource[] = [
@@ -15,25 +17,29 @@ export const API_SOURCES: ApiSource[] = [
     id: 'totelepep',
     name: 'Totelepep',
     baseUrl: 'https://www.totelepep.mu/webapi/GetSport',
-    displayName: 'Totelepep'
+    displayName: 'Totelepep',
+    hasBonus: false  // Totelepep does not provide bonus
   },
   {
     id: 'stevenhills',
     name: 'Stevenhills',
     baseUrl: 'https://www.stevenhills.bet/webapi/GetSport',
-    displayName: 'Stevenhills'
+    displayName: 'Stevenhills',
+    hasBonus: false  // Stevenhills does not provide bonus (update if needed)
   },
   {
     id: 'superscore',
     name: 'Superscore',
     baseUrl: 'https://www.superscore.mu/webapi/GetSport',
-    displayName: 'Superscore'
+    displayName: 'Superscore',
+    hasBonus: false  // Superscore does not provide bonus (update if needed)
   },
   {
     id: 'valueplus',
     name: 'Valueplus',
     baseUrl: 'https://www.valueplus.mu/webapi/GetSport',
-    displayName: 'Valueplus'
+    displayName: 'Valueplus',
+    hasBonus: false  // Valueplus does not provide bonus (update if needed)
   }
 ];
 
