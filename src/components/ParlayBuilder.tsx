@@ -740,9 +740,18 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   
   // Bet Refund Mode states - now from props, only keep UI state locally
   const [selectedRefundIndex, setSelectedRefundIndex] = useState<number>(0);
+  const [mainBetIndex, setMainBetIndex] = useState<number>(0); // Track which selection is the main bet
   const [refundModeType, setRefundModeType] = useState<'budget' | 'profit'>('budget');
   const [budgetAmount, setBudgetAmount] = useState<number>(2000);
   const [targetProfit, setTargetProfit] = useState<number>(500);
+  
+  // All outcomes from the long-pressed market (main bet + refund options)
+  const allOutcomes = useMemo(() => {
+    if (mainBetSelection && refundSelections.length > 0) {
+      return [mainBetSelection, ...refundSelections];
+    }
+    return selections;
+  }, [mainBetSelection, refundSelections, selections]);
   
   // Background bonus detection state
   const [isDetectingBonus, setIsDetectingBonus] = useState(false);
@@ -1464,10 +1473,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         </div>
       </div>
 
-      {/* Selections - Scrollable */}
-      <div ref={bookingResultRef} className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-3">
-          {selections.map((selection, index) => (
+      {/* Selections - Scrollable (hidden in Bet Refund Mode) */}
+      {!betRefundMode && (
+        <div ref={bookingResultRef} className="flex-1 overflow-y-auto p-4">
+          <div className="space-y-3">
+            {selections.map((selection, index) => (
             <div
               key={`${selection.matchId}-${selection.priceType}-${index}`}
               className={`flex items-center justify-between p-3 rounded-lg transition-all ${
@@ -1570,7 +1580,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             </div>
           </div>
         ))}
-      </div>
+          </div>
+        </div>
+      )}
 
       {/* Bet Refund Mode UI */}
       {betRefundMode && mainBetSelection && selections.length >= 1 && (
@@ -1588,18 +1600,40 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             </button>
           </div>
 
-          {/* Main Bet Display */}
+          {/* Main Bet Dropdown - Shows all 3 outcomes */}
           <div className="bg-white rounded-lg p-3 mb-3 border border-purple-200">
             <div className="text-xs text-purple-600 font-semibold mb-1">MAIN BET</div>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-bold text-gray-800">{mainBetSelection.homeTeam} vs {mainBetSelection.awayTeam}</div>
-                <div className="text-sm text-gray-600">{mainBetSelection.priceType.replace(/-/g, ' ')} @ {typeof mainBetSelection.odds === 'string' ? mainBetSelection.odds : mainBetSelection.odds.toFixed(2)}</div>
-              </div>
-            </div>
+            <select
+              value={mainBetIndex}
+              onChange={(e) => {
+                const idx = parseInt(e.target.value);
+                setMainBetIndex(idx);
+                // If refund bet is now same as main bet, reset it
+                if (selectedRefundIndex === idx) {
+                  // Find first available option that's not the main bet
+                  const nextIdx = allOutcomes.findIndex((_, i) => i !== idx);
+                  if (nextIdx >= 0) {
+                    setSelectedRefundIndex(nextIdx);
+                    if (onSetSelections) onSetSelections([allOutcomes[idx], allOutcomes[nextIdx]]);
+                  }
+                } else {
+                  // Update selections with new main bet and current refund bet
+                  if (allOutcomes[selectedRefundIndex] && allOutcomes[idx]) {
+                    if (onSetSelections) onSetSelections([allOutcomes[idx], allOutcomes[selectedRefundIndex]]);
+                  }
+                }
+              }}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {allOutcomes.map((sel, idx) => (
+                <option key={idx} value={idx}>
+                  {sel.priceType.replace(/-/g, ' ')} @ {typeof sel.odds === 'string' ? sel.odds : sel.odds.toFixed(2)}
+                </option>
+              ))}
+            </select>
           </div>
 
-          {/* Refund Bet Dropdown */}
+          {/* Refund Bet Dropdown - Excludes main bet selection */}
           <div className="bg-white rounded-lg p-3 mb-3 border border-purple-200">
             <div className="text-xs text-purple-600 font-semibold mb-1">REFUND BET</div>
             <select
@@ -1607,18 +1641,22 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               onChange={(e) => {
                 const idx = parseInt(e.target.value);
                 setSelectedRefundIndex(idx);
-                if (refundSelections[idx]) {
-                  // Update the second selection in parlay
-                  if (onSetSelections) onSetSelections([mainBetSelection, refundSelections[idx]]);
+                // Update selections with main bet and selected refund bet
+                if (allOutcomes[idx] && allOutcomes[mainBetIndex]) {
+                  if (onSetSelections) onSetSelections([allOutcomes[mainBetIndex], allOutcomes[idx]]);
                 }
               }}
               className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
-              {refundSelections.map((sel, idx) => (
-                <option key={idx} value={idx}>
-                  {sel.priceType.replace(/-/g, ' ')} @ {typeof sel.odds === 'string' ? sel.odds : sel.odds.toFixed(2)}
-                </option>
-              ))}
+              {allOutcomes.filter((_, idx) => idx !== mainBetIndex).map((sel, idx) => {
+                // Get the actual index in allOutcomes
+                const actualIdx = idx >= mainBetIndex ? idx + 1 : idx;
+                return (
+                  <option key={actualIdx} value={idx}>
+                    {sel.priceType.replace(/-/g, ' ')} @ {typeof sel.odds === 'string' ? sel.odds : sel.odds.toFixed(2)}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
@@ -2133,7 +2171,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             </>
           )}
         </button>
-        </div>
       </div>
     </div>
   );
