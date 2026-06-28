@@ -3087,7 +3087,8 @@ function App() {
           periodCode: 'FT',
           marketDisplayName: '1 X 2',
           optionCode: opt.name,
-          optionNo: opt.name,
+          optionNo: opt.priceType === 'home' ? '1' : opt.priceType === 'draw' ? '2' : '3',
+          optionName: opt.priceType === 'home' ? match.homeTeam : opt.priceType === 'draw' ? 'Draw' : match.awayTeam,
           competitionId: match.competitionId
         });
       });

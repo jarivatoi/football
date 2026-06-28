@@ -132,10 +132,10 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
             ) : (
               <div className="space-y-4">
                 {savedBookings.map((booking) => (
-                  <div key={booking.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div key={booking.id} className={`border rounded-lg overflow-hidden ${booking.betRefundMode ? 'border-yellow-400 border-2' : 'border-gray-200'}`}>
                     {/* Booking Header - Clickable */}
                     <div 
-                      className="bg-gray-50 px-4 py-2 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
+                      className={`px-4 py-2 border-b cursor-pointer hover:bg-gray-100 transition-colors ${booking.betRefundMode ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-200'}`}
                       onClick={() => setSelectedBooking(booking)}
                     >
                       <div className="text-sm text-gray-600">{booking.formattedDateTime}</div>
@@ -149,7 +149,13 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                       >
                         <div className="flex items-center justify-between mb-3">
                           <div className="text-lg font-bold text-gray-800">
-                            Booking Ref# {booking.bookingRef}
+                            {booking.betRefundMode ? (
+                              <span>
+                                Booking Ref# {booking.bookingRef}
+                              </span>
+                            ) : (
+                              `Booking Ref# ${booking.bookingRef}`
+                            )}
                           </div>
                           <div className="text-sm text-gray-600 font-medium">
                             {booking.selections.length} {booking.selections.length === 1 ? 'Match' : 'Matches'}
@@ -231,12 +237,24 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
             {/* Booking Content */}
             <div ref={bookingDetailRef} className="flex-1 overflow-y-auto p-4">
               {(() => { console.log('📋 Selected booking data:', selectedBooking); return null; })()}
+              {/* Bet Refund Mode Indicator */}
+              {selectedBooking.betRefundMode && (
+                <div className="mb-4 p-3 bg-yellow-100 border-2 border-yellow-400 rounded-lg">
+                  <div className="text-center font-bold text-yellow-800 text-sm">
+                    🎯 Bet Refund Mode
+                  </div>
+                </div>
+              )}
+              
               {/* Matches */}
               <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white">
                 <div className="max-h-60 overflow-y-auto">
-                  {selectedBooking.selections.map((selection, index) => (
-                    <div key={index} className="p-3 border-b border-gray-200 bg-yellow-50 last:border-b-0">
-                      <div className="flex items-start justify-between">
+                  {selectedBooking.selections.map((selection, index) => {
+                    // For Bet Refund Mode, second selection is refund bet (blue border)
+                    const isRefundBet = selectedBooking.betRefundMode && index >= 1;
+                    return (
+                      <div key={index} className={`p-3 border-b bg-yellow-50 last:border-b-0 ${isRefundBet ? 'border-l-4 border-blue-500 border-b' : 'border-gray-200'}`}>
+                        <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="text-sm font-semibold text-gray-800">
                             {(() => {
@@ -287,7 +305,8 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Booking Reference Section */}
@@ -300,17 +319,55 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                     </div>
                   )}
 
-                  <div className="p-3 bg-green-500 text-white text-center">
-                    <div className="text-xl font-bold">
-                      Booking Ref# {selectedBooking.bookingRef}
+                  {/* Bet Refund Mode - Show both refs separately */}
+                  {selectedBooking.betRefundMode ? (
+                    <div>
+                      {/* Parse the combined booking ref */}
+                      {(() => {
+                        const refs = selectedBooking.bookingRef.split(' - ');
+                        const mainRef = refs[0];
+                        const refundRef = refs[1];
+                        return (
+                          <>
+                            {/* Main Bet */}
+                            <div className="p-3 bg-green-500 text-white text-center">
+                              <div className="text-xl font-bold">Booking Ref# {mainRef}</div>
+                            </div>
+                            <div className="p-3 bg-yellow-400 text-center border-t border-yellow-500">
+                              <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
+                                <span>📱</span>
+                                <span>SMS BET{mainRef}</span>
+                              </div>
+                            </div>
+                            {/* Refund Bet */}
+                            <div className="border-t-4 border-blue-500">
+                              <div className="p-3 bg-green-500 text-white text-center">
+                                <div className="text-xl font-bold">Booking Ref# {refundRef}</div>
+                              </div>
+                              <div className="p-3 bg-yellow-400 text-center border-t border-yellow-500">
+                                <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
+                                  <span>📱</span>
+                                  <span>SMS BET{refundRef}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="p-3 bg-green-500 text-white text-center">
+                      <div className="text-xl font-bold">
+                        Booking Ref# {selectedBooking.bookingRef}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex border-t border-gray-200">
                     <div className="flex-1 p-3 text-center border-r border-gray-200">
                       <div className="text-xs text-gray-600">Win</div>
                       <div className="text-lg font-bold text-gray-800">
-                        {formatCurrency(selectedBooking.potentialWin)}
+                        {formatCurrency(selectedBooking.netPayout || selectedBooking.potentialWin)}
                       </div>
                     </div>
                     <div className="flex-1 p-3 text-center bg-gray-50">

@@ -16,6 +16,13 @@ export interface SavedBooking {
   timestamp: number;
   formattedDateTime: string;
   apiSource?: string;
+  // Bet Refund Mode fields
+  betRefundMode?: boolean;  // Whether this is part of a Bet Refund Mode bet
+  betRefundType?: 'main' | 'refund';  // Type of bet in Bet Refund Mode
+  betRefundGroupId?: string;  // Group ID to link related main/refund bets
+  betRefundPairRef?: string;  // The other booking ref (main stores refund ref, refund stores main ref)
+  betRefundOtherStake?: number;  // The stake of the other bet
+  betRefundOtherWin?: number;  // The potential win of the other bet
 }
 
 // Open database

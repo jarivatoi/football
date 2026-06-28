@@ -130,8 +130,10 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       formData.append(`data[SingleBets][${index}][matchRunTime]`, '0');
       
       // CRITICAL: Use API values if available, otherwise fall back to getOptionDetails() mapping
-      const apiOptionNo = selection.optionNo || optionDetails.optionNo;
-      const apiOptionCode = selection.optionCode || optionDetails.optionCode;
+      // IMPORTANT: selection.optionNo must be numeric (1, 2, 3), not a letter (X, H, D, A)
+      const apiOptionNo = (selection.optionNo && /^[0-9]+$/.test(selection.optionNo)) ? selection.optionNo : optionDetails.optionNo;
+      // IMPORTANT: selection.optionCode must be valid (H, D, A, O, U, etc.), not market codes like 'X'
+      const apiOptionCode = (selection.optionCode && /^[HDAOU12YNC]+$/.test(selection.optionCode)) ? selection.optionCode : optionDetails.optionCode;
       const apiOptionName = optionDetails.optionName;  // Always use getOptionDetails for optionName
       
       formData.append(`data[SingleBets][${index}][optionNo]`, apiOptionNo);
@@ -747,6 +749,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   const [budgetAmount, setBudgetAmount] = useState<number>(2000);
   const [targetProfit, setTargetProfit] = useState<number>(500);
   
+  // Ref for Bet Refund Mode section
+  const betRefundModeRef = useRef<HTMLDivElement>(null);
+  
   // All outcomes from the long-pressed market (main bet + refund options)
   const allOutcomes = useMemo(() => {
     if (mainBetSelection && refundSelections.length > 0) {
@@ -796,6 +801,15 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
   // Background bonus detection when Bet Refund Mode activates (runs only once)
   const hasAttemptedDetection = useRef(false);
+  
+  // Auto-scroll to Bet Refund Mode section when activated
+  useEffect(() => {
+    if (betRefundMode && betRefundModeRef.current) {
+      setTimeout(() => {
+        betRefundModeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [betRefundMode]);
   
   useEffect(() => {
     // Only run once per Bet Refund Mode activation
@@ -953,7 +967,21 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   };
 
   // Save current booking to IndexedDB
-  const saveBooking = useCallback(async (bookingData?: { ticketNo: string; selections: any[]; stake: number; potentialWin: number; tax?: number; bonus?: number; netPayout?: number }) => {
+  const saveBooking = useCallback(async (bookingData?: { 
+    ticketNo: string; 
+    selections: any[]; 
+    stake: number; 
+    potentialWin: number; 
+    tax?: number; 
+    bonus?: number; 
+    netPayout?: number;
+    betRefundMode?: boolean;
+    betRefundType?: 'main' | 'refund';
+    betRefundGroupId?: string;
+    betRefundPairRef?: string;
+    betRefundOtherStake?: number;
+    betRefundOtherWin?: number;
+  }) => {
     // If bookingData is provided, use it (for auto-save after bet)
     // Otherwise, use state (for manual save from history)
     const ticketNo = bookingData?.ticketNo || lastResult?.ticketNo;
@@ -983,7 +1011,14 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       netPayout: netPayoutToSave,
       timestamp: Date.now(),
       formattedDateTime: formatBookingDateTime(Date.now()),
-      apiSource: selectedSource?.id  // Save source ID (e.g., 'totelepep') not displayName
+      apiSource: selectedSource?.id,  // Save source ID (e.g., 'totelepep') not displayName
+      // Bet Refund Mode fields
+      betRefundMode: bookingData?.betRefundMode,
+      betRefundType: bookingData?.betRefundType,
+      betRefundGroupId: bookingData?.betRefundGroupId,
+      betRefundPairRef: bookingData?.betRefundPairRef,
+      betRefundOtherStake: bookingData?.betRefundOtherStake,
+      betRefundOtherWin: bookingData?.betRefundOtherWin
     };
     
     try {
@@ -1122,7 +1157,183 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     };
   }, [lastResult, betAmount]);
 
+  // BET REFUND MODE: Place two separate single bets (main bet + refund bet)
+  const handlePlaceBetRefundMode = async () => {
+    setIsPlacing(true);
+    setLastResult(null);
+    
+    try {
+      // Get the calculated stakes
+      const apiHasBonus = apiBreakdown && apiBreakdown.bonus > 0;
+      const apiBonusPercentage = apiHasBonus ? (apiBreakdown.bonus / (apiBreakdown.netPayout - apiBreakdown.bonus)) * 100 : 0;
+      const hasBonus = detectedBonusPercentage > 0 || apiHasBonus;
+      const bonusPercentage = detectedBonusPercentage > 0 ? detectedBonusPercentage : apiBonusPercentage;
+      const BONUS_MULTIPLIER = hasBonus ? (1 + bonusPercentage / 100) : 1;
+      
+      let mainStake = 0, refundStake = 0;
+      const refundOdds = parseFloat(String(refundSelections[selectedRefundIndex]?.odds)) || 3.0;
+      const mainOdds = parseFloat(String(mainBetSelection?.odds)) || 2.5;
+      
+      if (refundModeType === 'budget') {
+        const rawRefundStake = budgetAmount * (114 / 100) / (refundOdds * BONUS_MULTIPLIER);
+        refundStake = Math.round(rawRefundStake);
+        mainStake = budgetAmount - refundStake;
+      } else {
+        const refundMultiplier = refundOdds * BONUS_MULTIPLIER * (100 / 114);
+        const mainMultiplier = mainOdds * BONUS_MULTIPLIER * (100 / 114);
+        const rawRefundStake = targetProfit / ((refundMultiplier - 1) * mainMultiplier - refundMultiplier);
+        refundStake = Math.round(rawRefundStake);
+        mainStake = Math.round(refundStake * (refundMultiplier - 1));
+      }
+      
+      // Place main bet
+      const mainBetSelections: ParlaySelection[] = [{
+        ...mainBetSelection!,
+        hasError: false
+      }];
+      
+      // Validate stakes before placing bets
+      if (!mainStake || mainStake <= 0) {
+        setLastResult({
+          success: false,
+          message: 'Invalid main bet stake. Please enter a valid amount.',
+        });
+        setIsPlacing(false);
+        return;
+      }
+      
+      if (!refundStake || refundStake <= 0) {
+        setLastResult({
+          success: false,
+          message: 'Invalid refund bet stake. Please increase your budget/target profit.',
+        });
+        setIsPlacing(false);
+        return;
+      }
+      
+      console.log('[BetRefund] Placing main bet:', mainStake, 'on', mainBetSelection?.priceType);
+      const mainBetResult = await placeTotelepepBet(mainBetSelections, mainStake, selectedSource);
+      
+      // Place refund bet
+      const refundBetSelections: ParlaySelection[] = [{
+        ...refundSelections[selectedRefundIndex],
+        hasError: false
+      }];
+      
+      console.log('[BetRefund] Refund selection before placing:', refundBetSelections[0]);
+      console.log('[BetRefund] Refund priceType:', refundBetSelections[0].priceType);
+      console.log('[BetRefund] Refund odds:', refundBetSelections[0].odds);
+      
+      let refundBetResult: any = { ticketNo: null, potentialPayout: null };
+      console.log('[BetRefund] Placing refund bet:', refundStake, 'on', refundSelections[selectedRefundIndex].priceType);
+      
+      // Validate refund stake and place bet if valid
+      if (refundStake && refundStake > 0) {
+        refundBetResult = await placeTotelepepBet(refundBetSelections, refundStake, selectedSource);
+        
+        // Check if refund bet succeeded
+        if (!refundBetResult.ticketNo || refundBetResult.ticketNo.trim() === '') {
+          console.error('[BetRefund] Refund bet failed:', refundBetResult);
+        }
+      } else {
+        console.error('[BetRefund] Invalid refund stake:', refundStake);
+      }
+      
+      // Check if both bets succeeded
+      const mainSuccess = mainBetResult.ticketNo && mainBetResult.ticketNo.trim() !== '' && !mainBetResult.ticketNo.includes('Booking Ref# ');
+      const refundSuccess = refundBetResult.ticketNo && refundBetResult.ticketNo.trim() !== '' && !refundBetResult.ticketNo.includes('Booking Ref# ') && refundBetResult.ticketNo.trim() !== 'Booking Ref#';
+      
+      console.log('[BetRefund] Main bet ticketNo:', mainBetResult.ticketNo);
+      console.log('[BetRefund] Refund bet ticketNo:', refundBetResult.ticketNo);
+      console.log('[BetRefund] Main success:', mainSuccess, 'Refund success:', refundSuccess);
+      console.log('[BetRefund] Full refundBetResult:', JSON.stringify(refundBetResult, null, 2));
+      
+      if (mainSuccess && refundSuccess) {
+        setLastResult({
+          success: true,
+          message: `Bet Refund Mode: Both bets placed successfully!`,
+          ticketNo: `${mainBetResult.ticketNo} + ${refundBetResult.ticketNo}`,
+          potentialPayout: `${mainBetResult.potentialPayout} / ${refundBetResult.potentialPayout}`,
+          fullResponse: {
+            mainBet: mainBetResult,
+            refundBet: refundBetResult,
+            mainStake,
+            refundStake
+          }
+        });
+        
+        // Save ONE combined booking with both refs
+        const mainTax = mainBetResult.betList?.[0]?.taxAmount || 0;
+        const mainBonus = mainBetResult.betList?.[0]?.bonusAmount || 0;
+        const mainNetPayout = mainBetResult.betList?.[0]?.payout || mainBetResult.potentialPayout || 0;
+        const refundTax = refundBetResult.betList?.[0]?.taxAmount || 0;
+        const refundBonus = refundBetResult.betList?.[0]?.bonusAmount || 0;
+        const refundNetPayout = refundBetResult.betList?.[0]?.payout || refundBetResult.potentialPayout || 0;
+        
+        saveBooking({
+          ticketNo: `${mainBetResult.ticketNo} - ${refundBetResult.ticketNo}`,
+          selections: [...mainBetSelections, ...refundBetSelections],
+          stake: mainStake + refundStake,
+          potentialWin: parseFloat(String(mainNetPayout).replace(/,/g, '')) + parseFloat(String(refundNetPayout).replace(/,/g, '')),
+          tax: parseFloat(String(mainTax).replace(/,/g, '')) + parseFloat(String(refundTax).replace(/,/g, '')),
+          bonus: parseFloat(String(mainBonus).replace(/,/g, '')) + parseFloat(String(refundBonus).replace(/,/g, '')),
+          netPayout: parseFloat(String(mainNetPayout).replace(/,/g, '')) + parseFloat(String(refundNetPayout).replace(/,/g, '')),
+          betRefundMode: true
+        });
+        
+        // Auto-scroll to results
+        setTimeout(() => {
+          if (betRefundMode && betRefundModeRef.current) {
+            // For Bet Refund Mode, scroll the container to the bottom
+            const container = betRefundModeRef.current;
+            container.scrollTop = container.scrollHeight;
+            console.log('[Auto-Scroll BetRefund] Scrolled to bottom:', container.scrollTop, '/', container.scrollHeight);
+          } else if (!betRefundMode) {
+            // For normal bets, scroll the booking result into view
+            const bookingResult = document.querySelector('.border-green-500.rounded-lg');
+            if (bookingResult) {
+              bookingResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }
+        }, 500);
+      } else {
+        const mainSuccess = mainBetResult.ticketNo && mainBetResult.ticketNo.trim() !== '';
+        const refundSuccess = refundBetResult.ticketNo && refundBetResult.ticketNo.trim() !== '';
+        
+        let errorMsg = 'Bet placement failed: ';
+        if (mainSuccess && !refundSuccess) {
+          errorMsg += 'Main bet placed successfully, but refund bet failed. ';
+          if (refundBetResult.errorMessage) errorMsg += `Error: ${refundBetResult.errorMessage}. `;
+        } else if (!mainSuccess && refundSuccess) {
+          errorMsg += 'Refund bet placed successfully, but main bet failed. ';
+          if (mainBetResult.errorMessage) errorMsg += `Error: ${mainBetResult.errorMessage}. `;
+        } else {
+          errorMsg += 'Both bets failed.';
+        }
+        
+        setLastResult({
+          success: false,
+          message: errorMsg,
+          fullResponse: { mainBet: mainBetResult, refundBet: refundBetResult }
+        });
+      }
+    } catch (error) {
+      setLastResult({
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    } finally {
+      setIsPlacing(false);
+    }
+  };
+
   const handlePlaceBet = async () => {
+    // BET REFUND MODE: Place two separate single bets
+    if (betRefundMode && mainBetSelection && selectedRefundIndex >= 0) {
+      return await handlePlaceBetRefundMode();
+    }
+    
+    // NORMAL MODE: Place parlay bet
     // Clear previous errors before placing new bet
     selections.forEach(s => s.hasError = false);
     
@@ -1216,16 +1427,14 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         // Auto-scroll to booking result after successful bet
         setTimeout(() => {
           console.log('[Auto-Scroll] Timeout triggered, attempting to scroll...');
-          if (bookingResultRef.current) {
-            console.log('[Auto-Scroll] Found scroll container:', bookingResultRef.current);
-            const bookingResult = bookingResultRef.current.querySelector('.border-green-500');
-            console.log('[Auto-Scroll] Found booking result:', bookingResult);
-            if (bookingResult) {
-              console.log('[Auto-Scroll] Scrolling into view...');
-              bookingResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+          // Try to find the booking result directly
+          const bookingResult = document.querySelector('.border-green-500.rounded-lg');
+          console.log('[Auto-Scroll] Found booking result:', bookingResult);
+          if (bookingResult) {
+            console.log('[Auto-Scroll] Scrolling into view...');
+            bookingResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
           } else {
-            console.log('[Auto-Scroll] No scroll container found');
+            console.log('[Auto-Scroll] No booking result found');
           }
         }, 300);
         
@@ -1283,16 +1492,14 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         // Auto-scroll to booking result after successful bet
         setTimeout(() => {
           console.log('[Auto-Scroll] Timeout triggered, attempting to scroll...');
-          if (bookingResultRef.current) {
-            console.log('[Auto-Scroll] Found scroll container:', bookingResultRef.current);
-            const bookingResult = bookingResultRef.current.querySelector('.border-green-500');
-            console.log('[Auto-Scroll] Found booking result:', bookingResult);
-            if (bookingResult) {
-              console.log('[Auto-Scroll] Scrolling into view...');
-              bookingResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+          // Try to find the booking result directly
+          const bookingResult = document.querySelector('.border-green-500.rounded-lg');
+          console.log('[Auto-Scroll] Found booking result:', bookingResult);
+          if (bookingResult) {
+            console.log('[Auto-Scroll] Scrolling into view...');
+            bookingResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
           } else {
-            console.log('[Auto-Scroll] No scroll container found');
+            console.log('[Auto-Scroll] No booking result found');
           }
         }, 300);
         
@@ -1595,7 +1802,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
       {/* Bet Refund Mode UI */}
       {betRefundMode && mainBetSelection && selections.length >= 1 && (
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg p-4 mb-4 overflow-y-auto max-h-[calc(100vh-200px)]">
+        <div ref={betRefundModeRef} className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg p-4 mb-4 overflow-y-auto max-h-[calc(100vh-200px)]">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-bold text-purple-800">🎯 Bet Refund Mode</h3>
             <button
@@ -1702,25 +1909,25 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     let selectionName = '';
                     
                     // For 1X2 markets, use optionName if available (contains team name from API)
-                    if (sel.marketDisplayName && sel.marketDisplayName.includes('1 X 2')) {
+                    if (sel.marketDisplayName && sel.marketDisplayName.toLowerCase().includes('1 x 2')) {
                       if (sel.optionName) {
                         // Use optionName which contains the team name (e.g., "Qingdao West C...")
                         if (sel.priceType === 'draw' || sel.priceType === 'X') {
-                          selectionName = '1X2 Draw';
+                          selectionName = 'Draw';
                         } else {
-                          selectionName = `1X2 ${sel.optionName}`;
+                          selectionName = sel.optionName;
                         }
                       } else {
                         // Fallback to homeTeam/awayTeam
-                        if (sel.priceType === 'home' || sel.priceType === '1') selectionName = `1X2 ${sel.homeTeam}`;
-                        else if (sel.priceType === 'draw' || sel.priceType === 'X') selectionName = '1X2 Draw';
-                        else if (sel.priceType === 'away' || sel.priceType === '2') selectionName = `1X2 ${sel.awayTeam}`;
+                        if (sel.priceType === 'home' || sel.priceType === '1') selectionName = sel.homeTeam;
+                        else if (sel.priceType === 'draw' || sel.priceType === 'X') selectionName = 'Draw';
+                        else if (sel.priceType === 'away' || sel.priceType === '2') selectionName = sel.awayTeam;
                         else selectionName = sel.marketDisplayName;
                       }
                     }
                     // For other markets with optionName (BTTS, Correct Score, etc.)
                     else if (sel.optionName && sel.marketDisplayName) {
-                      selectionName = `${sel.marketDisplayName} - ${sel.optionName}`;
+                      selectionName = sel.optionName;
                     }
                     else if (sel.priceType === 'home') selectionName = sel.homeTeam;
                     else if (sel.priceType === 'draw') selectionName = 'Draw';
@@ -1790,25 +1997,25 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                       let selectionName = '';
                       
                       // For 1X2 markets, use optionName if available (contains team name from API)
-                      if (sel.marketDisplayName && sel.marketDisplayName.includes('1 X 2')) {
+                      if (sel.marketDisplayName && sel.marketDisplayName.toLowerCase().includes('1 x 2')) {
                         if (sel.optionName) {
                           // Use optionName which contains the team name
                           if (sel.priceType === 'draw' || sel.priceType === 'X') {
-                            selectionName = '1X2 Draw';
+                            selectionName = 'Draw';
                           } else {
-                            selectionName = `1X2 ${sel.optionName}`;
+                            selectionName = sel.optionName;
                           }
                         } else {
                           // Fallback to homeTeam/awayTeam
-                          if (sel.priceType === 'home' || sel.priceType === '1') selectionName = `1X2 ${sel.homeTeam}`;
-                          else if (sel.priceType === 'draw' || sel.priceType === 'X') selectionName = '1X2 Draw';
-                          else if (sel.priceType === 'away' || sel.priceType === '2') selectionName = `1X2 ${sel.awayTeam}`;
+                          if (sel.priceType === 'home' || sel.priceType === '1') selectionName = sel.homeTeam;
+                          else if (sel.priceType === 'draw' || sel.priceType === 'X') selectionName = 'Draw';
+                          else if (sel.priceType === 'away' || sel.priceType === '2') selectionName = sel.awayTeam;
                           else selectionName = sel.marketDisplayName;
                         }
                       }
                       // For other markets with optionName (BTTS, Correct Score, etc.)
                       else if (sel.optionName && sel.marketDisplayName) {
-                        selectionName = `${sel.marketDisplayName} - ${sel.optionName}`;
+                        selectionName = sel.optionName;
                       }
                       else if (sel.priceType === 'home') selectionName = sel.homeTeam;
                       else if (sel.priceType === 'draw') selectionName = 'Draw';
@@ -1889,53 +2096,66 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             const BONUS_MULTIPLIER = hasBonus ? (1 + bonusPercentage / 100) : 1;
             
             let mainStake = 0, refundStake = 0, totalPaid = 0, profit = 0;
+            let mainPayout = 0, refundPayout = 0, totalStakeAfterTax = 0;
             
             if (refundModeType === 'budget') {
               // Budget mode: mainStake + refundStake = budgetAmount (exact)
-              // refundStake * TAX_RATE * refundOdds = totalPaid (budget back on refund)
-              // totalPaid = (mainStake + refundStake) * TAX_RATE
               // 
-              // From refund condition: refundStake = totalPaid / (TAX_RATE * refundOdds)
-              // But totalPaid = budgetAmount * TAX_RATE (after tax)
-              // So: refundStake = (budgetAmount * TAX_RATE) / (TAX_RATE * refundOdds) = budgetAmount / refundOdds
-              // And: mainStake = budgetAmount - refundStake
+              // Equation 1 (refund wins): refundStake / 114 * 100 * refundOdds * BONUS = budgetAmount
+              // => refundStake = budgetAmount * 114 / 100 / (refundOdds * BONUS_MULTIPLIER)
+              // 
+              // Equation 2 (main wins): mainStake / 114 * 100 * mainOdds * BONUS - refundStake = profit
+              // => profit = mainStake / 114 * 100 * mainOdds * BONUS_MULTIPLIER - refundStake
+              // 
+              // Constraint: mainStake = budgetAmount - refundStake
               
-              // Calculate stakes and round to nearest integer for API
-              const rawRefundStake = budgetAmount / refundOdds;
+              // Step 1: Calculate refund stake from equation 1
+              const rawRefundStake = budgetAmount * (114 / 100) / (refundOdds * BONUS_MULTIPLIER);
               refundStake = Math.round(rawRefundStake);
+              
+              // Step 2: Calculate main stake from constraint
               mainStake = budgetAmount - refundStake; // Ensure exact sum
-              totalPaid = (mainStake + refundStake) * TAX_RATE;
-              // Profit includes bonus if available
-              profit = (mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER) - totalPaid;
+              
+              // Step 3: Calculate payouts
+              mainPayout = (mainStake / 114) * 100 * mainOdds * BONUS_MULTIPLIER;
+              refundPayout = (refundStake / 114) * 100 * refundOdds * BONUS_MULTIPLIER;
+              
+              // Step 4: Calculate profit
+              // When main wins: profit = mainPayout - budgetAmount (total amount paid)
+              profit = mainPayout - budgetAmount;
             } else {
-              // Target Profit mode: Calculate stakes for EXACT target profit AFTER tax and bonus
-              // Formula: We need profit AFTER tax to equal targetProfit
-              // profit_after_tax = (mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER) - totalPaid
-              // totalPaid = (mainStake + refundStake) * TAX_RATE
-              // refund condition: refundStake * TAX_RATE * refundOdds = totalPaid
+              // Target Profit mode: Calculate stakes for EXACT target profit
+              // 
+              // Equation 1 (refund wins): refundStake / 114 * 100 * refundOdds * BONUS = mainStake + refundStake
+              // => mainStake = refundStake * (refundOdds * BONUS_MULTIPLIER * 100 / 114 - 1)
+              // 
+              // Equation 2 (main wins): mainStake / 114 * 100 * mainOdds * BONUS - (mainStake + refundStake) = targetProfit
+              // 
+              // Substitute mainStake from Eq1 into Eq2 and solve for refundStake
               
-              // From refund condition: refundStake = totalPaid / (TAX_RATE * refundOdds)
-              // From profit condition: targetProfit = mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER - totalPaid
-              // => totalPaid = mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER - targetProfit
+              const refundMultiplier = refundOdds * BONUS_MULTIPLIER * (100 / 114);
+              const mainMultiplier = mainOdds * BONUS_MULTIPLIER * (100 / 114);
               
-              // Also: totalPaid = (mainStake + refundStake) * TAX_RATE
-              // => totalPaid = mainStake * TAX_RATE + refundStake * TAX_RATE
-              // => totalPaid = mainStake * TAX_RATE + totalPaid / refundOdds
-              // => totalPaid * (1 - 1/refundOdds) = mainStake * TAX_RATE
-              // => totalPaid = mainStake * TAX_RATE * refundOdds / (refundOdds - 1)
+              // From Eq1: mainStake = refundStake * (refundMultiplier - 1)
+              // Total = mainStake + refundStake = refundStake * refundMultiplier
+              // From Eq2: mainStake * mainMultiplier - refundStake * refundMultiplier = targetProfit
+              // => refundStake * (refundMultiplier - 1) * mainMultiplier - refundStake * refundMultiplier = targetProfit
+              // => refundStake * [(refundMultiplier - 1) * mainMultiplier - refundMultiplier] = targetProfit
+              // => refundStake = targetProfit / [(refundMultiplier - 1) * mainMultiplier - refundMultiplier]
               
-              // Substitute into profit equation:
-              // mainStake * TAX_RATE * refundOdds / (refundOdds - 1) = mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER - targetProfit
-              // => targetProfit = mainStake * TAX_RATE * (mainOdds * BONUS_MULTIPLIER - refundOdds / (refundOdds - 1))
-              // => mainStake = targetProfit / (TAX_RATE * (mainOdds * BONUS_MULTIPLIER - refundOdds / (refundOdds - 1)))
-              
-              const refundRatio = refundOdds / (refundOdds - 1);
-              const rawMainStake = targetProfit / (TAX_RATE * (mainOdds * BONUS_MULTIPLIER - refundRatio));
-              mainStake = Math.round(rawMainStake);
-              const rawRefundStake = mainStake * (refundRatio - 1);
+              // Solve for refundStake
+              const rawRefundStake = targetProfit / ((refundMultiplier - 1) * mainMultiplier - refundMultiplier);
               refundStake = Math.round(rawRefundStake);
-              totalPaid = (mainStake + refundStake) * TAX_RATE;
-              profit = (mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER) - totalPaid;
+              
+              // Calculate mainStake from equation 1
+              mainStake = Math.round(refundStake * (refundMultiplier - 1));
+              
+              // Calculate payouts
+              mainPayout = (mainStake / 114) * 100 * mainOdds * BONUS_MULTIPLIER;
+              refundPayout = (refundStake / 114) * 100 * refundOdds * BONUS_MULTIPLIER;
+              
+              // Verify profit: mainPayout - total stake paid
+              profit = mainPayout - (mainStake + refundStake);
               
               console.log('[BetRefund Target Profit] ========== DEBUG ==========');
               console.log('  Target Profit:', targetProfit);
@@ -1961,6 +2181,19 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               <div className="bg-white rounded-lg p-3 border-2 border-purple-300">
                 <div className="text-xs text-purple-600 font-semibold mb-2">💰 STAKES & OUTCOMES</div>
                 
+                {/* Validation: Check if profit is negative */}
+                {Math.round(profit) < 0 ? (
+                  <div className="bg-red-50 border-2 border-red-300 rounded-lg p-3 mb-3">
+                    <div className="flex items-center gap-2 text-red-700">
+                      <AlertCircle className="w-5 h-5" />
+                      <span className="font-bold text-sm">Invalid Bet</span>
+                    </div>
+                    <div className="text-xs text-red-600 mt-1">
+                      Profit cannot be negative. Please adjust your budget/profit target or select different odds.
+                    </div>
+                  </div>
+                ) : (
+                  <>
                 <div className="space-y-2 mb-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Main Bet Stake:</span>
@@ -1972,7 +2205,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   </div>
                   <div className="border-t border-purple-200 pt-2 flex justify-between text-sm">
                     <span className="text-gray-600">Total Bet:</span>
-                    <span className="font-bold text-purple-800">Rs {refundModeType === 'budget' ? budgetAmount.toFixed(0) : totalPaid.toFixed(0)}</span>
+                    <span className="font-bold text-purple-800">Rs {(mainStake + refundStake).toFixed(0)}</span>
                   </div>
                 </div>
 
@@ -1980,15 +2213,15 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   <div className="text-xs text-green-600 font-semibold mb-1">🎯 OUTCOMES</div>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-gray-700">If Main Wins:</span>
-                    <span className="font-bold text-green-700">+Rs {profit.toFixed(2)} profit</span>
+                    <span className="font-bold text-green-700">+Rs {Math.round(profit)} profit</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-700">If Refund Wins:</span>
-                    <span className="font-bold text-blue-700">Rs {refundModeType === 'budget' ? budgetAmount.toFixed(0) : totalPaid.toFixed(0)} (Full Refund)</span>
+                    <span className="font-bold text-blue-700">Rs {refundModeType === 'budget' ? budgetAmount.toFixed(0) : (mainStake + refundStake).toFixed(0)} (Full Refund)</span>
                   </div>
                   {hasBonus ? (
                     <div className="mt-2 pt-2 border-t border-green-300 text-xs text-green-600">
-                      ✅ Includes {bonusPercentage.toFixed(0)}% bonus (detected)
+                      ✅ Includes {bonusPercentage.toFixed(0)}% bonus
                     </div>
                   ) : isDetectingBonus ? (
                     <div className="mt-2 pt-2 border-t border-yellow-200 text-xs text-yellow-600">
@@ -2000,6 +2233,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     </div>
                   )}
                 </div>
+                </>
+                )}
               </div>
             );
           })()}
@@ -2316,13 +2551,105 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             {showNewBetButton && (
               <div className="p-3 border-t border-gray-200">
                 <button
-                  onClick={onClose}
+                  onClick={() => {
+                    setLastResult(null);
+                    setShowNewBetButton(false);
+                  }}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
                 >
-                  Exit Parlay Builder
+                  Place New Bet
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Bet Refund Mode - Dual Booking Result Display */}
+        {betRefundMode && lastResult && lastResult.success && lastResult.fullResponse?.mainBet && lastResult.fullResponse?.refundBet && (
+          <div className="mb-4 border-2 border-green-500 rounded-lg overflow-y-auto max-h-[60vh] bg-white">
+            <div className="p-3 bg-green-100 border-b border-green-200">
+              <div className="text-center font-bold text-green-800">🎯 Bet Refund Mode - Both Bets Placed</div>
+            </div>
+            
+            {/* Main Bet */}
+            <div className="border-b-2 border-green-200">
+              <div className="p-2 bg-green-50 text-center">
+                <div className="text-sm font-bold text-green-700">MAIN BET</div>
+              </div>
+              <div className="p-3 border-b border-gray-200 bg-yellow-50">
+                <div className="text-sm font-semibold text-gray-800 mb-2">
+                  {mainBetSelection?.homeTeam} v {mainBetSelection?.awayTeam}
+                </div>
+                <div className="text-xs text-gray-600 mb-2">
+                  {mainBetSelection?.periodCode} - {mainBetSelection?.priceType} @ {mainBetSelection?.odds}
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Stake:</span>
+                  <span className="font-bold">Rs {lastResult.fullResponse.mainStake}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Potential Win:</span>
+                  <span className="font-bold text-green-700">Rs {lastResult.fullResponse.mainBet.potentialPayout}</span>
+                </div>
+              </div>
+              <div ref={bookingRefRef} className="bg-white">
+                {selectedSource && (
+                  <div className="p-2 bg-blue-50 text-center border-b border-blue-200">
+                    <div className="text-xl font-bold text-blue-700">{selectedSource.displayName}</div>
+                  </div>
+                )}
+                <div className="p-3 bg-green-500 text-white text-center">
+                  <div className="text-2xl font-bold">Booking Ref# {lastResult.fullResponse.mainBet.ticketNo}</div>
+                </div>
+                <div className="p-3 bg-yellow-400 text-center border-t border-yellow-500">
+                  <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
+                    <span>📱</span>
+                    <span>SMS BET{lastResult.fullResponse.mainBet.ticketNo}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Refund Bet */}
+            <div>
+              <div className="p-2 bg-green-50 text-center">
+                <div className="text-sm font-bold text-green-700">REFUND BET</div>
+              </div>
+              <div className="p-3 border-b border-gray-200 bg-yellow-50">
+                <div className="text-sm font-semibold text-gray-800 mb-2">
+                  {refundSelections[selectedRefundIndex]?.homeTeam} v {refundSelections[selectedRefundIndex]?.awayTeam}
+                </div>
+                <div className="text-xs text-gray-600 mb-2">
+                  {refundSelections[selectedRefundIndex]?.periodCode} - {refundSelections[selectedRefundIndex]?.priceType} @ {refundSelections[selectedRefundIndex]?.odds}
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Stake:</span>
+                  <span className="font-bold">Rs {lastResult.fullResponse.refundStake}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Potential Win:</span>
+                  <span className="font-bold text-green-700">Rs {lastResult.fullResponse.refundBet.potentialPayout}</span>
+                </div>
+              </div>
+              <div className="bg-white">
+                <div className="p-2 bg-blue-50 text-center border-b border-blue-200">
+                  <div className="text-xl font-bold text-blue-700">{selectedSource?.displayName}</div>
+                </div>
+                {lastResult.fullResponse.refundBet.ticketNo && (
+                  <>
+                    <div className="p-3 bg-green-500 text-white text-center">
+                      <div className="text-2xl font-bold">Booking Ref# {lastResult.fullResponse.refundBet.ticketNo}</div>
+                    </div>
+                    <div className="p-3 bg-yellow-400 text-center border-t border-yellow-500">
+                      <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
+                        <span>📱</span>
+                        <span>SMS BET{lastResult.fullResponse.refundBet.ticketNo}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
