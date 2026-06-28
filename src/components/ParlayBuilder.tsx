@@ -680,6 +680,8 @@ export interface ParlaySelection {
   marketDisplayName?: string;  // Full market display name from API
   optionCode?: string;  // Option code from API (e.g., HD, HA, DA, H, D, A)
   optionNo?: string;  // Option number from API
+  optionName?: string;  // Option display name from API (e.g., "1-4 - Zhejiang FC")
+  competitionName?: string;  // Competition name (e.g., "China - Chinese Super League")
   competitionId?: string;
   hasError?: boolean;  // Track if this selection has an error
 }
@@ -1635,6 +1637,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           {/* Match Info */}
           {mainBetSelection && (
             <div className="bg-white rounded-lg p-3 mb-3 border border-purple-200">
+              {mainBetSelection.competitionName && (
+                <div className="text-xs text-purple-600 font-semibold mb-1">
+                  {mainBetSelection.competitionName}
+                </div>
+              )}
               <div className="text-sm font-semibold text-gray-800">
                 {mainBetSelection.homeTeam} v {mainBetSelection.awayTeam}
               </div>
@@ -1689,18 +1696,67 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               {allOutcomes.map((sel, idx) => (
                 <option key={idx} value={idx}>
                   {(() => {
-                    // Show selection name @ odds
+                    // Show period - selection name @ odds
+                    const periodCode = sel.periodCode || 'FT';
+                    
                     let selectionName = '';
-                    if (sel.priceType === 'home') selectionName = sel.homeTeam;
+                    
+                    // For 1X2 markets, use optionName if available (contains team name from API)
+                    if (sel.marketDisplayName && sel.marketDisplayName.includes('1 X 2')) {
+                      if (sel.optionName) {
+                        // Use optionName which contains the team name (e.g., "Qingdao West C...")
+                        if (sel.priceType === 'draw' || sel.priceType === 'X') {
+                          selectionName = '1X2 Draw';
+                        } else {
+                          selectionName = `1X2 ${sel.optionName}`;
+                        }
+                      } else {
+                        // Fallback to homeTeam/awayTeam
+                        if (sel.priceType === 'home' || sel.priceType === '1') selectionName = `1X2 ${sel.homeTeam}`;
+                        else if (sel.priceType === 'draw' || sel.priceType === 'X') selectionName = '1X2 Draw';
+                        else if (sel.priceType === 'away' || sel.priceType === '2') selectionName = `1X2 ${sel.awayTeam}`;
+                        else selectionName = sel.marketDisplayName;
+                      }
+                    }
+                    // For other markets with optionName (BTTS, Correct Score, etc.)
+                    else if (sel.optionName && sel.marketDisplayName) {
+                      selectionName = `${sel.marketDisplayName} - ${sel.optionName}`;
+                    }
+                    else if (sel.priceType === 'home') selectionName = sel.homeTeam;
                     else if (sel.priceType === 'draw') selectionName = 'Draw';
                     else if (sel.priceType === 'away') selectionName = sel.awayTeam;
                     else if (sel.priceType === 'over') selectionName = 'Over';
                     else if (sel.priceType === 'under') selectionName = 'Under';
                     else if (sel.priceType === 'btts_yes') selectionName = 'Yes';
                     else if (sel.priceType === 'btts_no') selectionName = 'No';
+                    else if (sel.marketDisplayName) {
+                      // For Double Chance markets, use marketDisplayName directly (it already contains team info)
+                      if (sel.marketDisplayName.toLowerCase().includes('double chance')) {
+                        // If marketDisplayName is just "Double Chance", construct it with teams
+                        if (sel.marketDisplayName === 'Double Chance' || sel.marketDisplayName === 'Double chance') {
+                          // Try to determine from priceType
+                          if (sel.priceType.includes('1X') || sel.priceType.toLowerCase().includes('home') && sel.priceType.toLowerCase().includes('draw')) {
+                            selectionName = `Double Chance ${sel.homeTeam} or Draw`;
+                          } else if (sel.priceType.includes('12') || (sel.priceType.toLowerCase().includes('home') && sel.priceType.toLowerCase().includes('away'))) {
+                            selectionName = `Double Chance ${sel.homeTeam} or ${sel.awayTeam}`;
+                          } else if (sel.priceType.includes('X2') || sel.priceType.toLowerCase().includes('draw') && sel.priceType.toLowerCase().includes('away')) {
+                            selectionName = `Double Chance Draw or ${sel.awayTeam}`;
+                          } else {
+                            selectionName = sel.marketDisplayName;
+                          }
+                        } else {
+                          // marketDisplayName already has team info
+                          selectionName = sel.marketDisplayName;
+                        }
+                      }
+                      else {
+                        // Use marketDisplayName for other markets
+                        selectionName = sel.marketDisplayName;
+                      }
+                    }
                     else selectionName = sel.priceType.replace(/-/g, ' ');
                     
-                    return `${selectionName} @ ${typeof sel.odds === 'string' ? sel.odds : sel.odds.toFixed(2)}`;
+                    return `${periodCode} - ${selectionName} @ ${typeof sel.odds === 'string' ? sel.odds : sel.odds.toFixed(2)}`;
                   })()}
                 </option>
               ))}
@@ -1728,18 +1784,67 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 return (
                   <option key={actualIdx} value={idx}>
                     {(() => {
-                      // Show selection name @ odds
+                      // Show period - selection name @ odds
+                      const periodCode = sel.periodCode || 'FT';
+                      
                       let selectionName = '';
-                      if (sel.priceType === 'home') selectionName = sel.homeTeam;
+                      
+                      // For 1X2 markets, use optionName if available (contains team name from API)
+                      if (sel.marketDisplayName && sel.marketDisplayName.includes('1 X 2')) {
+                        if (sel.optionName) {
+                          // Use optionName which contains the team name
+                          if (sel.priceType === 'draw' || sel.priceType === 'X') {
+                            selectionName = '1X2 Draw';
+                          } else {
+                            selectionName = `1X2 ${sel.optionName}`;
+                          }
+                        } else {
+                          // Fallback to homeTeam/awayTeam
+                          if (sel.priceType === 'home' || sel.priceType === '1') selectionName = `1X2 ${sel.homeTeam}`;
+                          else if (sel.priceType === 'draw' || sel.priceType === 'X') selectionName = '1X2 Draw';
+                          else if (sel.priceType === 'away' || sel.priceType === '2') selectionName = `1X2 ${sel.awayTeam}`;
+                          else selectionName = sel.marketDisplayName;
+                        }
+                      }
+                      // For other markets with optionName (BTTS, Correct Score, etc.)
+                      else if (sel.optionName && sel.marketDisplayName) {
+                        selectionName = `${sel.marketDisplayName} - ${sel.optionName}`;
+                      }
+                      else if (sel.priceType === 'home') selectionName = sel.homeTeam;
                       else if (sel.priceType === 'draw') selectionName = 'Draw';
                       else if (sel.priceType === 'away') selectionName = sel.awayTeam;
                       else if (sel.priceType === 'over') selectionName = 'Over';
                       else if (sel.priceType === 'under') selectionName = 'Under';
                       else if (sel.priceType === 'btts_yes') selectionName = 'Yes';
                       else if (sel.priceType === 'btts_no') selectionName = 'No';
+                      else if (sel.marketDisplayName) {
+                        // For Double Chance markets, use marketDisplayName directly
+                        if (sel.marketDisplayName.toLowerCase().includes('double chance')) {
+                          // If marketDisplayName is just "Double Chance", construct it with teams
+                          if (sel.marketDisplayName === 'Double Chance' || sel.marketDisplayName === 'Double chance') {
+                            // Try to determine from priceType
+                            if (sel.priceType.includes('1X') || sel.priceType.toLowerCase().includes('home') && sel.priceType.toLowerCase().includes('draw')) {
+                              selectionName = `Double Chance ${sel.homeTeam} or Draw`;
+                            } else if (sel.priceType.includes('12') || (sel.priceType.toLowerCase().includes('home') && sel.priceType.toLowerCase().includes('away'))) {
+                              selectionName = `Double Chance ${sel.homeTeam} or ${sel.awayTeam}`;
+                            } else if (sel.priceType.includes('X2') || sel.priceType.toLowerCase().includes('draw') && sel.priceType.toLowerCase().includes('away')) {
+                              selectionName = `Double Chance Draw or ${sel.awayTeam}`;
+                            } else {
+                              selectionName = sel.marketDisplayName;
+                            }
+                          } else {
+                            // marketDisplayName already has team info
+                            selectionName = sel.marketDisplayName;
+                          }
+                        }
+                        else {
+                          // Use marketDisplayName for other markets
+                          selectionName = sel.marketDisplayName;
+                        }
+                      }
                       else selectionName = sel.priceType.replace(/-/g, ' ');
                       
-                      return `${selectionName} @ ${typeof sel.odds === 'string' ? sel.odds : sel.odds.toFixed(2)}`;
+                      return `${periodCode} - ${selectionName} @ ${typeof sel.odds === 'string' ? sel.odds : sel.odds.toFixed(2)}`;
                     })()}
                   </option>
                 );

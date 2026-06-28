@@ -2839,7 +2839,7 @@ function App() {
     );
   }
 
-  const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => {
+  const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string, optionName?: string) => {
     // Find the match details
     const match = matches.find(m => m.id === matchId);
     
@@ -2933,6 +2933,7 @@ function App() {
           kickoff: match.kickoff,
           matchDate: match.date,
           competitionId: match.competitionId,
+          competitionName: match.league,
           // Ensure marketId is always set - fallback chain
           marketId: marketId || 
                     (match.marketId && match.marketId !== '0' && match.marketId !== 'undefined' && match.marketId !== 'null' 
@@ -2945,6 +2946,7 @@ function App() {
           marketDisplayName: marketDisplayName || '',
           optionCode: optionCode || '',
           optionNo: optionNo || '',
+          optionName: optionName || '',
           hasError: hasError, // Mark if this selection has an error
         };
         // If this is a duplicate, mark BOTH selections with error
@@ -2966,7 +2968,7 @@ function App() {
     }
   };
 
-  const handleLongPress = (matchId: string, priceType: string, odds: number, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => {
+  const handleLongPress = (matchId: string, priceType: string, odds: number, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string, optionName?: string) => {
     // Only activate when parlay builder is empty
     if (parlaySelections.length > 0) return;
     
@@ -2991,6 +2993,8 @@ function App() {
       marketDisplayName,
       optionCode,
       optionNo,
+      optionName,
+      competitionName: match.league,
       competitionId: match.competitionId
     };
     

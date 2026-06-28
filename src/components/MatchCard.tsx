@@ -5,12 +5,12 @@ import { totelepepExtractor } from '../services/totelepepExtractor';
 
 interface MatchCardProps {
   match: TotelepepMatch;
-  onPriceClick: (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => void;
+  onPriceClick: (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string, optionName?: string) => void;
   selectedPrices: string[];
   searchMode?: 'matches' | 'eq' | 'gte' | 'lte' | 'between'; // Search filter mode
   searchTerm?: string; // Search term for odds highlighting
   onMarketsLoaded?: (matchId: string, markets: any[]) => void; // Callback when markets load
-  onLongPress?: (matchId: string, priceType: string, odds: number, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => void;  // Long-press handler for Bet Refund Mode
+  onLongPress?: (matchId: string, priceType: string, odds: number, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string, optionName?: string) => void;  // Long-press handler for Bet Refund Mode
 }
 
 const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPrices, searchMode = 'matches', searchTerm = '', onMarketsLoaded, onLongPress }) => {
@@ -676,7 +676,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   const [isPressing, setIsPressing] = useState(false);
   const [longPressTriggered, setLongPressTriggered] = useState(false);
   
-  const handlePressStart = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string) => {
+  const handlePressStart = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string, optionName?: string) => {
     console.log('[LongPress] Press started');
     // Only activate if parlay builder is empty (check via parent)
     if (!onLongPress) {
@@ -691,7 +691,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     const timer = setTimeout(() => {
       console.log('[LongPress] 3 seconds elapsed, triggering!');
       setLongPressTriggered(true); // Mark that long-press triggered
-      onLongPress(matchId, priceType, numericOdds, marketBookNo, marketCode, marketId, marketLine, periodCode, marketDisplayName, optionCode, optionNo);
+      onLongPress(matchId, priceType, numericOdds, marketBookNo, marketCode, marketId, marketLine, periodCode, marketDisplayName, optionCode, optionNo, optionName);
       setIsPressing(false);
     }, 3000); // 3 seconds
     
@@ -1062,7 +1062,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                                                selection.name === 'X' || selection.name === 'Draw' || selection.name === 'X (Draw)' ? `draw${priceTypeSuffix}` :
                                                selection.name === '2' || selection.name === 'Away' || selection.name === '2 (Away)' || selection.name === match.awayTeam ? `away${priceTypeSuffix}` :
                                                `${market.marketBookNo}-${selection.name}`;
-                              onPriceClick(match.id, priceType, selection.odds, market.marketBookNo, market.marketCode, market.id, market.marketLine, market.periodCode, market.marketDisplayName, selection.optionCode, selection.optionNo);
+                              onPriceClick(match.id, priceType, selection.odds, market.marketBookNo, market.marketCode, market.id, market.marketLine, market.periodCode, market.marketDisplayName, selection.optionCode, selection.optionNo, selection.name);
                             } else {
                               onPriceClick(
                                 match.id, 
@@ -1087,7 +1087,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                                              selection.name === 'X' || selection.name === 'Draw' || selection.name === 'X (Draw)' ? `draw${priceTypeSuffix}` :
                                              selection.name === '2' || selection.name === 'Away' || selection.name === '2 (Away)' || selection.name === match.awayTeam ? `away${priceTypeSuffix}` :
                                              `${market.marketBookNo}-${selection.name}`;
-                            handlePressStart(match.id, priceType, selection.odds, market.marketBookNo, market.marketCode, market.id, market.marketLine, market.periodCode, market.marketDisplayName, selection.optionCode, selection.optionNo);
+                            handlePressStart(match.id, priceType, selection.odds, market.marketBookNo, market.marketCode, market.id, market.marketLine, market.periodCode, market.marketDisplayName, selection.optionCode, selection.optionNo, selection.name);
                           }}
                           onMouseUp={handlePressEnd}
                           onMouseLeave={handlePressEnd}
@@ -1098,7 +1098,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                                              selection.name === 'X' || selection.name === 'Draw' || selection.name === 'X (Draw)' ? `draw${priceTypeSuffix}` :
                                              selection.name === '2' || selection.name === 'Away' || selection.name === '2 (Away)' || selection.name === match.awayTeam ? `away${priceTypeSuffix}` :
                                              `${market.marketBookNo}-${selection.name}`;
-                            handlePressStart(match.id, priceType, selection.odds, market.marketBookNo, market.marketCode, market.id, market.marketLine, market.periodCode, market.marketDisplayName, selection.optionCode, selection.optionNo);
+                            handlePressStart(match.id, priceType, selection.odds, market.marketBookNo, market.marketCode, market.id, market.marketLine, market.periodCode, market.marketDisplayName, selection.optionCode, selection.optionNo, selection.name);
                           }}
                           onTouchEnd={handlePressEnd}
                           className={`flex-1 min-w-[80px] py-2 px-2 rounded text-sm font-medium transition-all ${
