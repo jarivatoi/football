@@ -1323,11 +1323,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             container.scrollTop = container.scrollHeight;
 
           } else if (!betRefundMode) {
-            // For normal bets, scroll the booking result into view
-            const bookingResult = document.querySelector('.border-green-500.rounded-lg');
-            if (bookingResult) {
-              bookingResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+            // For normal bets, auto-scroll booking result to bottom
+            setTimeout(() => {
+              if (bookingRefRef.current) {
+                bookingRefRef.current.scrollTop = bookingRefRef.current.scrollHeight;
+              }
+            }, 500);
           }
         }, 500);
       } else {
@@ -1454,19 +1455,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           netPayout: netPayoutToSave
         });
 
-        // Auto-scroll to booking result after successful bet
+        // Auto-scroll booking result to bottom
         setTimeout(() => {
-
-          // Try to find the booking result directly
-          const bookingResult = document.querySelector('.border-green-500.rounded-lg');
-
-          if (bookingResult) {
-
-            bookingResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          } else {
-
+          if (bookingRefRef.current) {
+            bookingRefRef.current.scrollTop = bookingRefRef.current.scrollHeight;
           }
-        }, 300);
+        }, 500);
         
         // Don't clear selections or reset bet amount - let user decide
         setIsPlacing(false);

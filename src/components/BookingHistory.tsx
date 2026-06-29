@@ -40,6 +40,17 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
       loadBookings();
     }
   }, [showHistory, onBookingsCountChange]);
+
+  // Auto-scroll to bottom when viewing a saved booking
+  useEffect(() => {
+    if (selectedBooking && bookingDetailRef.current) {
+      setTimeout(() => {
+        if (bookingDetailRef.current) {
+          bookingDetailRef.current.scrollTop = bookingDetailRef.current.scrollHeight;
+        }
+      }, 300);
+    }
+  }, [selectedBooking]);
   
   // Auto-scroll to bottom when viewing a booking
   useEffect(() => {
