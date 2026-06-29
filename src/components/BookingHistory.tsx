@@ -327,13 +327,11 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                         
                         // Check if this booking has individual financial data (new format)
                         const hasIndividualData = selectedBooking.betRefundMainStake !== undefined;
-                        
-                        console.log('[BookingHistory Detail] Booking:', selectedBooking.bookingRef);
-                        console.log('[BookingHistory Detail] hasIndividualData:', hasIndividualData);
-                        console.log('[BookingHistory Detail] betRefundMainStake:', selectedBooking.betRefundMainStake);
-                        console.log('[BookingHistory Detail] betRefundRefundStake:', selectedBooking.betRefundRefundStake);
-                        console.log('[BookingHistory Detail] Full booking:', selectedBooking);
-                        
+
+
+
+
+
                         if (hasIndividualData) {
                           // NEW FORMAT: Show separate breakdowns for each bet
                           const mainStake = selectedBooking.betRefundMainStake || 0;

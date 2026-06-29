@@ -677,10 +677,10 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   const [longPressTriggered, setLongPressTriggered] = useState(false);
   
   const handlePressStart = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string, optionName?: string) => {
-    console.log('[LongPress] Press started');
+
     // Only activate if parlay builder is empty (check via parent)
     if (!onLongPress) {
-      console.log('[LongPress] No onLongPress handler');
+
       return;
     }
     
@@ -689,7 +689,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     setLongPressTriggered(false); // Reset flag
     
     const timer = setTimeout(() => {
-      console.log('[LongPress] 3 seconds elapsed, triggering!');
+
       setLongPressTriggered(true); // Mark that long-press triggered
       onLongPress(matchId, priceType, numericOdds, marketBookNo, marketCode, marketId, marketLine, periodCode, marketDisplayName, optionCode, optionNo, optionName);
       setIsPressing(false);
@@ -699,7 +699,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
   };
 
   const handlePressEnd = () => {
-    console.log('[LongPress] Press ended');
+
     if (pressTimer) {
       clearTimeout(pressTimer);
       setPressTimer(null);
@@ -857,7 +857,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                 e.stopPropagation();
                 // Prevent normal click if long-press was triggered
                 if (longPressTriggered) {
-                  console.log('[LongPress] Preventing normal click after long-press');
+
                   return;
                 }
                 onPriceClick(match.id, 'home', match.homeOdds, match.marketBookNo, match.marketCode);

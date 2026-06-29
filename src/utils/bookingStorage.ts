@@ -60,17 +60,16 @@ const openDB = (): Promise<IDBDatabase> => {
 // Save booking to IndexedDB
 export const saveBookingToDB = async (booking: SavedBooking): Promise<void> => {
   const db = await openDB();
-  console.log('[IndexedDB Save] Saving booking with fields:', Object.keys(booking));
-  console.log('[IndexedDB Save] betRefundMainStake:', booking.betRefundMainStake);
-  console.log('[IndexedDB Save] betRefundRefundStake:', booking.betRefundRefundStake);
-  
+
+
+
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME], 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
     const request = store.add(booking);
 
     request.onsuccess = () => {
-      console.log('[IndexedDB Save] ✅ Booking saved successfully');
+
       resolve();
     };
     request.onerror = () => reject(new Error('Failed to save booking'));
@@ -92,7 +91,7 @@ export const getAllBookingsFromDB = async (): Promise<SavedBooking[]> => {
       const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
       if (cursor) {
         bookings.push(cursor.value);
-        console.log('[IndexedDB Load] Loaded booking:', cursor.value.bookingRef, 'has betRefundMainStake:', cursor.value.betRefundMainStake !== undefined);
+
         cursor.continue();
       } else {
         resolve(bookings);

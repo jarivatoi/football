@@ -329,8 +329,7 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
     });
     
     // Log the complete form data being sent
-    console.log('[Bet Placement] Form Data:', formData.toString());
-    
+
     const response = await fetch(betUrl, {
       method: 'POST',
       headers: {
@@ -833,33 +832,29 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       const rawPercentage = basePayoutWithoutBonus > 0 ? (apiBreakdown.bonus / basePayoutWithoutBonus) * 100 : 0;
       const bonusPercentage = Math.round(rawPercentage);
       setDetectedBonusPercentage(bonusPercentage);
-      console.log('[Bonus Detection] ✅ Using existing apiBreakdown bonus:', bonusPercentage, '%');
+
       return;
     }
 
     // If apiBreakdown exists but has no bonus, use 0%
     if (apiBreakdown && apiBreakdown.bonus === 0) {
       setDetectedBonusPercentage(0);
-      console.log('[Bonus Detection] ℹ️ No bonus in recent bet');
+
       return;
     }
 
     // Place background reference bet to detect bonus (only once)
     const detectBonus = async () => {
       setIsDetectingBonus(true);
-      console.log('[Bonus Detection] Placing Rs 50 reference bet to detect bonus...');
 
       try {
         // Place a Rs 50 reference bet
         const referenceStake = 50;
         const result: any = await placeTotelepepBet([mainBetSelection], referenceStake, selectedSource);
 
-        console.log('[Bonus Detection] Reference bet response:', result);
-
         // Check if reference bet was successful
         if (!result.success) {
-          console.log('[Bonus Detection] ❌ Reference bet failed:', result.errorMessage);
-          
+
           // Show error and exit bet refund mode
           setToast(`⚠️ Betting mode failed: ${result.errorMessage || 'Unable to place bet'}`);
           setTimeout(() => setToast(null), 5000);
@@ -895,17 +890,16 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           const rawPercentage = basePayoutWithoutBonus > 0 ? (bonusAmount / basePayoutWithoutBonus) * 100 : 0;
           const bonusPercentage = Math.round(rawPercentage);
           setDetectedBonusPercentage(bonusPercentage);
-          console.log('[Bonus Detection] ✅ Detected bonus from reference bet:', bonusPercentage, '%');
+
         } else {
           setDetectedBonusPercentage(0);
-          console.log('[Bonus Detection] ℹ️ No bonus in reference bet response');
+
         }
 
         // DON'T save to ParlayBuilder history - bet exists in user's account but not shown in UI
         // Don't update lastResult or UI state
       } catch (error) {
-        console.error('[Bonus Detection] Error placing reference bet:', error);
-        
+
         // Show error and exit
         setToast('⚠️ Betting mode failed: Network error');
         setTimeout(() => setToast(null), 5000);
@@ -1236,8 +1230,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         setIsPlacing(false);
         return;
       }
-      
-      console.log('[BetRefund] Placing main bet:', mainStake, 'on', mainBetSelection?.priceType);
+
       const mainBetResult = await placeTotelepepBet(mainBetSelections, mainStake, selectedSource);
       
       // Place refund bet
@@ -1245,35 +1238,30 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         ...refundSelections[selectedRefundIndex],
         hasError: false
       }];
-      
-      console.log('[BetRefund] Refund selection before placing:', refundBetSelections[0]);
-      console.log('[BetRefund] Refund priceType:', refundBetSelections[0].priceType);
-      console.log('[BetRefund] Refund odds:', refundBetSelections[0].odds);
-      
+
+
+
       let refundBetResult: any = { ticketNo: null, potentialPayout: null };
-      console.log('[BetRefund] Placing refund bet:', refundStake, 'on', refundSelections[selectedRefundIndex].priceType);
-      
+
       // Validate refund stake and place bet if valid
       if (refundStake && refundStake > 0) {
         refundBetResult = await placeTotelepepBet(refundBetSelections, refundStake, selectedSource);
         
         // Check if refund bet succeeded
         if (!refundBetResult.ticketNo || refundBetResult.ticketNo.trim() === '') {
-          console.error('[BetRefund] Refund bet failed:', refundBetResult);
+
         }
       } else {
-        console.error('[BetRefund] Invalid refund stake:', refundStake);
+
       }
       
       // Check if both bets succeeded
       const mainSuccess = mainBetResult.ticketNo && mainBetResult.ticketNo.trim() !== '' && !mainBetResult.ticketNo.includes('Booking Ref# ');
       const refundSuccess = refundBetResult.ticketNo && refundBetResult.ticketNo.trim() !== '' && !refundBetResult.ticketNo.includes('Booking Ref# ') && refundBetResult.ticketNo.trim() !== 'Booking Ref#';
-      
-      console.log('[BetRefund] Main bet ticketNo:', mainBetResult.ticketNo);
-      console.log('[BetRefund] Refund bet ticketNo:', refundBetResult.ticketNo);
-      console.log('[BetRefund] Main success:', mainSuccess, 'Refund success:', refundSuccess);
-      console.log('[BetRefund] Full refundBetResult:', JSON.stringify(refundBetResult, null, 2));
-      
+
+
+
+
       if (mainSuccess && refundSuccess) {
         setLastResult({
           success: true,
@@ -1326,15 +1314,14 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         sessionStorage.removeItem('betRefundMode');
         sessionStorage.removeItem('betRefundMainSelection');
         sessionStorage.removeItem('betRefundOptions');
-        console.log('[BetRefund Booking] Cleared sessionStorage after bet placement');
-        
+
         // Auto-scroll to results
         setTimeout(() => {
           if (betRefundMode && betRefundModeRef.current) {
             // For Bet Refund Mode, scroll the container to the bottom
             const container = betRefundModeRef.current;
             container.scrollTop = container.scrollHeight;
-            console.log('[Auto-Scroll BetRefund] Scrolled to bottom:', container.scrollTop, '/', container.scrollHeight);
+
           } else if (!betRefundMode) {
             // For normal bets, scroll the booking result into view
             const bookingResult = document.querySelector('.border-green-500.rounded-lg');
@@ -1429,8 +1416,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       
       // Consider successful ONLY if we have a ticket AND no bet errors
       if (hasTicket && !hasBetErrors && !hasErrors) {
-        console.log('[Bet Success] Branch 1 - Bet successful, saving booking...');
-        console.log('[Auto-Scroll] Setting lastResult...');
+
+
         setLastResult({
           success: true,
           message: 'Booking successful!',
@@ -1438,8 +1425,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           potentialPayout: bookingResult.potentialPayout,
           fullResponse: bookingResult
         });
-        console.log('[Auto-Scroll] lastResult set, extracting tax/bonus...');
-        
+
         // Auto-save booking to IndexedDB with API response data
         // Extract tax and bonus from bookingResult (same logic as apiBreakdown)
         const betList = bookingResult.betList;
@@ -1447,8 +1433,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         let taxToSave = 0;
         let bonusToSave = 0;
         let netPayoutToSave = parseFloat((bookingResult.potentialPayout || '0').replace(/,/g, '')) || 0;
-        console.log('[Auto-Scroll] netPayoutToSave:', netPayoutToSave);
-        
+
         if (isMultiBet) {
           // Multi-bet: use top-level fields
           taxToSave = parseFloat((bookingResult.taxAmount || '0').replace(/,/g, '')) || 0;
@@ -1458,8 +1443,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           taxToSave = betList.reduce((sum: number, bet: any) => sum + (parseFloat((bet.taxAmount || '0').replace(/,/g, '')) || 0), 0);
           bonusToSave = betList.reduce((sum: number, bet: any) => sum + (parseFloat((bet.bonusAmount || '0').replace(/,/g, '')) || 0), 0);
         }
-        console.log('[Auto-Scroll] taxToSave:', taxToSave, 'bonusToSave:', bonusToSave);
-        
+
         saveBooking({
           ticketNo: bookingResult.ticketNo || '',
           selections: [...selections],
@@ -1469,19 +1453,18 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           bonus: bonusToSave,
           netPayout: netPayoutToSave
         });
-        console.log('[Auto-Scroll] saveBooking called successfully');
-        
+
         // Auto-scroll to booking result after successful bet
         setTimeout(() => {
-          console.log('[Auto-Scroll] Timeout triggered, attempting to scroll...');
+
           // Try to find the booking result directly
           const bookingResult = document.querySelector('.border-green-500.rounded-lg');
-          console.log('[Auto-Scroll] Found booking result:', bookingResult);
+
           if (bookingResult) {
-            console.log('[Auto-Scroll] Scrolling into view...');
+
             bookingResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
           } else {
-            console.log('[Auto-Scroll] No booking result found');
+
           }
         }, 300);
         
@@ -1523,8 +1506,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           bonus: bonusToSave,
           netPayout: netPayoutToSave
         });
-        
-        console.log('[Auto-Scroll] About to call saveBooking...');
+
         saveBooking({
           ticketNo: bookingResult.ticketNo || '',
           selections: [...selections],
@@ -1534,19 +1516,18 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           bonus: bonusToSave,
           netPayout: netPayoutToSave
         });
-        console.log('[Auto-Scroll] saveBooking called, scheduling scroll...');
-        
+
         // Auto-scroll to booking result after successful bet
         setTimeout(() => {
-          console.log('[Auto-Scroll] Timeout triggered, attempting to scroll...');
+
           // Try to find the booking result directly
           const bookingResult = document.querySelector('.border-green-500.rounded-lg');
-          console.log('[Auto-Scroll] Found booking result:', bookingResult);
+
           if (bookingResult) {
-            console.log('[Auto-Scroll] Scrolling into view...');
+
             bookingResult.scrollIntoView({ behavior: 'smooth', block: 'start' });
           } else {
-            console.log('[Auto-Scroll] No booking result found');
+
           }
         }, 300);
         
@@ -2185,25 +2166,24 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               
               // Verify profit: mainPayout - total stake paid
               profit = mainPayout - (mainStake + refundStake);
-              
-              console.log('[BetRefund Target Profit] ========== DEBUG ==========');
-              console.log('  Target Profit:', targetProfit);
-              console.log('  Main Odds:', mainOdds, 'Refund Odds:', refundOdds);
-              console.log('  TAX_RATE:', TAX_RATE, 'BONUS_MULTIPLIER:', BONUS_MULTIPLIER);
-              console.log('  Detected Bonus (background bet):', detectedBonusPercentage > 0, '(', detectedBonusPercentage, '%)');
-              console.log('  API Bonus (from last user bet):', apiHasBonus, '(', apiBonusPercentage.toFixed(1), '%)');
-              console.log('  Using Bonus:', hasBonus, '(', bonusPercentage.toFixed(1), '%)');
+
+
+
+
+
+
+
               if (!apiBreakdown && detectedBonusPercentage === 0) {
-                console.log('  ⚠️ No bonus data yet - placing background test bet...');
+
               }
-              console.log('  Calculated Main Stake:', mainStake);
-              console.log('  Calculated Refund Stake:', refundStake);
-              console.log('  Total Paid (after tax):', totalPaid);
-              console.log('  Main Payout (after tax + bonus):', mainStake * TAX_RATE * mainOdds * BONUS_MULTIPLIER);
-              console.log('  Calculated Profit:', profit);
-              console.log('  Profit Match Target?', Math.abs(profit - targetProfit) < 0.01);
-              console.log('  Difference:', profit - targetProfit);
-              console.log('  ================================================');
+
+
+
+
+
+
+
+
             }
 
             return (

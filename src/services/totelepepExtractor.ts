@@ -153,8 +153,7 @@ class TotelepepExtractor {
       
       if (!forceFresh && cachedMatches && cachedMatches.length > 0 && metadata?.isComplete && !cacheExpired) {
         const cacheAge = metadata?.lastUpdated ? Math.round((Date.now() - metadata.lastUpdated) / 60000) : 0;
-        console.log(`[IndexedDB Cache] Loaded ${cachedMatches.length} matches (${cacheAge}min old)`);
-        
+
         // Delete past matches in background (non-blocking)
         deletePastMatches(cacheKey).then(deleted => {
           if (deleted > 0) {
@@ -193,18 +192,18 @@ class TotelepepExtractor {
       }
       
       if (forceFresh) {
-        console.log('[Force Fresh] Bypassing cache, fetching from API...');
+
       }
       
       // Cache expired or incomplete - fetch fresh data
       if (cacheExpired) {
-        console.log('[Cache] Data expired (>10min), fetching fresh data from API');
+
       }
       
       // Check in-memory cache
       const cached = this.getCachedData(cacheKey);
       if (cached) {
-        console.log(`[Memory Cache] Found ${cached.length} matches in memory`);
+
         return cached;
       }
 
@@ -363,7 +362,7 @@ class TotelepepExtractor {
     
     // Cancel any existing background task for this date
     if (this.activeBackgroundTasks.has(cacheKey)) {
-      console.log(`[Background] ${date}: Cancelling previous background task`);
+
       this.activeBackgroundTasks.delete(cacheKey);
     }
     
@@ -373,9 +372,7 @@ class TotelepepExtractor {
     // Count how many matches already have markets loaded (from cache)
     const alreadyLoaded = matches.filter(m => m.allMarkets && m.allMarkets.length > 0).length;
     const needLoading = totalMatches - alreadyLoaded;
-    
-    console.log(`[Background Market Loading] ${date}: ${alreadyLoaded}/${totalMatches} already loaded, fetching markets for ${needLoading} matches...`);
-    
+
     // Run in background - don't await this
     (async () => {
       
@@ -397,7 +394,7 @@ class TotelepepExtractor {
         for (const match of chunk) {
           // Check if this task has been cancelled
           if (!this.activeBackgroundTasks.has(cacheKey)) {
-            console.log(`[Background] ${date}: Task cancelled, stopping market loading at ${loadedCount}/${totalMatches}`);
+
             return; // Exit early
           }
           
@@ -437,7 +434,7 @@ class TotelepepExtractor {
       }
       // Final progress update (ensure complete)
       if (this.onMarketProgress) {
-        console.log(`[Background Market Loading] ${date}: Complete! ${totalMatches}/${totalMatches} markets loaded (100%)`);
+
         this.onMarketProgress(date, totalMatches, totalMatches);
       }
       
@@ -453,7 +450,7 @@ class TotelepepExtractor {
   
   // Cancel ALL background loading tasks
   public cancelAllBackgroundLoading(): void {
-    console.log(`[Background] Cancelling all ${this.activeBackgroundTasks.size} active tasks`);
+
     this.activeBackgroundTasks.clear();
   }
 

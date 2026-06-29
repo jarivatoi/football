@@ -103,14 +103,14 @@ export const saveMatchesChunk = async (
     await new Promise<void>((resolve, reject) => {
       transaction.oncomplete = () => {
         if (isComplete) {
-          console.log(`[IndexedDB] ${cacheKey}: Save complete - ${loadedCount}/${totalCount} matches saved`);
+
           // Verify save by reading back immediately
           setTimeout(async () => {
             try {
               const { matches } = await getCachedMatches(cacheKey);
-              console.log(`[IndexedDB Verify] ${cacheKey}: Read back ${matches?.length || 0} matches`);
+
             } catch (e) {
-              console.error(`[IndexedDB Verify] ${cacheKey}: Failed to verify`, e);
+
             }
           }, 100);
         }
@@ -119,7 +119,7 @@ export const saveMatchesChunk = async (
       transaction.onerror = () => reject(transaction.error);
     });
   } catch (error) {
-    console.error(`[IndexedDB] ${cacheKey}: Save failed!`, error);
+
   }
 };
 
@@ -147,7 +147,7 @@ export const getCachedMatches = async (cacheKey: string): Promise<{
     const matches: any[] = await new Promise((resolve, reject) => {
       matchesRequest.onsuccess = () => {
         const entries: MatchCacheEntry[] = matchesRequest.result;
-        console.log(`[IndexedDB Read] ${cacheKey}: Found ${entries.length} entries`);
+
         resolve(entries.map(entry => entry.match));
       };
       matchesRequest.onerror = () => reject(matchesRequest.error);
@@ -253,7 +253,7 @@ export const deletePastMatches = async (cacheKey: string): Promise<number> => {
 
 // Clear cached matches for a specific cache key
 export const clearCacheMatches = async (cacheKey: string): Promise<void> => {
-  console.log(`[ClearCache] Clearing cache: ${cacheKey}`);
+
   try {
     const db = await openDB();
     const transaction = db.transaction([STORE_NAME, 'metadata'], 'readwrite');
@@ -339,12 +339,10 @@ export const cleanupStaleDateCaches = async (): Promise<void> => {
     });
     
     if (staleCaches.length === 0) {
-      console.log('[Cleanup] No stale date caches found');
+
       return;
     }
-    
-    console.log(`[Cleanup] Found ${staleCaches.length} stale date caches, removing...`);
-    
+
     // Remove stale caches
     for (const meta of staleCaches) {
       // Get all matches for this cache key
@@ -362,18 +360,16 @@ export const cleanupStaleDateCaches = async (): Promise<void> => {
       
       // Delete metadata
       metadataStore.delete(meta.cacheKey);
-      
-      console.log(`[Cleanup] Removed stale cache: ${meta.cacheKey} (${matches.length} matches)`);
+
     }
     
     await new Promise<void>((resolve, reject) => {
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
     });
-    
-    console.log('[Cleanup] Stale date cache cleanup complete');
+
   } catch (error) {
-    console.error('[Cleanup] Error cleaning up stale caches:', error);
+
   }
 };
 
@@ -469,10 +465,9 @@ export const saveBetslip = async (selections: any[], sourceId: string = 'default
       saveTransaction.oncomplete = () => resolve();
       saveTransaction.onerror = () => reject(saveTransaction.error);
     });
-    
-    console.log(`[Betslip] Saved ${selections.length} selections for source: ${sourceId}`);
+
   } catch (error) {
-    console.error('[Betslip] Error saving:', error);
+
   }
 };
 
@@ -497,7 +492,7 @@ export const loadBetslip = async (sourceId: string = 'default'): Promise<any[]> 
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    console.error('[Betslip] Error loading:', error);
+
     return [];
   }
 };
@@ -526,9 +521,8 @@ export const clearBetslip = async (sourceId: string = 'default'): Promise<void> 
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
     });
-    
-    console.log(`[Betslip] Cleared selections for source: ${sourceId}`);
+
   } catch (error) {
-    console.error('[Betslip] Error clearing:', error);
+
   }
 };

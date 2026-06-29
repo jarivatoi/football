@@ -168,7 +168,7 @@ function App() {
     if (!hasCompletedDate) return;
     
     // Reload ALL MATCHES from cache when progress changes
-    console.log('[Auto-Refresh] Date progress changed, reloading ALL MATCHES...');
+
     loadAllMatches(selectedCategory, selectedCompetition);
   }, [dateProgress]); // Watch dateProgress changes
   
@@ -218,8 +218,7 @@ function App() {
     // DON'T clear IndexedDB caches - they're source-specific and expire naturally
     // Cache keys include source ID: date_2026-06-18_all_all_totelepep
     // Each has 30-minute TTL, so expired caches are ignored automatically
-    console.log(`[Source Change] Keeping IndexedDB caches for source: ${source.id} (expires after 30min)`);
-    
+
     // Set loading state FIRST (prevents "No matches" flash)
     setLoading(true);
     
@@ -242,7 +241,7 @@ function App() {
     const newSourceId = source.id;
     loadBetslip(newSourceId).then(savedSelections => {
       if (savedSelections && savedSelections.length > 0) {
-        console.log(`[Source Change] Restored ${savedSelections.length} betslip selections for ${newSourceId}`);
+
         setParlaySelections(savedSelections);
       } else {
         setParlaySelections([]);
@@ -279,14 +278,14 @@ function App() {
             total: dateMatches.length,
             isComplete: matchesWithMarkets === dateMatches.length
           };
-          console.log(`[Source Change] ${date}: ${matchesWithMarkets}/${dateMatches.length} markets loaded`);
+
         }
       }
       
       // If we found any date progress, restore it
       if (Object.keys(progress).length > 0) {
         setDateProgress(progress);
-        console.log(`[Source Change] Restored progress for ${Object.keys(progress).length} dates`);
+
       }
       
       // Also check if there's a valid all_matches cache (for ALL MATCHES view)
@@ -295,8 +294,7 @@ function App() {
       const allMatchesExpired = await isCacheExpired(allMatchesCacheKey);
       
       if (allMatchesCache && allMatchesCache.length > 0 && !allMatchesExpired && allMatchesMetadata?.isComplete) {
-        console.log(`[Source Change] Found valid all_matches cache for ${newSourceId} with ${allMatchesCache.length} matches, restoring...`);
-        
+
         // Restore from cache
         const sortedMatches = allMatchesCache.sort((a, b) => {
           const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
@@ -320,8 +318,7 @@ function App() {
         setShowAllMatches(true);
         setLastUpdated(new Date());
         setLoading(false);
-        
-        console.log(`[Source Change] Restored ALL MATCHES progress: ${matchesWithMarkets}/${sortedMatches.length} markets loaded`);
+
         return;
       }
       
@@ -338,8 +335,7 @@ function App() {
                                        selectedDateMatches.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
         
         if (isSelectedDateComplete) {
-          console.log(`[Source Change] Selected date ${selectedDate} has valid cache, restoring without API fetch...`);
-          
+
           const sortedMatches = selectedDateMatches.sort((a, b) => {
             const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
             if (dateComparison !== 0) return dateComparison;
@@ -361,13 +357,12 @@ function App() {
           
           setLastUpdated(new Date());
           setLoading(false);
-          
-          console.log(`[Source Change] Restored ${selectedDate} progress: ${matchesWithMarkets}/${sortedMatches.length} markets loaded`);
+
           return;
         }
       }
     } catch (error) {
-      console.error('[Source Change] Error restoring cache:', error);
+
     }
     
     // If no cache found or error, reload data with new source
@@ -529,8 +524,7 @@ function App() {
     
     // Sync current selectedDate to window for use in async loadData closures
     (window as any).__currentSelectedDate = selectedDate;
-    console.log(`[DEBUG-SelectDate] selectedDate changed to: ${selectedDate}`);
-    console.log(`[DEBUG-SelectDate] window.__currentSelectedDate set to: ${(window as any).__currentSelectedDate}`);
+
 
   }, [selectedDate]);
   
@@ -538,17 +532,15 @@ function App() {
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
-        console.log('[App Visible] App returned to foreground, refreshing calendar...');
-        
+
         // Always reload calendar to ensure we have the latest "today" date from API
         await loadCalendarList(selectedCategory, selectedCompetition);
         
         // Check if the first date changed (meaning real-world date changed)
         const newFirstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
         if (newFirstDate && newFirstDate !== (window as any).__lastCalendarFirstDate) {
-          console.log(`[Date Changed] Calendar first date: ${(window as any).__lastCalendarFirstDate} -> ${newFirstDate}`);
-          console.log('[Date Changed] Clearing auto-load flags to restart sequential loading from new today...');
-          
+
+
           // Clear auto-load flags to allow fresh sequential loading
           (window as any).__autoLoadCompleted = null;
           
@@ -588,11 +580,10 @@ function App() {
     }
     
     // DEBUG: Log when loadData is called
-    console.log(`[DEBUG-LoadData] ===== START =====`);
-    console.log(`[DEBUG-LoadData] targetDate=${targetDate}, selectedDate=${selectedDate}, dateToFetch=${dateToFetch}`);
-    console.log(`[DEBUG-LoadData] window.__currentSelectedDate=${(window as any).__currentSelectedDate}`);
-    console.log(`[DEBUG-LoadData] forceFresh=${forceFresh}`);
-    
+
+
+
+
     const catId = categoryId !== undefined ? categoryId : selectedCategory;
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
     
@@ -610,9 +601,7 @@ function App() {
                               existingMetadata?.isComplete && 
                               !isExpired &&
                               existingCache.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
-    
-    console.log(`[LoadData] ${dateToFetch}: isAlreadyComplete=${isAlreadyComplete}, cache=${existingCache?.length || 0}, expired=${isExpired}, complete=${existingMetadata?.isComplete}`);
-    
+
     // Only set to loading state if cache is NOT valid (expired or doesn't exist)
     // If cache exists and is valid, don't trigger loading state
     if (dateToFetch && !isAlreadyComplete && (!existingCache || existingCache.length === 0 || isExpired)) {
@@ -640,7 +629,7 @@ function App() {
     // Prevent duplicate loads for the same date with same filters
     const loadKey = `${dateToFetch}_${catId}_${compId}_${sourceId}`;
     if ((window as any).__loadingDate === loadKey) {
-      console.log(`[LoadData] ${dateToFetch}: Already loading, skipping duplicate call`);
+
       setLoading(false);
       return;
     }
@@ -648,14 +637,13 @@ function App() {
     
     try {
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
-      console.log(`[Cache Check] Reading cache with key: ${cacheKey}`);
+
       const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
       const expired = await isCacheExpired(cacheKey);
       
       // Log cache status
       // STEP 2: Fetch fresh data from API (in background if we have cache)
-      console.log(`[API] Fetching from Totelepep for ${dateToFetch}...`);
-      
+
       // Capture source ID and filters at load START to prevent stale values during auto-merge
       const loadSourceId = selectedSource?.id || 'totelepep';
       const loadCategory = catId || 'all';
@@ -664,9 +652,9 @@ function App() {
       if (cachedMatches && cachedMatches.length > 0) {
         const cacheAge = metadata?.lastUpdated ? Math.round((Date.now() - metadata.lastUpdated) / 60000) : 0;
         const matchesWithMarkets = cachedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
-        console.log(`[Cache] ${dateToFetch}: ${cachedMatches.length} matches found (${matchesWithMarkets} with markets), ${expired ? 'EXPIRED' : 'VALID'} (${cacheAge}min old)`);
+
       } else {
-        console.log(`[Cache] ${dateToFetch}: NO CACHE - will fetch from API`);
+
       }
       
       // STEP 1: Load from cache immediately (even if expired)
@@ -709,11 +697,10 @@ function App() {
         
         // CRITICAL: Check if user is CURRENTLY viewing this date before updating UI
         const currentViewDate = (window as any).__currentSelectedDate || selectedDate;
-        console.log(`[DEBUG-LoadData] Cache hit for ${dateToFetch}, currentViewDate=${currentViewDate}`);
-        console.log(`[DEBUG-LoadData] Should update UI from cache? ${dateToFetch === currentViewDate ? 'YES ✅' : 'NO ❌'}`);
-        
+
+
         if (dateToFetch === currentViewDate) {
-          console.log(`[DEBUG-LoadData] ${dateToFetch}: User is viewing this date, updating UI from cache...`);
+
           setMatches(sortedMatches);
           const grouped = totelepepService.groupMatchesByDate(sortedMatches);
           setGroupedMatches(grouped);
@@ -724,14 +711,13 @@ function App() {
             ...prev,
             ...grouped
           }));
-          console.log(`[DEBUG-LoadData] ${dateToFetch}: Added to allLoadedMatches from cache (${sortedMatches.length} matches), user is viewing ${currentViewDate}`);
+
         }
         
         // If cache is valid, mark as complete
         if (!expired && metadata?.isComplete) {
           const matchesWithMarkets = validMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
-          console.log(`[Cache] ${dateToFetch}: Using cached data (${matchesWithMarkets}/${validMatches.length} markets loaded)`);
-          
+
           // Only update progress if NOT currently loading in background
           // This prevents overwriting the live progress from background market loading
           const currentProgress = dateProgress[dateToFetch!];
@@ -749,11 +735,11 @@ function App() {
             
             // If date is complete and loaded from cache (not background loading), trigger auto-merge
             if (matchesWithMarkets === cachedMatches.length && cachedMatches.length > 0) {
-              console.log(`[Auto-Merge] ${dateToFetch}: Complete from cache, merging into All Matches...`);
+
               mergeDateIntoAllMatches(dateToFetch!, loadSourceId, loadCategory, loadCompetition);
             }
           } else {
-            console.log(`[Cache] ${dateToFetch}: Background loading in progress, preserving current progress state`);
+
           }
           
           setLoading(false);
@@ -762,15 +748,14 @@ function App() {
       }
       
       // STEP 2: Fetch fresh data from API (in background if we have cache)
-      console.log(`[API] Fetching from Totelepep for ${dateToFetch}...`);
-      
+
       // Track which dates have already triggered the "background loading complete" refresh
       const completedDates = new Set<string>();
       
       // Set up market progress callback before fetching
       totelepepExtractor.onMarketProgress = async (date, loaded, total) => {
         const percentage = Math.round((loaded / total) * 100);
-        console.log(`[Progress] ${date}: ${loaded}/${total} markets loaded (${percentage}%)`);
+
         setDateProgress(prev => ({
           ...prev,
           [date]: {
@@ -784,7 +769,7 @@ function App() {
         if (loaded >= total && !completedDates.has(date)) {
           // Mark as completed to prevent duplicate refreshes
           completedDates.add(date);
-          console.log(`[Auto-Merge] ${date} complete! Merging into All Matches cache...`);
+
           // Use captured values from load start, not current state
           await mergeDateIntoAllMatches(date, loadSourceId, loadCategory, loadCompetition);
           
@@ -796,13 +781,12 @@ function App() {
           
           // If all dates complete, the useEffect will automatically update allMatchesProgress
           // No need to manually set it here (avoids duplicates from IndexedDB cache)
-          console.log('[Auto-Merge] ALL dates complete! useEffect will update progress automatically');
-          
+
           // Only refresh UI if currently viewing THIS specific date
           // Don't refresh if user is viewing a different date or has filters applied
           if (date === selectedDate && !showAllMatches && !searchTerm) {
             // Refresh UI from IndexedDB now that loading is complete
-            console.log(`[Refresh] ${date}: Background loading complete, refreshing UI from IndexedDB...`);
+
             try {
               const cacheKey = `date_${date}_${loadCategory}_${loadCompetition}_${loadSourceId}`;
               const { getCachedMatches } = await import('./utils/matchCache');
@@ -833,24 +817,23 @@ function App() {
                 setMatches(sortedMatches);
                 const grouped = totelepepService.groupMatchesByDate(sortedMatches);
                 setGroupedMatches(grouped);
-                console.log(`[Refresh] ${date}: UI refreshed with ${sortedMatches.length} matches from IndexedDB`);
+
               }
             } catch (error) {
-              console.error(`[Refresh] ${date}: Error refreshing UI from IndexedDB:`, error);
+
             }
           } else {
-            console.log(`[Refresh] ${date}: Skipping UI refresh (viewing different date or has filters)`);
+
           }
         }
       };
 
       // Fetch matches DIRECTLY from Totelepep API with category/competition filters
       const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId, undefined, forceFresh);
-      console.log(`[API] ${dateToFetch}: Received ${fetchedMatches.length} matches from API`);
-      
+
       // If API returns 0 matches, mark date as complete immediately (nothing to load)
       if (fetchedMatches.length === 0 && dateToFetch) {
-        console.warn(`[API] ${dateToFetch}: WARNING - API returned 0 matches! Marking as complete and auto-loading next date.`);
+
         // Use state updater to avoid overwriting other dates' progress
         setDateProgress(prev => ({
           ...prev,
@@ -867,7 +850,7 @@ function App() {
         
         // If API returns 0 but we have partial cache, use the cache instead
         if (cachedMatches && cachedMatches.length > 0) {
-          console.log(`[Fallback] ${dateToFetch}: API returned 0, using ${cachedMatches.length} partial matches from cache`);
+
           fetchedMatches.length = 0; // Clear the array
           fetchedMatches.push(...cachedMatches); // Use cached data
         }
@@ -878,7 +861,7 @@ function App() {
       let mergedMatches = fetchedMatches;
       
       if (cachedMatches && cachedMatches.length > 0) {
-        console.log(`[Merge] ${dateToFetch}: Merging ${fetchedMatches.length} fresh matches with ${cachedMatches.length} cached matches`);
+
         // Create a map of existing matches by ID
         const existingMap = new Map();
         cachedMatches.forEach((m: any) => existingMap.set(m.id, m));
@@ -934,7 +917,7 @@ function App() {
         // Group matches by date
         const grouped = totelepepService.groupMatchesByDate(sortedMatches);
         setGroupedMatches(grouped);
-        console.log(`[LoadData] ${dateToFetch}: UI updated with ${sortedMatches.length} matches`);
+
       } else {
         // Still add to allLoadedMatches so filtered counts work for background-loaded dates
         const grouped = totelepepService.groupMatchesByDate(sortedMatches);
@@ -942,27 +925,24 @@ function App() {
           ...prev,
           ...grouped
         }));
-        console.log(`[LoadData] ${dateToFetch}: Added to allLoadedMatches (${sortedMatches.length} matches), user is viewing ${selectedDate}`);
+
       }
       
       // After API fetch, refresh from IndexedDB if cache is now complete
       // This ensures we show the full cached data (with markets) instead of just API data
       // CRITICAL: Use current selectedDate state (not stale closure) to check if user is viewing this date
       const currentViewDate = (window as any).__currentSelectedDate || selectedDate;
-      console.log(`[DEBUG-LoadData] API returned for ${dateToFetch}`);
-      console.log(`[DEBUG-LoadData] currentViewDate=${currentViewDate}, selectedDate=${selectedDate}`);
-      console.log(`[DEBUG-LoadData] Should update UI? ${dateToFetch === currentViewDate ? 'YES ✅' : 'NO ❌'}`);
-      
+
+
+
       if (dateToFetch === currentViewDate) {
-        console.log(`[DEBUG-LoadData] ${dateToFetch}: Current view is this date (selectedDate=${currentViewDate}), refreshing from IndexedDB after API fetch...`);
+
         try {
           const cacheKey = `date_${dateToFetch}_${catId || 'all'}_${compId || 'all'}_${sourceId}`;
           const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
           const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
           const expired = await isCacheExpired(cacheKey);
-          
-          console.log(`[DEBUG-LoadData] ${dateToFetch}: IndexedDB cache status: ${cachedMatches?.length || 0} matches, isComplete=${metadata?.isComplete}, expired=${expired}`);
-          
+
           if (cachedMatches && cachedMatches.length > 0 && metadata?.isComplete && !expired) {
             // Filter out past matches
             const now = new Date();
@@ -988,15 +968,15 @@ function App() {
             setMatches(sortedCachedMatches);
             const groupedCached = totelepepService.groupMatchesByDate(sortedCachedMatches);
             setGroupedMatches(groupedCached);
-            console.log(`[DEBUG-LoadData] ${dateToFetch}: ✅ UI UPDATED with ${sortedCachedMatches.length} matches from IndexedDB`);
+
           } else {
-            console.log(`[DEBUG-LoadData] ${dateToFetch}: Cache not complete yet, keeping API data`);
+
           }
         } catch (error) {
-          console.error(`[DEBUG-LoadData] ${dateToFetch}: Error refreshing from IndexedDB:`, error);
+
         }
       } else {
-        console.log(`[DEBUG-LoadData] ${dateToFetch}: ❌ SKIPPED IndexedDB refresh (user is viewing ${currentViewDate}, not ${dateToFetch})`);
+
       }
       
       setLastUpdated(new Date());
@@ -1005,9 +985,9 @@ function App() {
       setError('Failed to load data. Please try again.');
     } finally {
       // Clear the loading guard
-      console.log(`[DEBUG-LoadData] ${dateToFetch}: Load complete, clearing guard`);
-      console.log(`[DEBUG-LoadData] ${dateToFetch}: Final selectedDate=${selectedDate}, window.__currentSelectedDate=${(window as any).__currentSelectedDate}`);
-      console.log(`[DEBUG-LoadData] ===== END =====\n`);
+
+
+
       (window as any).__loadingDate = null;
       setLoading(false);
     }
@@ -1028,24 +1008,19 @@ function App() {
       const { matches: dateMatches } = await getCachedMatches(dateCacheKey);
       
       if (!dateMatches || dateMatches.length === 0) {
-        console.log(`[Auto-Merge] ${date}: No matches to merge`);
+
         return;
       }
-      
-      console.log(`[Auto-Merge] ${date}: ${dateMatches.length} matches ready to merge`);
-      
+
       // Get existing All Matches cache
       const allMatchesCacheKey = `all_matches_${mergeCategoryId || 'all'}_${mergeCompetitionId || 'all'}_${mergeSourceId}`;
       const { matches: existingAllMatches, metadata } = await getCachedMatches(allMatchesCacheKey);
-      
-      console.log(`[Auto-Merge] All Matches cache before merge: ${existingAllMatches?.length || 0} matches`);
-      
+
       // Merge logic: add new, update existing
       let mergedMatches = dateMatches;
       
       if (existingAllMatches && existingAllMatches.length > 0) {
-        console.log(`[Auto-Merge] Merging with ${existingAllMatches.length} existing All Matches`);
-        
+
         // Create map of existing matches using composite key (date + id) to avoid collisions
         const existingMap = new Map();
         existingAllMatches.forEach((m: any) => {
@@ -1066,7 +1041,7 @@ function App() {
         });
         
         mergedMatches = Array.from(existingMap.values());
-        console.log(`[Auto-Merge] Result: ${mergedMatches.length} total matches`);
+
       }
       
       // Save merged matches to All Matches cache
@@ -1077,23 +1052,21 @@ function App() {
         const isComplete = loadedCount >= mergedMatches.length;
         await saveMatchesChunk(chunk, allMatchesCacheKey, loadedCount, mergedMatches.length, isComplete);
       }
-      
-      console.log(`[Auto-Merge] ${date}: Successfully merged into All Matches cache`);
-      
+
       // If All Matches is currently active, reload it to show new data
       // The cache is fully saved at this point (all awaits completed above)
       if (showAllMatches) {
-        console.log('[Auto-Merge] All Matches is active, reloading from fresh cache...');
+
         // Force reload by setting loading state first to trigger UI update
         setLoading(true);
         loadAllMatches(selectedCategory, selectedCompetition);
       }
       
       // AUTO-LOAD NEXT DATE: Sequential loading after current date completes
-      console.log(`[Auto-Load] ${date} complete, checking for next date to load...`);
+
       autoLoadNextDate(date, mergeSourceId, mergeCategoryId, mergeCompetitionId);
     } catch (error) {
-      console.error('[Auto-Merge] Error merging date into All Matches:', error);
+
     }
   };
   
@@ -1103,7 +1076,7 @@ function App() {
       // Check if we already auto-loaded this date (prevent duplicate auto-loads)
       const autoLoadKey = `autoLoad_${completedDate}`;
       if ((window as any).__autoLoadCompleted === autoLoadKey) {
-        console.log(`[Auto-Load] ${completedDate} already triggered auto-load, skipping`);
+
         return;
       }
       (window as any).__autoLoadCompleted = autoLoadKey;
@@ -1114,7 +1087,7 @@ function App() {
       const completedIndex = calendarList.findIndex((d: any) => d.entryDate === completedDate);
       
       if (completedIndex === -1) {
-        console.log('[Auto-Load] Completed date not found in calendar');
+
         return;
       }
       
@@ -1122,13 +1095,12 @@ function App() {
       const nextDateEntry = calendarList[completedIndex + 1];
       
       if (!nextDateEntry) {
-        console.log('[Auto-Load] No more dates to load - all dates complete!');
+
         return;
       }
       
       const nextDate = nextDateEntry.entryDate;
-      console.log(`[Auto-Load] Loading next date: ${nextDate}`);
-      
+
       // Check if next date is already complete
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
       const nextCacheKey = `date_${nextDate}_${categoryId || 'all'}_${competitionId || 'all'}_${sourceId}`;
@@ -1141,7 +1113,7 @@ function App() {
                             nextCache.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
       
       if (isNextComplete) {
-        console.log(`[Auto-Load] ${nextDate} already complete, skipping to next...`);
+
         // Recursively try the next date
         autoLoadNextDate(nextDate, sourceId, categoryId, competitionId);
         return;
@@ -1151,7 +1123,7 @@ function App() {
       loadData(nextDate, categoryId === 'all' ? undefined : categoryId, 
                competitionId === 'all' ? undefined : competitionId, false);
     } catch (error) {
-      console.error('[Auto-Load] Error loading next date:', error);
+
     }
   };
   
@@ -1168,8 +1140,7 @@ function App() {
       // If allLoadedMatches already has data, use it directly instead of reloading from cache
       const loadedDates = Object.keys(allLoadedMatches);
       if (loadedDates.length > 0) {
-        console.log(`[All Matches] Using allLoadedMatches with ${loadedDates.length} dates:`, loadedDates);
-        
+
         // Combine all matches from allLoadedMatches
         const allMatches = Object.values(allLoadedMatches).flat();
         
@@ -1193,8 +1164,7 @@ function App() {
           if (dateComparison !== 0) return dateComparison;
           return a.kickoff.localeCompare(b.kickoff);
         });
-        
-        console.log(`[All Matches] Loaded ${sortedMatches.length} matches from allLoadedMatches`);
+
         setMatches(sortedMatches);
         const grouped = totelepepService.groupMatchesByDate(sortedMatches);
         setGroupedMatches(grouped);
@@ -1205,23 +1175,20 @@ function App() {
       }
       
       // Fall back to loading from cache if allLoadedMatches is empty
-      console.log('[All Matches] allLoadedMatches is empty, loading from cache...');
+
       // Load from All Matches progressive cache
       const sourceId = selectedSource?.id || 'totelepep';
       const cacheKey = `all_matches_${catId || 'all'}_${compId || 'all'}_${sourceId}`;
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
       const { matches: cachedAllMatches, metadata } = await getCachedMatches(cacheKey);
       const expired = await isCacheExpired(cacheKey);
-      
-      console.log(`[All Matches] Cache check: ${cachedAllMatches?.length || 0} matches, ${expired ? 'EXPIRED' : 'VALID'}`);
-      
+
       if (cachedAllMatches && cachedAllMatches.length > 0 && !expired) {
-        console.log(`[All Matches] Using all_matches cache with ${cachedAllMatches.length} matches`);
+
       }
       
       if (!cachedAllMatches || cachedAllMatches.length === 0 || expired) {
-        console.log('[All Matches] No combined cache - checking individual date caches...');
-        
+
         // Try to combine individual date caches
         const allDateMatches: any[] = [];
         const sourceId = selectedSource?.id || 'totelepep';
@@ -1233,13 +1200,13 @@ function App() {
           
           // Only include complete, non-expired date caches (green button dates)
           if (dateCache && dateCache.length > 0 && dateMetadata?.isComplete && !dateExpired) {
-            console.log(`[All Matches] Adding ${calEntry.date}: ${dateCache.length} matches`);
+
             allDateMatches.push(...dateCache);
           }
         }
         
         if (allDateMatches.length === 0) {
-          console.log('[All Matches] No complete date caches found - please load individual dates first');
+
           setMatches([]);
           setGroupedMatches({});
           setAllLoadedMatches({});
@@ -1254,8 +1221,7 @@ function App() {
         }
         
         // Use combined date matches
-        console.log(`[All Matches] Combined ${allDateMatches.length} matches from ${calendarList.length} dates`);
-        
+
         // Filter out kickoff-passed matches
         const now = new Date();
         const validMatches = allDateMatches.filter((m: any) => {
@@ -1303,9 +1269,7 @@ function App() {
         
         return kickoffTime > now;
       });
-      
-      console.log(`[All Matches] ${validMatches.length} matches after filtering kickoff-passed (was ${cachedAllMatches.length})`);
-      
+
       // Sort matches by date and time
       const sortedMatches = validMatches.sort((a, b) => {
         const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
@@ -1322,15 +1286,13 @@ function App() {
       // Check how many have markets loaded (for logging only)
       const matchesWithMarkets = sortedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
       const isComplete = matchesWithMarkets === sortedMatches.length;
-      
-      console.log(`[All Matches] ${matchesWithMarkets}/${sortedMatches.length} have markets loaded`);
-      
+
       // Don't set allMatchesProgress here - let the useEffect handle it based on dateProgress
       
       setLastUpdated(new Date());
       
     } catch (error) {
-      console.error('[All Matches] Error loading:', error);
+
       setError('Failed to load all matches. Please try again.');
     } finally {
       setLoading(false);
@@ -1437,8 +1399,7 @@ function App() {
         // Clear All Matches cache
         const allMatchesCacheKey = `all_matches_all_all_${sourceId}`;
         await clearCacheMatches(allMatchesCacheKey);
-        console.log('[Initial Load] Cleared all IndexedDB caches');
-        
+
         // NOW it's safe to load data
         loadCalendarList().then(async () => {
           const firstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
@@ -1452,8 +1413,7 @@ function App() {
           
           if (allMatchesCache && allMatchesCache.length > 0 && !allMatchesExpired && allMatchesMetadata?.isComplete) {
             // Load ALL MATCHES from cache on initial load
-            console.log(`[Initial Load] Found all_matches cache with ${allMatchesCache.length} matches, loading...`);
-            
+
             // Don't filter past matches here - let the UI filtering handle it
             // This ensures the count matches what's displayed
             const sortedMatches = allMatchesCache.sort((a, b) => {
@@ -1472,8 +1432,7 @@ function App() {
             setMatches(sortedMatches);
             const grouped = totelepepService.groupMatchesByDate(sortedMatches);
             setGroupedMatches(grouped);
-            console.log(`[Initial Load] Loaded ${sortedMatches.length} matches from all_matches cache`);
-            
+
             // Still load the first date in background to ensure it's fresh
             if (firstDate) {
               (totelepepExtractor as any).cache = new Map();
@@ -1532,7 +1491,7 @@ function App() {
           });
         });
       } catch (error) {
-        console.error('[Initial Load] Error clearing IndexedDB cache:', error);
+
       }
     })();
     
@@ -1540,7 +1499,7 @@ function App() {
     const sourceId = selectedSource?.id || 'totelepep';
     loadBetslip(sourceId).then(savedSelections => {
       if (savedSelections && savedSelections.length > 0) {
-        console.log(`[Betslip] Loaded ${savedSelections.length} selections for source: ${sourceId}`);
+
         setParlaySelections(savedSelections);
       }
     });
@@ -1793,7 +1752,7 @@ function App() {
                 if (targetOddsMin > 10) targetOddsMin = targetOddsMin / 100;
                 if (targetOddsMax > 10) targetOddsMax = targetOddsMax / 100;
                 targetOdds = targetOddsMin; // Use min for non-range checks
-                console.log(`[Range Parse] ${searchTerm} -> min=${targetOddsMin}, max=${targetOddsMax}`);
+
               } else {
                 return true; // Can't parse range, let through
               }
@@ -1859,7 +1818,7 @@ function App() {
               const lastChars = upperSearch.slice(-1);
               if (lastChars === 'Y') bttsOption = 'Y';
               else if (lastChars === 'N') bttsOption = 'N';
-              console.log(`[BTTS Filter] Detected bttsOption: ${bttsOption} from ${upperSearch}`);
+
             }
             
             // KEY RULE: If position filter is set but no market type specified, use 1X2 market
@@ -1931,16 +1890,12 @@ function App() {
                                    marketName.includes('FULL TIME RESULT') || marketName.includes('MATCH RESULT') ||
                                    marketName.includes('HALF TIME RESULT') ||
                                    marketCode === 'CP'; // CP = Correct Period (1X2)
-                
-                console.log(`[H1H2-Debug] Market: "${market.name}", displayName: "${market.marketDisplayName}", code: ${marketCode}, period: ${market.periodCode}, is1X2: ${is1X2Market}`);
-                
+
                 if (!is1X2Market) return false;
                 
                 // Check selections for matching position and odds
                 if (!market.selections || market.selections.length === 0) return false;
-                
-                console.log(`[H1H2-Debug] Market has ${market.selections.length} selections`);
-                
+
                 return market.selections.some((sel, selIndex) => {
                   const selOdds = parseFloat(String(sel.odds));
                   if (isNaN(selOdds)) return false;
@@ -2432,9 +2387,7 @@ function App() {
     // Filter ALL loaded dates (from allLoadedMatches, not just groupedMatches)
     Object.entries(allLoadedMatches).forEach(([date, dateMatches]) => {
       let filteredDateMatches = dateMatches as any[];
-      
-      console.log(`[FilteredDates] Filtering ${date}: ${dateMatches.length} total matches`);
-      
+
       // Apply the same filter logic
       let cleanSearchTerm = searchTerm;
       if (cleanSearchTerm.startsWith('=') || cleanSearchTerm.startsWith('>') || cleanSearchTerm.startsWith('<')) {
@@ -2536,7 +2489,7 @@ function App() {
       });
       
       filteredCounts[date] = filteredDateMatches.length;
-      console.log(`[FilteredDates] ${date}: Final filtered count = ${filteredDateMatches.length}`);
+
     });
     
     // Merge with availableDatesWithCounts
@@ -2566,10 +2519,9 @@ function App() {
   
   // Accumulate all loaded dates' matches into allLoadedMatches
   useEffect(() => {
-    console.log('[AllLoadedMatches] groupedMatches changed, merging...');
-    console.log('[AllLoadedMatches] groupedMatches dates:', Object.keys(groupedMatches));
-    console.log('[AllLoadedMatches] allLoadedMatches before:', Object.keys(allLoadedMatches));
-    
+
+
+
     // Merge new groupedMatches into allLoadedMatches
     setAllLoadedMatches(prev => {
       const updated = { ...prev };
@@ -2579,14 +2531,13 @@ function App() {
         // Only update if the new data has MORE matches (more complete)
         const existingMatches = updated[date];
         if (!existingMatches || dateMatches.length > existingMatches.length) {
-          console.log(`[AllLoadedMatches] Updating ${date}: ${existingMatches?.length || 0} -> ${dateMatches.length} matches`);
+
           updated[date] = dateMatches;
         } else {
-          console.log(`[AllLoadedMatches] Keeping ${date}: ${existingMatches.length} matches (new data has only ${dateMatches.length})`);
+
         }
       });
-      
-      console.log('[AllLoadedMatches] allLoadedMatches after:', Object.keys(updated));
+
       return updated;
     });
   }, [groupedMatches]);
@@ -2603,8 +2554,7 @@ function App() {
     
     // Restore Bet Refund Mode state from sessionStorage (if active before refresh)
     const savedBetRefundMode = sessionStorage.getItem('betRefundMode');
-    console.log('[App Load] Checking sessionStorage for Bet Refund Mode...', savedBetRefundMode);
-    
+
     if (savedBetRefundMode === 'true') {
       try {
         const savedMainSelection = sessionStorage.getItem('betRefundMainSelection');
@@ -2613,25 +2563,23 @@ function App() {
         if (savedMainSelection && savedRefundOptions) {
           const mainSelection = JSON.parse(savedMainSelection);
           const refundOptions = JSON.parse(savedRefundOptions);
-          
-          console.log('[App Load] Restoring Bet Refund Mode from sessionStorage');
-          console.log('[App Load] Restored main selection:', { priceType: mainSelection.priceType, optionName: mainSelection.optionName, odds: mainSelection.odds });
-          console.log('[App Load] Restored refund options:', refundOptions.map((opt: any) => ({ priceType: opt.priceType, optionName: opt.optionName, odds: opt.odds })));
-          
+
+
+
           setBetRefundMainSelection(mainSelection);
           setBetRefundOptions(refundOptions);
           setShowBetRefundMode(true);
           
           // Restore parlay selections (main + first refund option)
           if (refundOptions.length > 0) {
-            console.log('[App Load] Setting parlay with first refund option:', refundOptions[0].priceType);
+
             setParlaySelections([mainSelection, refundOptions[0]]);
           } else {
             setParlaySelections([mainSelection]);
           }
         }
       } catch (error) {
-        console.error('[App Load] Failed to restore Bet Refund Mode:', error);
+
         // Clear corrupted sessionStorage
         sessionStorage.removeItem('betRefundMode');
         sessionStorage.removeItem('betRefundMainSelection');
@@ -2734,8 +2682,7 @@ function App() {
         sessionStorage.setItem('betRefundMode', 'true');
         sessionStorage.setItem('betRefundMainSelection', JSON.stringify(mainSelection));
         sessionStorage.setItem('betRefundOptions', JSON.stringify([refundSelection]));
-        
-        console.log('[Repeat Bet] Activated Bet Refund Mode and saved to sessionStorage');
+
       }
     } else {
       // Normal mode: Replace duplicates
@@ -2880,8 +2827,7 @@ function App() {
           sessionStorage.setItem('betRefundMode', 'true');
           sessionStorage.setItem('betRefundMainSelection', JSON.stringify(mainSelection));
           sessionStorage.setItem('betRefundOptions', JSON.stringify([refundSelection]));
-          
-          console.log('[Repeat Bet] Activated Bet Refund Mode and saved to sessionStorage');
+
         }
       } else {
         // No duplicates - just add booking matches (normal mode)
@@ -2893,7 +2839,7 @@ function App() {
       showToast(`Added ${validSelections.length} matches to betslip`, 'success');
       
     } catch (error) {
-      console.error('[Repeat Bet] Error:', error);
+
       showToast('Failed to repeat bet', 'error');
     }
   };
@@ -3071,26 +3017,23 @@ function App() {
   };
 
   const handleLongPress = (matchId: string, priceType: string, odds: number, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string, optionName?: string) => {
-    console.log('[BetRefund LongPress] === START ===');
-    console.log('[BetRefund LongPress] matchId:', matchId, 'priceType:', priceType, 'optionNo:', optionNo);
-    console.log('[BetRefund LongPress] Current parlaySelections count:', parlaySelections.length);
-    console.log('[BetRefund LongPress] Current betRefundMode:', showBetRefundMode);
-    
+
+
+
+
     // Only activate when parlay builder is empty
     if (parlaySelections.length > 0) {
-      console.log('[BetRefund LongPress] BLOCKED - parlaySelections not empty');
+
       return;
     }
     
     const match = matches.find(m => m.id === matchId);
     if (!match) {
-      console.log('[BetRefund LongPress] BLOCKED - match not found');
+
       return;
     }
-    
-    console.log('[BetRefund LongPress] Match found:', match.homeTeam, 'vs', match.awayTeam);
-    console.log('[BetRefund LongPress] Match has allMarkets:', !!match.allMarkets, 'count:', match.allMarkets?.length || 0);
-    
+
+
     // Create main bet selection
     const mainSelection: ParlaySelection = {
       matchId,
@@ -3116,21 +3059,16 @@ function App() {
     
     // Find other options from the same market for refund dropdown
     const refundOptions: ParlaySelection[] = [];
-    
-    console.log('[BetRefund] Building refund options, priceType:', priceType);
-    console.log('[BetRefund] match.allMarkets exists:', !!match.allMarkets);
-    
+
+
     if (match.allMarkets && match.allMarkets.length > 0) {
       // Find the market that contains this selection
       const sourceMarket = match.allMarkets.find(m => 
         m.marketBookNo === marketBookNo || m.id === marketId
       );
-      
-      console.log('[BetRefund] Found sourceMarket:', !!sourceMarket);
-      
+
       if (sourceMarket) {
-        console.log('[BetRefund] sourceMarket selections:', sourceMarket.selections.map((s: any) => ({ name: s.name, optionNo: s.optionNo, optionNoType: typeof s.optionNo, odds: s.odds })));
-        
+
         // Get all other selections from this market (excluding the main bet)
         sourceMarket.selections.forEach(sel => {
           // Use optionNo to determine priceType (more reliable than name)
@@ -3151,17 +3089,14 @@ function App() {
                           sel.name === '2' || sel.name === 'Away' ? 'away' :
                           `${marketBookNo}-${sel.name}`;
           }
-          
-          console.log('[BetRefund] Checking selection:', sel.name, 'optionNo:', sel.optionNo, '(type:', typeof sel.optionNo, ') -> priceType:', selPriceType, 'vs main:', priceType);
-          
+
           // Skip the main bet selection - check by priceType OR optionNo
           const mainOptNo = optionNo ? String(optionNo) : null;
           if (selPriceType === priceType || (mainOptNo && String(sel.optionNo) === mainOptNo)) {
-            console.log('[BetRefund] SKIPPING (matches priceType or optionNo)');
+
             return;
           }
-          
-          console.log('[BetRefund] ADDING refund option:', selPriceType);
+
           refundOptions.push({
             matchId,
             priceType: selPriceType,
@@ -3186,8 +3121,7 @@ function App() {
       }
     } else {
       // Fallback for quick 1X2 when allMarkets not loaded - create from top-level odds
-      console.log('[BetRefund] Using fallback - creating from top-level odds');
-      
+
       const quickOptions = [
         { priceType: 'home', odds: match.homeOdds, name: '1' },
         { priceType: 'draw', odds: match.drawOdds, name: 'X' },
@@ -3196,15 +3130,14 @@ function App() {
       
       quickOptions.forEach(opt => {
         if (opt.priceType === priceType) {
-          console.log('[BetRefund] SKIPPING main bet:', opt.priceType);
+
           return;
         }
         if (!opt.odds || opt.odds === 0) {
-          console.log('[BetRefund] SKIPPING invalid odds:', opt.priceType);
+
           return;
         }
-        
-        console.log('[BetRefund] ADDING fallback option:', opt.priceType, opt.odds);
+
         refundOptions.push({
           matchId,
           priceType: opt.priceType,
@@ -3227,21 +3160,17 @@ function App() {
         });
       });
     }
-    
-    console.log('[BetRefund] Total refund options:', refundOptions.length);
-    
+
     // FINAL SAFETY CHECK: Remove any refund options that match the main bet
     const filteredRefundOptions = refundOptions.filter(opt => {
       const isDuplicate = opt.priceType === priceType || 
                           (optionNo && opt.optionNo === optionNo);
       if (isDuplicate) {
-        console.log('[BetRefund] REMOVING duplicate from refund options:', opt.priceType);
+
       }
       return !isDuplicate;
     });
-    
-    console.log('[BetRefund] Filtered refund options (after safety check):', filteredRefundOptions.length);
-    
+
     // Set Bet Refund Mode
     setBetRefundMainSelection(mainSelection);
     setBetRefundOptions(filteredRefundOptions);
@@ -3315,7 +3244,7 @@ function App() {
     sessionStorage.removeItem('betRefundMode');
     sessionStorage.removeItem('betRefundMainSelection');
     sessionStorage.removeItem('betRefundOptions');
-    console.log('[Clear All] Cleared Bet Refund Mode state and sessionStorage');
+
   };
   
   // Cancel clear all
@@ -3352,15 +3281,11 @@ function App() {
     
     // Keep search filters when changing dates
     // setSearchTerm, setSearchMode, and setSearchOddsValue are NOT reset
-    
-    console.log(`[DEBUG-DateClick] User clicked date: ${newDate}`);
-    console.log(`[DEBUG-DateClick] Previous selectedDate: ${selectedDate}`);
-    console.log(`[DEBUG-DateClick] Calling setSelectedDate(${newDate})`);
-    
+
+
+
     setSelectedDate(newDate);
-    
-    console.log(`[DEBUG-DateClick] Calling loadData(${newDate})`);
-    
+
     // Handle "beyond" date - check if this date corresponds to Beyond entry
     const isBeyondDate = availableDatesWithCounts.find(d => 
       d.date === newDate && (d.displayName.includes('Beyond') || d.displayName.includes('>>'))
@@ -3448,37 +3373,33 @@ function App() {
     
     // If All Matches is active, reload it to reflect the cleared date
     if (showAllMatches) {
-      console.log('[Clear Cache] All Matches is active, reloading to reflect cleared date...');
+
       loadAllMatches(selectedCategory, selectedCompetition);
     }
   };
   
   // Handle long-press on All Matches to clear ALL date caches
   const handleClearAllCache = async () => {
-    console.log('[Clear All Cache] Long press detected on All Matches');
-    
+
     const { clearCacheMatches } = await import('./utils/matchCache');
     const sourceId = selectedSource?.id || 'totelepep';
     
     // Clear all date caches for current source
     const datesToClear = calendarList.length > 0 ? calendarList : availableDates;
-    
-    console.log(`[Clear All Cache] Clearing ${datesToClear.length} dates...`);
-    
+
     for (const dateEntry of datesToClear) {
       const date = dateEntry.date;
       if (!date) continue;
       
       const cacheKey = `date_${date}_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_${sourceId}`;
       await clearCacheMatches(cacheKey);
-      console.log(`[Clear All Cache] Cleared ${date}`);
+
     }
     
     // Clear All Matches cache too
     const allMatchesCacheKey = `all_matches_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_${sourceId}`;
     await clearCacheMatches(allMatchesCacheKey);
-    console.log('[Clear All Cache] Cleared All Matches cache');
-    
+
     // Clear current matches immediately
     setMatches([]);
     setGroupedMatches({});
@@ -3529,7 +3450,7 @@ function App() {
       // After calendar loads, trigger auto-fetch by loading the first date
       const firstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
       if (firstDate) {
-        console.log('[Clear All Cache] Loading first date to trigger auto-fetch:', firstDate);
+
         (totelepepExtractor as any).cache = new Map();
         loadData(firstDate, selectedCategory, selectedCompetition, true);
       }
@@ -3761,7 +3682,7 @@ function App() {
             mainBetSelection={betRefundMainSelection}
             refundSelections={betRefundOptions}
             onExitBetRefundMode={() => {
-              console.log('[Exit Bet Refund Mode] Clearing state and sessionStorage');
+
               setShowBetRefundMode(false);
               setBetRefundMainSelection(null);
               setBetRefundOptions([]);
@@ -3770,8 +3691,7 @@ function App() {
               sessionStorage.removeItem('betRefundMode');
               sessionStorage.removeItem('betRefundMainSelection');
               sessionStorage.removeItem('betRefundOptions');
-              
-              console.log('[Exit Bet Refund Mode] SessionStorage cleared');
+
             }}
           />
         ) : (
