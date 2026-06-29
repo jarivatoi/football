@@ -1,7 +1,7 @@
 // IndexedDB helper for storing parlay booking history
 
 const DB_NAME = 'ParlayBookingsDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Incremented to support new Bet Refund Mode individual financial fields
 const STORE_NAME = 'bookings';
 
 export interface SavedBooking {
@@ -23,6 +23,15 @@ export interface SavedBooking {
   betRefundPairRef?: string;  // The other booking ref (main stores refund ref, refund stores main ref)
   betRefundOtherStake?: number;  // The stake of the other bet
   betRefundOtherWin?: number;  // The potential win of the other bet
+  // Individual bet financial data for Bet Refund Mode
+  betRefundMainStake?: number;
+  betRefundMainTax?: number;
+  betRefundMainBonus?: number;
+  betRefundMainNetPayout?: number;
+  betRefundRefundStake?: number;
+  betRefundRefundTax?: number;
+  betRefundRefundBonus?: number;
+  betRefundRefundNetPayout?: number;
 }
 
 // Open database
@@ -51,12 +60,19 @@ const openDB = (): Promise<IDBDatabase> => {
 // Save booking to IndexedDB
 export const saveBookingToDB = async (booking: SavedBooking): Promise<void> => {
   const db = await openDB();
+  console.log('[IndexedDB Save] Saving booking with fields:', Object.keys(booking));
+  console.log('[IndexedDB Save] betRefundMainStake:', booking.betRefundMainStake);
+  console.log('[IndexedDB Save] betRefundRefundStake:', booking.betRefundRefundStake);
+  
   return new Promise((resolve, reject) => {
     const transaction = db.transaction([STORE_NAME], 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
     const request = store.add(booking);
 
-    request.onsuccess = () => resolve();
+    request.onsuccess = () => {
+      console.log('[IndexedDB Save] ✅ Booking saved successfully');
+      resolve();
+    };
     request.onerror = () => reject(new Error('Failed to save booking'));
   });
 };
@@ -76,6 +92,7 @@ export const getAllBookingsFromDB = async (): Promise<SavedBooking[]> => {
       const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
       if (cursor) {
         bookings.push(cursor.value);
+        console.log('[IndexedDB Load] Loaded booking:', cursor.value.bookingRef, 'has betRefundMainStake:', cursor.value.betRefundMainStake !== undefined);
         cursor.continue();
       } else {
         resolve(bookings);

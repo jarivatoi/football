@@ -2600,6 +2600,43 @@ function App() {
     // Don't auto-login - always show login screen on refresh (like anwh)
     // Session will be created when user logs in
     setUserSession(null);
+    
+    // Restore Bet Refund Mode state from sessionStorage (if active before refresh)
+    const savedBetRefundMode = sessionStorage.getItem('betRefundMode');
+    if (savedBetRefundMode === 'true') {
+      try {
+        const savedMainSelection = sessionStorage.getItem('betRefundMainSelection');
+        const savedRefundOptions = sessionStorage.getItem('betRefundOptions');
+        
+        if (savedMainSelection && savedRefundOptions) {
+          const mainSelection = JSON.parse(savedMainSelection);
+          const refundOptions = JSON.parse(savedRefundOptions);
+          
+          console.log('[App Load] Restoring Bet Refund Mode from sessionStorage');
+          console.log('[App Load] Restored main selection:', { priceType: mainSelection.priceType, optionName: mainSelection.optionName, odds: mainSelection.odds });
+          console.log('[App Load] Restored refund options:', refundOptions.map((opt: any) => ({ priceType: opt.priceType, optionName: opt.optionName, odds: opt.odds })));
+          
+          setBetRefundMainSelection(mainSelection);
+          setBetRefundOptions(refundOptions);
+          setShowBetRefundMode(true);
+          
+          // Restore parlay selections (main + first refund option)
+          if (refundOptions.length > 0) {
+            console.log('[App Load] Setting parlay with first refund option:', refundOptions[0].priceType);
+            setParlaySelections([mainSelection, refundOptions[0]]);
+          } else {
+            setParlaySelections([mainSelection]);
+          }
+        }
+      } catch (error) {
+        console.error('[App Load] Failed to restore Bet Refund Mode:', error);
+        // Clear corrupted sessionStorage
+        sessionStorage.removeItem('betRefundMode');
+        sessionStorage.removeItem('betRefundMainSelection');
+        sessionStorage.removeItem('betRefundOptions');
+      }
+    }
+    
     setIsLoading(false);
   }, []);
 
@@ -2669,14 +2706,39 @@ function App() {
     const { saveBetslip } = await import('./utils/matchCache');
     const currentSourceId = selectedSource?.id || 'totelepep';
     
-    // Replace duplicates: Remove old matches, add booking matches with fresh odds
-    const nonDuplicateMatches = existingBetslip.filter(
-      (s: any) => !existingMatchIds.has(s.matchId)
-    );
-    const mergedBetslip = [...nonDuplicateMatches, ...validSelections];
-    
-    await saveBetslip(mergedBetslip, currentSourceId);
-    setParlaySelections(mergedBetslip);
+    // Check if this is a Bet Refund Mode booking
+    if (repeatBetBooking.booking.betRefundMode && repeatBetBooking.booking.betRefundType === 'main') {
+      // Activate Bet Refund Mode FIRST
+      const mainSelection = validSelections[0];
+      const refundSelection = validSelections[1];
+      
+      if (mainSelection && refundSelection) {
+        // Set ONLY the main + refund selections for Bet Refund Mode
+        const betRefundSelections = [mainSelection, refundSelection];
+        await saveBetslip(betRefundSelections, currentSourceId);
+        setParlaySelections(betRefundSelections);
+        
+        setBetRefundMainSelection(mainSelection);
+        setBetRefundOptions([refundSelection]);
+        setShowBetRefundMode(true);
+        
+        // Persist to sessionStorage for restoration on refresh
+        sessionStorage.setItem('betRefundMode', 'true');
+        sessionStorage.setItem('betRefundMainSelection', JSON.stringify(mainSelection));
+        sessionStorage.setItem('betRefundOptions', JSON.stringify([refundSelection]));
+        
+        console.log('[Repeat Bet] Activated Bet Refund Mode and saved to sessionStorage');
+      }
+    } else {
+      // Normal mode: Replace duplicates
+      const nonDuplicateMatches = existingBetslip.filter(
+        (s: any) => !existingMatchIds.has(s.matchId)
+      );
+      const mergedBetslip = [...nonDuplicateMatches, ...validSelections];
+      
+      await saveBetslip(mergedBetslip, currentSourceId);
+      setParlaySelections(mergedBetslip);
+    }
     
     const replacedCount = validSelections.filter((s: any) => existingMatchIds.has(s.matchId)).length;
     const newCount = validSelections.filter((s: any) => !existingMatchIds.has(s.matchId)).length;
@@ -2784,10 +2846,36 @@ function App() {
         return;
       }
       
-      // No duplicates - just add booking matches
-      const mergedBetslip = [...existingBetslip, ...validSelections];
-      await saveBetslip(mergedBetslip, currentSourceId);
-      setParlaySelections(mergedBetslip);
+      // Check if this is a Bet Refund Mode booking
+      if (booking.betRefundMode && booking.betRefundType === 'main') {
+        // Activate Bet Refund Mode
+        const mainSelection = validSelections[0];
+        const refundSelection = validSelections[1];
+        
+        if (mainSelection && refundSelection) {
+          // Set ONLY the main + refund selections for Bet Refund Mode
+          const betRefundSelections = [mainSelection, refundSelection];
+          await saveBetslip(betRefundSelections, currentSourceId);
+          setParlaySelections(betRefundSelections);
+          
+          setBetRefundMainSelection(mainSelection);
+          setBetRefundOptions([refundSelection]);
+          setShowBetRefundMode(true);
+          
+          // Persist to sessionStorage for restoration on refresh
+          sessionStorage.setItem('betRefundMode', 'true');
+          sessionStorage.setItem('betRefundMainSelection', JSON.stringify(mainSelection));
+          sessionStorage.setItem('betRefundOptions', JSON.stringify([refundSelection]));
+          
+          console.log('[Repeat Bet] Activated Bet Refund Mode and saved to sessionStorage');
+        }
+      } else {
+        // No duplicates - just add booking matches (normal mode)
+        const mergedBetslip = [...existingBetslip, ...validSelections];
+        await saveBetslip(mergedBetslip, currentSourceId);
+        setParlaySelections(mergedBetslip);
+      }
+      
       showToast(`Added ${validSelections.length} matches to betslip`, 'success');
       
     } catch (error) {
@@ -2969,11 +3057,25 @@ function App() {
   };
 
   const handleLongPress = (matchId: string, priceType: string, odds: number, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string, optionName?: string) => {
+    console.log('[BetRefund LongPress] === START ===');
+    console.log('[BetRefund LongPress] matchId:', matchId, 'priceType:', priceType, 'optionNo:', optionNo);
+    console.log('[BetRefund LongPress] Current parlaySelections count:', parlaySelections.length);
+    console.log('[BetRefund LongPress] Current betRefundMode:', showBetRefundMode);
+    
     // Only activate when parlay builder is empty
-    if (parlaySelections.length > 0) return;
+    if (parlaySelections.length > 0) {
+      console.log('[BetRefund LongPress] BLOCKED - parlaySelections not empty');
+      return;
+    }
     
     const match = matches.find(m => m.id === matchId);
-    if (!match) return;
+    if (!match) {
+      console.log('[BetRefund LongPress] BLOCKED - match not found');
+      return;
+    }
+    
+    console.log('[BetRefund LongPress] Match found:', match.homeTeam, 'vs', match.awayTeam);
+    console.log('[BetRefund LongPress] Match has allMarkets:', !!match.allMarkets, 'count:', match.allMarkets?.length || 0);
     
     // Create main bet selection
     const mainSelection: ParlaySelection = {
@@ -3013,18 +3115,35 @@ function App() {
       console.log('[BetRefund] Found sourceMarket:', !!sourceMarket);
       
       if (sourceMarket) {
+        console.log('[BetRefund] sourceMarket selections:', sourceMarket.selections.map((s: any) => ({ name: s.name, optionNo: s.optionNo, optionNoType: typeof s.optionNo, odds: s.odds })));
+        
         // Get all other selections from this market (excluding the main bet)
         sourceMarket.selections.forEach(sel => {
-          const selPriceType = sel.name === '1' || sel.name === 'Home' ? 'home' :
-                              sel.name === 'X' || sel.name === 'Draw' ? 'draw' :
-                              sel.name === '2' || sel.name === 'Away' ? 'away' :
-                              `${marketBookNo}-${sel.name}`;
+          // Use optionNo to determine priceType (more reliable than name)
+          // optionNo: 1='1' or 1=home, 2='2' or 2=draw, 3='3' or 3=away
+          let selPriceType: string;
+          const optNo = String(sel.optionNo); // Convert to string to handle both number and string
           
-          console.log('[BetRefund] Checking selection:', sel.name, '-> priceType:', selPriceType, 'vs main:', priceType);
+          if (optNo === '1') {
+            selPriceType = 'home';
+          } else if (optNo === '2') {
+            selPriceType = 'draw';
+          } else if (optNo === '3') {
+            selPriceType = 'away';
+          } else {
+            // Fallback: try to infer from name
+            selPriceType = sel.name === '1' || sel.name === 'Home' ? 'home' :
+                          sel.name === 'X' || sel.name === 'Draw' ? 'draw' :
+                          sel.name === '2' || sel.name === 'Away' ? 'away' :
+                          `${marketBookNo}-${sel.name}`;
+          }
           
-          // Skip the main bet selection
-          if (selPriceType === priceType) {
-            console.log('[BetRefund] SKIPPING (matches priceType)');
+          console.log('[BetRefund] Checking selection:', sel.name, 'optionNo:', sel.optionNo, '(type:', typeof sel.optionNo, ') -> priceType:', selPriceType, 'vs main:', priceType);
+          
+          // Skip the main bet selection - check by priceType OR optionNo
+          const mainOptNo = optionNo ? String(optionNo) : null;
+          if (selPriceType === priceType || (mainOptNo && String(sel.optionNo) === mainOptNo)) {
+            console.log('[BetRefund] SKIPPING (matches priceType or optionNo)');
             return;
           }
           
@@ -3046,6 +3165,7 @@ function App() {
             marketDisplayName: sourceMarket.marketDisplayName,
             optionCode: sel.optionCode,
             optionNo: sel.optionNo,
+            optionName: sel.name,
             competitionId: match.competitionId
           });
         });
@@ -3096,15 +3216,37 @@ function App() {
     
     console.log('[BetRefund] Total refund options:', refundOptions.length);
     
+    // FINAL SAFETY CHECK: Remove any refund options that match the main bet
+    const filteredRefundOptions = refundOptions.filter(opt => {
+      const isDuplicate = opt.priceType === priceType || 
+                          (optionNo && opt.optionNo === optionNo);
+      if (isDuplicate) {
+        console.log('[BetRefund] REMOVING duplicate from refund options:', opt.priceType);
+      }
+      return !isDuplicate;
+    });
+    
+    console.log('[BetRefund] Filtered refund options (after safety check):', filteredRefundOptions.length);
+    
     // Set Bet Refund Mode
     setBetRefundMainSelection(mainSelection);
-    setBetRefundOptions(refundOptions);
+    setBetRefundOptions(filteredRefundOptions);
     setShowBetRefundMode(true);
     setShowParlayBuilder(true); // Open the parlay builder panel
     
+    // Persist Bet Refund Mode state to sessionStorage for restoration on refresh
+    sessionStorage.setItem('betRefundMode', 'true');
+    sessionStorage.setItem('betRefundMainSelection', JSON.stringify(mainSelection));
+    sessionStorage.setItem('betRefundOptions', JSON.stringify(filteredRefundOptions));
+    
+    console.log('[BetRefund Mode] Saved to sessionStorage:', {
+      mainSelection: { priceType: mainSelection.priceType, optionName: mainSelection.optionName, odds: mainSelection.odds },
+      refundOptions: filteredRefundOptions.map(opt => ({ priceType: opt.priceType, optionName: opt.optionName, odds: opt.odds }))
+    });
+    
     // Add main selection + first refund option to parlay builder
-    if (refundOptions.length > 0) {
-      setParlaySelections([mainSelection, refundOptions[0]]);
+    if (filteredRefundOptions.length > 0) {
+      setParlaySelections([mainSelection, filteredRefundOptions[0]]);
     } else {
       setParlaySelections([mainSelection]);
     }
@@ -3151,6 +3293,15 @@ function App() {
     clearBetslip(); // Clear from IndexedDB
     setShowParlayBuilder(false); // Close parlay builder when clearing all
     setShowClearAllModal(false); // Close modal
+    
+    // Also clear Bet Refund Mode state
+    setShowBetRefundMode(false);
+    setBetRefundMainSelection(null);
+    setBetRefundOptions([]);
+    sessionStorage.removeItem('betRefundMode');
+    sessionStorage.removeItem('betRefundMainSelection');
+    sessionStorage.removeItem('betRefundOptions');
+    console.log('[Clear All] Cleared Bet Refund Mode state and sessionStorage');
   };
   
   // Cancel clear all
@@ -3599,6 +3750,11 @@ function App() {
               setShowBetRefundMode(false);
               setBetRefundMainSelection(null);
               setBetRefundOptions([]);
+              
+              // Clear sessionStorage when exiting Bet Refund Mode
+              sessionStorage.removeItem('betRefundMode');
+              sessionStorage.removeItem('betRefundMainSelection');
+              sessionStorage.removeItem('betRefundOptions');
             }}
           />
         ) : (

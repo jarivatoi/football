@@ -132,10 +132,10 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
             ) : (
               <div className="space-y-4">
                 {savedBookings.map((booking) => (
-                  <div key={booking.id} className={`border rounded-lg overflow-hidden ${booking.betRefundMode ? 'border-yellow-400 border-2' : 'border-gray-200'}`}>
+                  <div key={booking.id} className={`border rounded-lg overflow-hidden ${booking.betRefundMode ? 'border-blue-500 border-2' : 'border-gray-200'}`}>
                     {/* Booking Header - Clickable */}
                     <div 
-                      className={`px-4 py-2 border-b cursor-pointer hover:bg-gray-100 transition-colors ${booking.betRefundMode ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-200'}`}
+                      className={`px-4 py-2 border-b cursor-pointer hover:bg-gray-100 transition-colors ${booking.betRefundMode ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}
                       onClick={() => setSelectedBooking(booking)}
                     >
                       <div className="text-sm text-gray-600">{booking.formattedDateTime}</div>
@@ -250,10 +250,8 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
               <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white">
                 <div className="max-h-60 overflow-y-auto">
                   {selectedBooking.selections.map((selection, index) => {
-                    // For Bet Refund Mode, second selection is refund bet (blue border)
-                    const isRefundBet = selectedBooking.betRefundMode && index >= 1;
                     return (
-                      <div key={index} className={`p-3 border-b bg-yellow-50 last:border-b-0 ${isRefundBet ? 'border-l-4 border-blue-500 border-b' : 'border-gray-200'}`}>
+                      <div key={index} className={`p-3 border-b bg-yellow-50 last:border-b-0 border-gray-200`}>
                         <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="text-sm font-semibold text-gray-800">
@@ -319,29 +317,74 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                     </div>
                   )}
 
-                  {/* Bet Refund Mode - Show both refs separately */}
+                  {/* Bet Refund Mode - Show both refs separately with their own breakdowns */}
                   {selectedBooking.betRefundMode ? (
                     <div>
-                      {/* Parse the combined booking ref */}
                       {(() => {
                         const refs = selectedBooking.bookingRef.split(' - ');
                         const mainRef = refs[0];
                         const refundRef = refs[1];
-                        return (
-                          <>
-                            {/* Main Bet */}
-                            <div className="p-3 bg-green-500 text-white text-center">
-                              <div className="text-xl font-bold">Booking Ref# {mainRef}</div>
-                            </div>
-                            <div className="p-3 bg-yellow-400 text-center border-t border-yellow-500">
-                              <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
-                                <span>📱</span>
-                                <span>SMS BET{mainRef}</span>
-                              </div>
-                            </div>
-                            {/* Refund Bet */}
-                            <div className="border-t-4 border-blue-500">
+                        
+                        // Check if this booking has individual financial data (new format)
+                        const hasIndividualData = selectedBooking.betRefundMainStake !== undefined;
+                        
+                        console.log('[BookingHistory Detail] Booking:', selectedBooking.bookingRef);
+                        console.log('[BookingHistory Detail] hasIndividualData:', hasIndividualData);
+                        console.log('[BookingHistory Detail] betRefundMainStake:', selectedBooking.betRefundMainStake);
+                        console.log('[BookingHistory Detail] betRefundRefundStake:', selectedBooking.betRefundRefundStake);
+                        console.log('[BookingHistory Detail] Full booking:', selectedBooking);
+                        
+                        if (hasIndividualData) {
+                          // NEW FORMAT: Show separate breakdowns for each bet
+                          const mainStake = selectedBooking.betRefundMainStake || 0;
+                          const mainTax = selectedBooking.betRefundMainTax || 0;
+                          const mainBonus = selectedBooking.betRefundMainBonus || 0;
+                          const mainNetPayout = selectedBooking.betRefundMainNetPayout || 0;
+                          
+                          const refundStake = selectedBooking.betRefundRefundStake || 0;
+                          const refundTax = selectedBooking.betRefundRefundTax || 0;
+                          const refundBonus = selectedBooking.betRefundRefundBonus || 0;
+                          const refundNetPayout = selectedBooking.betRefundRefundNetPayout || 0;
+                          
+                          return (
+                            <>
+                              {/* Main Bet */}
                               <div className="p-3 bg-green-500 text-white text-center">
+                                <div className="text-xl font-bold">Booking Ref# {mainRef}</div>
+                              </div>
+                              <div className="p-3 bg-yellow-400 text-center border-t border-yellow-500">
+                                <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
+                                  <span>📱</span>
+                                  <span>SMS BET{mainRef}</span>
+                                </div>
+                              </div>
+                              <div className="p-3 bg-yellow-50 border-t border-gray-200">
+                                <div className="text-xs text-gray-600 space-y-1">
+                                  <div className="flex justify-between">
+                                    <span>Stake:</span>
+                                    <span className="font-medium">Rs {Math.round(mainStake)}</span>
+                                  </div>
+                                  {mainTax > 0 && (
+                                    <div className="flex justify-between text-red-600">
+                                      <span>Tax:</span>
+                                      <span className="font-medium">-Rs {formatCurrency(mainTax)}</span>
+                                    </div>
+                                  )}
+                                  {mainBonus > 0 && (
+                                    <div className="flex justify-between text-green-600">
+                                      <span>Bonus:</span>
+                                      <span className="font-medium">+Rs {formatCurrency(mainBonus)}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between border-t border-gray-200 pt-1 font-bold">
+                                    <span>Net Payout:</span>
+                                    <span className="text-green-600">Rs {formatCurrency(mainNetPayout)}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Refund Bet */}
+                              <div className="p-3 bg-green-500 text-white text-center border-t-2 border-gray-300">
                                 <div className="text-xl font-bold">Booking Ref# {refundRef}</div>
                               </div>
                               <div className="p-3 bg-yellow-400 text-center border-t border-yellow-500">
@@ -350,9 +393,86 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                                   <span>SMS BET{refundRef}</span>
                                 </div>
                               </div>
-                            </div>
-                          </>
-                        );
+                              <div className="p-3 bg-yellow-50 border-t border-gray-200">
+                                <div className="text-xs text-gray-600 space-y-1">
+                                  <div className="flex justify-between">
+                                    <span>Stake:</span>
+                                    <span className="font-medium">Rs {Math.round(refundStake)}</span>
+                                  </div>
+                                  {refundTax > 0 && (
+                                    <div className="flex justify-between text-red-600">
+                                      <span>Tax:</span>
+                                      <span className="font-medium">-Rs {formatCurrency(refundTax)}</span>
+                                    </div>
+                                  )}
+                                  {refundBonus > 0 && (
+                                    <div className="flex justify-between text-green-600">
+                                      <span>Bonus:</span>
+                                      <span className="font-medium">+Rs {formatCurrency(refundBonus)}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between border-t border-gray-200 pt-1 font-bold">
+                                    <span>Net Payout:</span>
+                                    <span className="text-green-600">Rs {formatCurrency(refundNetPayout)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          );
+                        } else {
+                          // OLD FORMAT: Show combined breakdown (both bets share the same totals)
+                          return (
+                            <>
+                              {/* Main Bet */}
+                              <div className="p-3 bg-green-500 text-white text-center">
+                                <div className="text-xl font-bold">Booking Ref# {mainRef}</div>
+                              </div>
+                              <div className="p-3 bg-yellow-400 text-center border-t border-yellow-500">
+                                <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
+                                  <span>📱</span>
+                                  <span>SMS BET{mainRef}</span>
+                                </div>
+                              </div>
+
+                              {/* Refund Bet */}
+                              <div className="p-3 bg-green-500 text-white text-center border-t-2 border-gray-300">
+                                <div className="text-xl font-bold">Booking Ref# {refundRef}</div>
+                              </div>
+                              <div className="p-3 bg-yellow-400 text-center border-t border-yellow-500">
+                                <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
+                                  <span>📱</span>
+                                  <span>SMS BET{refundRef}</span>
+                                </div>
+                              </div>
+                              
+                              {/* Combined Breakdown for old bookings */}
+                              <div className="p-3 bg-yellow-50 border-t border-gray-200">
+                                <div className="text-xs text-gray-600 space-y-1">
+                                  <div className="flex justify-between">
+                                    <span>Total Stake:</span>
+                                    <span className="font-medium">Rs {Math.round(selectedBooking.stake)}</span>
+                                  </div>
+                                  {selectedBooking.tax !== undefined && selectedBooking.tax > 0 && (
+                                    <div className="flex justify-between text-red-600">
+                                      <span>Tax:</span>
+                                      <span className="font-medium">-Rs {formatCurrency(selectedBooking.tax)}</span>
+                                    </div>
+                                  )}
+                                  {selectedBooking.bonus !== undefined && selectedBooking.bonus > 0 && (
+                                    <div className="flex justify-between text-green-600">
+                                      <span>Bonus:</span>
+                                      <span className="font-medium">+Rs {formatCurrency(selectedBooking.bonus)}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between border-t border-gray-200 pt-1 font-bold">
+                                    <span>Total Net Payout:</span>
+                                    <span className="text-green-600">Rs {formatCurrency(selectedBooking.netPayout || selectedBooking.potentialWin)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          );
+                        }
                       })()}
                     </div>
                   ) : (
@@ -363,54 +483,59 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                     </div>
                   )}
 
-                  <div className="flex border-t border-gray-200">
-                    <div className="flex-1 p-3 text-center border-r border-gray-200">
-                      <div className="text-xs text-gray-600">Win</div>
-                      <div className="text-lg font-bold text-gray-800">
-                        {formatCurrency(selectedBooking.netPayout || selectedBooking.potentialWin)}
+                  {/* Normal Mode - Show combined Win/Stake */}
+                  {!selectedBooking.betRefundMode && (
+                    <div className="flex border-t border-gray-200">
+                      <div className="flex-1 p-3 text-center border-r border-gray-200">
+                        <div className="text-xs text-gray-600">Win</div>
+                        <div className="text-lg font-bold text-gray-800">
+                          {formatCurrency(selectedBooking.netPayout || selectedBooking.potentialWin)}
+                        </div>
+                      </div>
+                      <div className="flex-1 p-3 text-center bg-gray-50">
+                        <div className="text-xs text-gray-600">Stake</div>
+                        <div className="text-lg font-bold text-gray-800">{selectedBooking.stake}</div>
                       </div>
                     </div>
-                    <div className="flex-1 p-3 text-center bg-gray-50">
-                      <div className="text-xs text-gray-600">Stake</div>
-                      <div className="text-lg font-bold text-gray-800">{selectedBooking.stake}</div>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
-              {/* Payout Breakdown */}
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="text-xs text-gray-600 space-y-1">
-                  <div className="flex justify-between">
-                    <span>Stake:</span>
-                    <span className="font-medium">Rs {Math.round(selectedBooking.stake)}</span>
-                  </div>
-                  {selectedBooking.tax !== undefined && selectedBooking.tax > 0 && (
-                    <div className="flex justify-between text-red-600">
-                      <span>Tax:</span>
-                      <span className="font-medium">-Rs {formatCurrency(selectedBooking.tax)}</span>
+              {/* Payout Breakdown - Only for normal mode */}
+              {!selectedBooking.betRefundMode && (
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="text-xs text-gray-600 space-y-1">
+                    <div className="flex justify-between">
+                      <span>Stake:</span>
+                      <span className="font-medium">Rs {Math.round(selectedBooking.stake)}</span>
                     </div>
-                  )}
-                  {selectedBooking.bonus !== undefined && selectedBooking.bonus > 0 && (() => {
-                    // Calculate bonus percentage: bonus / (netPayout - bonus) × 100
-                    const netPayout = selectedBooking.netPayout || selectedBooking.potentialWin;
-                    const basePayoutWithoutBonus = netPayout - selectedBooking.bonus;
-                    const bonusPercentage = basePayoutWithoutBonus > 0 
-                      ? Math.round((selectedBooking.bonus / basePayoutWithoutBonus) * 100) 
-                      : 0;
-                    return (
-                      <div className="flex justify-between text-green-600">
-                        <span>Bonus ({bonusPercentage}%):</span>
-                        <span className="font-medium">+Rs {formatCurrency(selectedBooking.bonus)}</span>
+                    {selectedBooking.tax !== undefined && selectedBooking.tax > 0 && (
+                      <div className="flex justify-between text-red-600">
+                        <span>Tax:</span>
+                        <span className="font-medium">-Rs {formatCurrency(selectedBooking.tax)}</span>
                       </div>
-                    );
-                  })()}
-                  <div className="flex justify-between border-t border-blue-200 pt-1 font-bold text-lg">
-                    <span>Net Payout:</span>
-                    <span className="text-green-600">Rs {formatCurrency(selectedBooking.netPayout || selectedBooking.potentialWin)}</span>
+                    )}
+                    {selectedBooking.bonus !== undefined && selectedBooking.bonus > 0 && (() => {
+                      // Calculate bonus percentage: bonus / (netPayout - bonus) × 100
+                      const netPayout = selectedBooking.netPayout || selectedBooking.potentialWin;
+                      const basePayoutWithoutBonus = netPayout - selectedBooking.bonus;
+                      const bonusPercentage = basePayoutWithoutBonus > 0 
+                        ? Math.round((selectedBooking.bonus / basePayoutWithoutBonus) * 100) 
+                        : 0;
+                      return (
+                        <div className="flex justify-between text-green-600">
+                          <span>Bonus ({bonusPercentage}%):</span>
+                          <span className="font-medium">+Rs {formatCurrency(selectedBooking.bonus)}</span>
+                        </div>
+                      );
+                    })()}
+                    <div className="flex justify-between border-t border-blue-200 pt-1 font-bold text-lg">
+                      <span>Net Payout:</span>
+                      <span className="text-green-600">Rs {formatCurrency(selectedBooking.netPayout || selectedBooking.potentialWin)}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
             
             {/* Action Buttons */}

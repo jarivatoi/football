@@ -749,6 +749,14 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   const [budgetAmount, setBudgetAmount] = useState<number>(2000);
   const [targetProfit, setTargetProfit] = useState<number>(500);
   
+  // Reset indices when Bet Refund Mode is activated with new selections
+  useEffect(() => {
+    if (betRefundMode && mainBetSelection && refundSelections.length > 0) {
+      setMainBetIndex(0); // Reset to first option
+      setSelectedRefundIndex(0); // Reset to first refund option (which is already filtered to exclude main bet)
+    }
+  }, [betRefundMode, mainBetSelection, refundSelections]);
+  
   // Ref for Bet Refund Mode section
   const betRefundModeRef = useRef<HTMLDivElement>(null);
   
@@ -967,7 +975,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   };
 
   // Save current booking to IndexedDB
-  const saveBooking = useCallback(async (bookingData?: { 
+  const saveBooking = useCallback(async (bookingData?: {
     ticketNo: string; 
     selections: any[]; 
     stake: number; 
@@ -981,6 +989,15 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     betRefundPairRef?: string;
     betRefundOtherStake?: number;
     betRefundOtherWin?: number;
+    // Individual bet financial data for Bet Refund Mode
+    betRefundMainStake?: number;
+    betRefundMainTax?: number;
+    betRefundMainBonus?: number;
+    betRefundMainNetPayout?: number;
+    betRefundRefundStake?: number;
+    betRefundRefundTax?: number;
+    betRefundRefundBonus?: number;
+    betRefundRefundNetPayout?: number;
   }) => {
     // If bookingData is provided, use it (for auto-save after bet)
     // Otherwise, use state (for manual save from history)
@@ -1018,7 +1035,16 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       betRefundGroupId: bookingData?.betRefundGroupId,
       betRefundPairRef: bookingData?.betRefundPairRef,
       betRefundOtherStake: bookingData?.betRefundOtherStake,
-      betRefundOtherWin: bookingData?.betRefundOtherWin
+      betRefundOtherWin: bookingData?.betRefundOtherWin,
+      // Individual bet financial data for Bet Refund Mode
+      betRefundMainStake: bookingData?.betRefundMainStake,
+      betRefundMainTax: bookingData?.betRefundMainTax,
+      betRefundMainBonus: bookingData?.betRefundMainBonus,
+      betRefundMainNetPayout: bookingData?.betRefundMainNetPayout,
+      betRefundRefundStake: bookingData?.betRefundRefundStake,
+      betRefundRefundTax: bookingData?.betRefundRefundTax,
+      betRefundRefundBonus: bookingData?.betRefundRefundBonus,
+      betRefundRefundNetPayout: bookingData?.betRefundRefundNetPayout
     };
     
     try {
@@ -1262,24 +1288,44 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           }
         });
         
-        // Save ONE combined booking with both refs
-        const mainTax = mainBetResult.betList?.[0]?.taxAmount || 0;
-        const mainBonus = mainBetResult.betList?.[0]?.bonusAmount || 0;
-        const mainNetPayout = mainBetResult.betList?.[0]?.payout || mainBetResult.potentialPayout || 0;
-        const refundTax = refundBetResult.betList?.[0]?.taxAmount || 0;
-        const refundBonus = refundBetResult.betList?.[0]?.bonusAmount || 0;
-        const refundNetPayout = refundBetResult.betList?.[0]?.payout || refundBetResult.potentialPayout || 0;
+        // Save ONE combined booking with both refs and their individual financial data
+        const mainTax = parseFloat(String(mainBetResult.betList?.[0]?.taxAmount || '0').replace(/,/g, ''));
+        const mainBonus = parseFloat(String(mainBetResult.betList?.[0]?.bonusAmount || '0').replace(/,/g, ''));
+        const mainNetPayout = parseFloat(String(mainBetResult.betList?.[0]?.payout || mainBetResult.potentialPayout || '0').replace(/,/g, ''));
+        const refundTax = parseFloat(String(refundBetResult.betList?.[0]?.taxAmount || '0').replace(/,/g, ''));
+        const refundBonus = parseFloat(String(refundBetResult.betList?.[0]?.bonusAmount || '0').replace(/,/g, ''));
+        const refundNetPayout = parseFloat(String(refundBetResult.betList?.[0]?.payout || refundBetResult.potentialPayout || '0').replace(/,/g, ''));
         
         saveBooking({
           ticketNo: `${mainBetResult.ticketNo} - ${refundBetResult.ticketNo}`,
           selections: [...mainBetSelections, ...refundBetSelections],
           stake: mainStake + refundStake,
-          potentialWin: parseFloat(String(mainNetPayout).replace(/,/g, '')) + parseFloat(String(refundNetPayout).replace(/,/g, '')),
-          tax: parseFloat(String(mainTax).replace(/,/g, '')) + parseFloat(String(refundTax).replace(/,/g, '')),
-          bonus: parseFloat(String(mainBonus).replace(/,/g, '')) + parseFloat(String(refundBonus).replace(/,/g, '')),
-          netPayout: parseFloat(String(mainNetPayout).replace(/,/g, '')) + parseFloat(String(refundNetPayout).replace(/,/g, '')),
-          betRefundMode: true
+          potentialWin: mainNetPayout + refundNetPayout,
+          tax: mainTax + refundTax,
+          bonus: mainBonus + refundBonus,
+          netPayout: mainNetPayout + refundNetPayout,
+          betRefundMode: true,
+          // Store individual bet financial data for proper breakdown display
+          betRefundMainStake: mainStake,
+          betRefundMainTax: mainTax,
+          betRefundMainBonus: mainBonus,
+          betRefundMainNetPayout: mainNetPayout,
+          betRefundRefundStake: refundStake,
+          betRefundRefundTax: refundTax,
+          betRefundRefundBonus: refundBonus,
+          betRefundRefundNetPayout: refundNetPayout
         });
+        
+        console.log('[BetRefund Booking] Saved with individual financial data:', {
+          mainStake, mainTax, mainBonus, mainNetPayout,
+          refundStake, refundTax, refundBonus, refundNetPayout
+        });
+        
+        // Clear sessionStorage after successful Bet Refund Mode bet placement
+        sessionStorage.removeItem('betRefundMode');
+        sessionStorage.removeItem('betRefundMainSelection');
+        sessionStorage.removeItem('betRefundOptions');
+        console.log('[BetRefund Booking] Cleared sessionStorage after bet placement');
         
         // Auto-scroll to results
         setTimeout(() => {
@@ -1908,26 +1954,16 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     
                     let selectionName = '';
                     
-                    // For 1X2 markets, use optionName if available (contains team name from API)
-                    if (sel.marketDisplayName && sel.marketDisplayName.toLowerCase().includes('1 x 2')) {
-                      if (sel.optionName) {
-                        // Use optionName which contains the team name (e.g., "Qingdao West C...")
-                        if (sel.priceType === 'draw' || sel.priceType === 'X') {
-                          selectionName = 'Draw';
-                        } else {
-                          selectionName = sel.optionName;
-                        }
-                      } else {
-                        // Fallback to homeTeam/awayTeam
-                        if (sel.priceType === 'home' || sel.priceType === '1') selectionName = sel.homeTeam;
-                        else if (sel.priceType === 'draw' || sel.priceType === 'X') selectionName = 'Draw';
-                        else if (sel.priceType === 'away' || sel.priceType === '2') selectionName = sel.awayTeam;
-                        else selectionName = sel.marketDisplayName;
-                      }
-                    }
-                    // For other markets with optionName (BTTS, Correct Score, etc.)
-                    else if (sel.optionName && sel.marketDisplayName) {
+                    // ALWAYS use optionName if available (contains the text shown above odds in expanded market)
+                    if (sel.optionName) {
                       selectionName = sel.optionName;
+                    }
+                    // For 1X2 markets without optionName, use team names
+                    else if (sel.marketDisplayName && sel.marketDisplayName.toLowerCase().includes('1 x 2')) {
+                      if (sel.priceType === 'home' || sel.priceType === '1') selectionName = sel.homeTeam;
+                      else if (sel.priceType === 'draw' || sel.priceType === 'X') selectionName = 'Draw';
+                      else if (sel.priceType === 'away' || sel.priceType === '2') selectionName = sel.awayTeam;
+                      else selectionName = sel.marketDisplayName;
                     }
                     else if (sel.priceType === 'home') selectionName = sel.homeTeam;
                     else if (sel.priceType === 'draw') selectionName = 'Draw';
@@ -1976,11 +2012,13 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             <select
               value={selectedRefundIndex}
               onChange={(e) => {
-                const idx = parseInt(e.target.value);
-                setSelectedRefundIndex(idx);
+                const filteredIdx = parseInt(e.target.value);
+                // Convert filtered index back to actual index in allOutcomes
+                const actualIdx = filteredIdx >= mainBetIndex ? filteredIdx + 1 : filteredIdx;
+                setSelectedRefundIndex(filteredIdx);
                 // Update selections with main bet and selected refund bet
-                if (allOutcomes[idx] && allOutcomes[mainBetIndex]) {
-                  if (onSetSelections) onSetSelections([allOutcomes[mainBetIndex], allOutcomes[idx]]);
+                if (allOutcomes[actualIdx] && allOutcomes[mainBetIndex]) {
+                  if (onSetSelections) onSetSelections([allOutcomes[mainBetIndex], allOutcomes[actualIdx]]);
                 }
               }}
               className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1996,26 +2034,16 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                       
                       let selectionName = '';
                       
-                      // For 1X2 markets, use optionName if available (contains team name from API)
-                      if (sel.marketDisplayName && sel.marketDisplayName.toLowerCase().includes('1 x 2')) {
-                        if (sel.optionName) {
-                          // Use optionName which contains the team name
-                          if (sel.priceType === 'draw' || sel.priceType === 'X') {
-                            selectionName = 'Draw';
-                          } else {
-                            selectionName = sel.optionName;
-                          }
-                        } else {
-                          // Fallback to homeTeam/awayTeam
-                          if (sel.priceType === 'home' || sel.priceType === '1') selectionName = sel.homeTeam;
-                          else if (sel.priceType === 'draw' || sel.priceType === 'X') selectionName = 'Draw';
-                          else if (sel.priceType === 'away' || sel.priceType === '2') selectionName = sel.awayTeam;
-                          else selectionName = sel.marketDisplayName;
-                        }
-                      }
-                      // For other markets with optionName (BTTS, Correct Score, etc.)
-                      else if (sel.optionName && sel.marketDisplayName) {
+                      // ALWAYS use optionName if available (contains the text shown above odds in expanded market)
+                      if (sel.optionName) {
                         selectionName = sel.optionName;
+                      }
+                      // For 1X2 markets without optionName, use team names
+                      else if (sel.marketDisplayName && sel.marketDisplayName.toLowerCase().includes('1 x 2')) {
+                        if (sel.priceType === 'home' || sel.priceType === '1') selectionName = sel.homeTeam;
+                        else if (sel.priceType === 'draw' || sel.priceType === 'X') selectionName = 'Draw';
+                        else if (sel.priceType === 'away' || sel.priceType === '2') selectionName = sel.awayTeam;
+                        else selectionName = sel.marketDisplayName;
                       }
                       else if (sel.priceType === 'home') selectionName = sel.homeTeam;
                       else if (sel.priceType === 'draw') selectionName = 'Draw';
@@ -2581,7 +2609,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   {mainBetSelection?.homeTeam} v {mainBetSelection?.awayTeam}
                 </div>
                 <div className="text-xs text-gray-600 mb-2">
-                  {mainBetSelection?.periodCode} - {mainBetSelection?.priceType} @ {mainBetSelection?.odds}
+                  {mainBetSelection?.periodCode || 'FT'} - {mainBetSelection?.priceType} @ {mainBetSelection?.odds}
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Stake:</span>
@@ -2601,7 +2629,14 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 <div className="p-3 bg-green-500 text-white text-center">
                   <div className="text-2xl font-bold">Booking Ref# {lastResult.fullResponse.mainBet.ticketNo}</div>
                 </div>
-                <div className="p-3 bg-yellow-400 text-center border-t border-yellow-500">
+                <div
+                  className="p-3 bg-yellow-400 text-center border-t border-yellow-500 cursor-pointer"
+                  onMouseDown={handleSmsPressStart}
+                  onMouseUp={handleSmsPressEnd}
+                  onMouseLeave={handleSmsPressEnd}
+                  onTouchStart={handleSmsPressStart}
+                  onTouchEnd={handleSmsPressEnd}
+                >
                   <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
                     <span>📱</span>
                     <span>SMS BET{lastResult.fullResponse.mainBet.ticketNo}</span>
@@ -2620,7 +2655,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   {refundSelections[selectedRefundIndex]?.homeTeam} v {refundSelections[selectedRefundIndex]?.awayTeam}
                 </div>
                 <div className="text-xs text-gray-600 mb-2">
-                  {refundSelections[selectedRefundIndex]?.periodCode} - {refundSelections[selectedRefundIndex]?.priceType} @ {refundSelections[selectedRefundIndex]?.odds}
+                  {refundSelections[selectedRefundIndex]?.periodCode || 'FT'} - {refundSelections[selectedRefundIndex]?.priceType} @ {refundSelections[selectedRefundIndex]?.odds}
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Stake:</span>
@@ -2640,7 +2675,14 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     <div className="p-3 bg-green-500 text-white text-center">
                       <div className="text-2xl font-bold">Booking Ref# {lastResult.fullResponse.refundBet.ticketNo}</div>
                     </div>
-                    <div className="p-3 bg-yellow-400 text-center border-t border-yellow-500">
+                    <div
+                      className="p-3 bg-yellow-400 text-center border-t border-yellow-500 cursor-pointer"
+                      onMouseDown={handleSmsPressStart}
+                      onMouseUp={handleSmsPressEnd}
+                      onMouseLeave={handleSmsPressEnd}
+                      onTouchStart={handleSmsPressStart}
+                      onTouchEnd={handleSmsPressEnd}
+                    >
                       <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
                         <span>📱</span>
                         <span>SMS BET{lastResult.fullResponse.refundBet.ticketNo}</span>
