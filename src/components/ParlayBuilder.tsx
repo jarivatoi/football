@@ -2244,10 +2244,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         </div>
       )}
 
-      <div className="border-t pt-4">
+      <div className="border-t pt-4 flex flex-col">
         {/* Prominent Stake Input - Hidden in Bet Refund Mode */}
         {!betRefundMode && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 order-2">
             <div className="flex items-center justify-between mb-3">
               <label className="block text-lg font-bold text-gray-800">
                 💰 Enter Your Stake
@@ -2288,7 +2288,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
         {/* Potential Return Section - Hidden in Bet Refund Mode */}
         {!betRefundMode && (
-          <div className="bg-blue-50 p-4 rounded-lg mb-4">
+          <div className="bg-blue-50 p-4 rounded-lg mb-4 order-2">
           {/* Show Potential Return when stake has been edited (betAmount differs from apiBreakdown.stake) */}
           {lastResult && apiBreakdown && betAmount !== apiBreakdown.stake ? (
             <>
@@ -2414,7 +2414,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
         {/* Booking Result Display - Betslip Style - Hidden in Bet Refund Mode */}
         {!betRefundMode && lastResult && lastResult.success && lastResult.fullResponse && selections.length > 0 && (
-          <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white">
+          <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white order-1">
             {/* Booking Reference Section - Capture Target - NOW INCLUDES TEAMS */}
             <div ref={bookingRefRef} className="bg-white max-h-[60vh] overflow-y-auto">
               {/* Bet Selections - Inside booking ref div (no separate scroll) */}
@@ -2567,7 +2567,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
         {/* Bet Refund Mode - Dual Booking Result Display */}
         {betRefundMode && lastResult && lastResult.success && lastResult.fullResponse?.mainBet && lastResult.fullResponse?.refundBet && (
-          <div className="mb-4 border-2 border-green-500 rounded-lg overflow-y-auto max-h-[60vh] bg-white">
+          <div className="mb-4 border-2 border-green-500 rounded-lg overflow-y-auto max-h-[60vh] bg-white order-1">
             <div className="p-3 bg-green-100 border-b border-green-200">
               <div className="text-center font-bold text-green-800">🎯 Bet Refund Mode - Both Bets Placed</div>
             </div>
