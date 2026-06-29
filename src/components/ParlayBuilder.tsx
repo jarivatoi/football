@@ -2683,7 +2683,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         <button
           onClick={handlePlaceBet}
           disabled={isPlacing || selections.length === 0}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
+          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors order-3"
         >
           {isPlacing ? (
             <>
