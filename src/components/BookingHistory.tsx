@@ -246,8 +246,8 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                 </div>
               )}
               
-              {/* Matches */}
-              <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white">
+              {/* Matches - Inside booking ref container */}
+              <div className="border-2 border-green-500 rounded-lg overflow-hidden bg-white">
                 <div className="max-h-60 overflow-y-auto">
                   {selectedBooking.selections.map((selection, index) => {
                     return (
