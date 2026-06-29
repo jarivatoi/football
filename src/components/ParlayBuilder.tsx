@@ -745,8 +745,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   const [selectedRefundIndex, setSelectedRefundIndex] = useState<number>(0);
   const [mainBetIndex, setMainBetIndex] = useState<number>(0); // Track which selection is the main bet
   const [refundModeType, setRefundModeType] = useState<'budget' | 'profit'>('budget');
-  const [budgetAmount, setBudgetAmount] = useState<number>(2000);
-  const [targetProfit, setTargetProfit] = useState<number>(500);
+  const [budgetAmount, setBudgetAmount] = useState<number>(0);
+  const [targetProfit, setTargetProfit] = useState<number>(0);
   
   // Reset indices when Bet Refund Mode is activated with new selections
   useEffect(() => {
