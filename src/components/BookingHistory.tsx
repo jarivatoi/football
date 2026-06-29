@@ -45,26 +45,13 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
   useEffect(() => {
     if (selectedBooking && bookingDetailRef.current) {
       setTimeout(() => {
-        if (bookingDetailRef.current) {
-          bookingDetailRef.current.scrollTop = bookingDetailRef.current.scrollHeight;
+        if (!bookingDetailRef.current) return;
+        // Find the unified scroll container (teams + booking ref)
+        const scrollContainer = bookingDetailRef.current.querySelector('.max-h-\\[60vh\\].overflow-y-auto');
+        if (scrollContainer) {
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
         }
       }, 300);
-    }
-  }, [selectedBooking]);
-  
-  // Auto-scroll to bottom when viewing a booking
-  useEffect(() => {
-    if (selectedBooking) {
-      setTimeout(() => {
-        // Find the scrollable container in the modal and scroll to bottom
-        const modal = bookingDetailRef.current?.closest('.max-h-\\[90vh\\]');
-        if (modal) {
-          const scrollableContent = modal.querySelector('.overflow-y-auto');
-          if (scrollableContent) {
-            scrollableContent.scrollTop = scrollableContent.scrollHeight;
-          }
-        }
-      }, 100);
     }
   }, [selectedBooking]);
 
