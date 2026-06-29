@@ -2603,6 +2603,8 @@ function App() {
     
     // Restore Bet Refund Mode state from sessionStorage (if active before refresh)
     const savedBetRefundMode = sessionStorage.getItem('betRefundMode');
+    console.log('[App Load] Checking sessionStorage for Bet Refund Mode...', savedBetRefundMode);
+    
     if (savedBetRefundMode === 'true') {
       try {
         const savedMainSelection = sessionStorage.getItem('betRefundMainSelection');
@@ -2705,6 +2707,12 @@ function App() {
     const { validSelections, existingBetslip, existingMatchIds, showToast } = repeatBetBooking;
     const { saveBetslip } = await import('./utils/matchCache');
     const currentSourceId = selectedSource?.id || 'totelepep';
+    
+    console.log('[Repeat Bet Yes] Booking data:', {
+      betRefundMode: repeatBetBooking.booking.betRefundMode,
+      betRefundType: repeatBetBooking.booking.betRefundType,
+      selectionsCount: validSelections.length
+    });
     
     // Check if this is a Bet Refund Mode booking
     if (repeatBetBooking.booking.betRefundMode && repeatBetBooking.booking.betRefundType === 'main') {
@@ -2847,6 +2855,12 @@ function App() {
       }
       
       // Check if this is a Bet Refund Mode booking
+      console.log('[Repeat Bet] Booking data:', {
+        betRefundMode: booking.betRefundMode,
+        betRefundType: booking.betRefundType,
+        selectionsCount: validSelections.length
+      });
+      
       if (booking.betRefundMode && booking.betRefundType === 'main') {
         // Activate Bet Refund Mode
         const mainSelection = validSelections[0];
@@ -3747,6 +3761,7 @@ function App() {
             mainBetSelection={betRefundMainSelection}
             refundSelections={betRefundOptions}
             onExitBetRefundMode={() => {
+              console.log('[Exit Bet Refund Mode] Clearing state and sessionStorage');
               setShowBetRefundMode(false);
               setBetRefundMainSelection(null);
               setBetRefundOptions([]);
@@ -3755,6 +3770,8 @@ function App() {
               sessionStorage.removeItem('betRefundMode');
               sessionStorage.removeItem('betRefundMainSelection');
               sessionStorage.removeItem('betRefundOptions');
+              
+              console.log('[Exit Bet Refund Mode] SessionStorage cleared');
             }}
           />
         ) : (

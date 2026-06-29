@@ -1305,6 +1305,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           bonus: mainBonus + refundBonus,
           netPayout: mainNetPayout + refundNetPayout,
           betRefundMode: true,
+          betRefundType: 'main',  // Mark as main bet for Repeat Bet detection
           // Store individual bet financial data for proper breakdown display
           betRefundMainStake: mainStake,
           betRefundMainTax: mainTax,
