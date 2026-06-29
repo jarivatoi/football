@@ -246,10 +246,9 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                 </div>
               )}
               
-              {/* Matches - Inside booking ref container */}
-              <div className="border-2 border-green-500 rounded-lg overflow-hidden bg-white">
-                <div className="max-h-60 overflow-y-auto">
-                  {selectedBooking.selections.map((selection, index) => {
+              {/* Matches - Inside booking ref container (unified scroll) */}
+              <div className="border-2 border-green-500 rounded-lg overflow-hidden bg-white max-h-[60vh] overflow-y-auto">
+                {selectedBooking.selections.map((selection, index) => {
                     return (
                       <div key={index} className={`p-3 border-b bg-yellow-50 last:border-b-0 border-gray-200`}>
                         <div className="flex items-start justify-between">
@@ -304,8 +303,7 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                       </div>
                     </div>
                     );
-                  })}
-                </div>
+                })}
 
                 {/* Booking Reference Section */}
                 <div className="bg-white">
