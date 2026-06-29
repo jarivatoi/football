@@ -2422,10 +2422,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         {!betRefundMode && lastResult && lastResult.success && lastResult.fullResponse && selections.length > 0 && (
           <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white">
             {/* Booking Reference Section - Capture Target - NOW INCLUDES TEAMS */}
-            <div ref={bookingRefRef} className="bg-white">
-              {/* Bet Selections - Inside booking ref div */}
-              <div className="max-h-60 overflow-y-auto">
-                {selections.map((selection, index) => {
+            <div ref={bookingRefRef} className="bg-white max-h-[60vh] overflow-y-auto">
+              {/* Bet Selections - Inside booking ref div (no separate scroll) */}
+              {selections.map((selection, index) => {
                   const bet = lastResult.fullResponse.betList?.[index] || {};
                   return (
                     <div key={index} className="p-3 border-b border-gray-200 bg-yellow-50 last:border-b-0">
@@ -2500,8 +2499,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                       </div>
                     </div>
                   );
-                })}
-              </div>
+              })}
 
               {/* API Source - Above Booking Reference */}
               {selectedSource && (
