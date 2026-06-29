@@ -46,11 +46,8 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
     if (selectedBooking && bookingDetailRef.current) {
       setTimeout(() => {
         if (!bookingDetailRef.current) return;
-        // Find the unified scroll container (teams + booking ref)
-        const scrollContainer = bookingDetailRef.current.querySelector('.max-h-\\[60vh\\].overflow-y-auto');
-        if (scrollContainer) {
-          scrollContainer.scrollTop = scrollContainer.scrollHeight;
-        }
+        // Scroll the outer container to bottom (no inner scroll anymore)
+        bookingDetailRef.current.scrollTop = bookingDetailRef.current.scrollHeight;
       }, 300);
     }
   }, [selectedBooking]);
@@ -244,8 +241,8 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                 </div>
               )}
               
-              {/* Matches - Inside booking ref container (unified scroll) */}
-              <div className="border-2 border-green-500 rounded-lg overflow-hidden bg-white max-h-[60vh] overflow-y-auto">
+              {/* Matches - Inside booking ref container (no inner scroll - show all) */}
+              <div className="border-2 border-green-500 rounded-lg overflow-hidden bg-white">
                 {selectedBooking.selections.map((selection, index) => {
                     return (
                       <div key={index} className={`p-3 border-b bg-yellow-50 last:border-b-0 border-gray-200`}>
