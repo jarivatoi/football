@@ -163,7 +163,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-3xl mx-auto px-4 py-3">
-        <div className="flex items-center gap-1 w-full">
+        <div className="flex items-center gap-0 w-full">
           <div className="flex items-center gap-1 -ml-1.5 shrink-0">
             {/* API Source Dropdown */}
             <div className="relative flex items-center gap-2" data-source-dropdown>
@@ -174,7 +174,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
                 <TrendingUp className="w-6 h-6 text-white" />
                 <ChevronDown className="w-4 h-4 text-white" />
               </button>
-              <span ref={textRef} className="text-xl font-bold text-gray-900 relative z-0 pr-1">{selectedSource.displayName}</span>
+              <span ref={textRef} className="text-xl font-bold text-gray-900 relative z-0 pr-2">{selectedSource.displayName}</span>
 
               {showSourceDropdown && (
                 <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[180px]">
