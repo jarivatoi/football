@@ -144,14 +144,10 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
   // Auto-scroll to show betslip button when it appears
   useEffect(() => {
     if (selectionCount > 0 && scrollContainerRef.current) {
-      // Small delay to ensure the button is rendered
-      setTimeout(() => {
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollLeft = 0;
-        }
-      }, 100);
+      // Scroll immediately before any animations
+      scrollContainerRef.current.scrollLeft = 0;
     }
-  }, [selectionCount]);
+  }, [selectionCount, selectedSource.id]);
 
   const handleSourceSelect = (source: ApiSource) => {
     onSourceChange(source);
