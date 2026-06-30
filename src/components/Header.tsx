@@ -63,7 +63,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevSelectionCountRef = useRef<number>(0);
 
-  // Elastic snap animation on mount, when source changes, and when betslip count changes
+  // Elastic snap animation on mount and when source changes
   useEffect(() => {
     if (textRef.current) {
       gsap.fromTo(textRef.current, 
@@ -71,36 +71,36 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
         { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
       );
     }
-  }, [selectedSource.id, selectionCount]);
+  }, [selectedSource.id]);
 
   // Animate betslip, settings, and history buttons
   useEffect(() => {
     const prevCount = prevSelectionCountRef.current;
     const currentCount = selectionCount;
 
-    // Animate on every count change (not just 0 to >0)
-    if (currentCount !== prevCount) {
-      // Betslip button animation - elastic effect on every count change
+    // Only animate when transitioning from 0 to >0 (initial appearance)
+    if (prevCount === 0 && currentCount > 0) {
+      // Betslip button animation - slides in from right
       if (slipRef.current) {
         gsap.fromTo(slipRef.current,
-          { scale: 0.8, opacity: 0.5 },
-          { scale: 1, opacity: 1, duration: 0.8, ease: "elastic.out(1, 0.4)" }
+          { x: 100, opacity: 0 },
+          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.4)" }
         );
       }
 
       // Settings button animation - same elastic effect
       if (settingsRef.current && onSettingsClick) {
         gsap.fromTo(settingsRef.current,
-          { scale: 0.8, opacity: 0.5 },
-          { scale: 1, opacity: 1, duration: 0.8, ease: "elastic.out(1, 0.4)" }
+          { x: 100, opacity: 0 },
+          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.4)" }
         );
       }
 
       // History button animation - same elastic effect
       if (historyRef.current && onHistoryClick && hasSavedBookings) {
         gsap.fromTo(historyRef.current,
-          { scale: 0.8, opacity: 0.5 },
-          { scale: 1, opacity: 1, duration: 0.8, ease: "elastic.out(1, 0.4)" }
+          { x: 100, opacity: 0 },
+          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.4)" }
         );
       }
     }
