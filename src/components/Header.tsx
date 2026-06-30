@@ -201,7 +201,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
             </div>
           </div>
           
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide min-w-0 flex-1 justify-end">
+          <div className="flex items-center gap-2 overflow-x-visible min-w-0 flex-1 justify-end">
             {/* History Button - Only show if there are saved bookings */}
             {onHistoryClick && hasSavedBookings && (
               <button
