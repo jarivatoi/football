@@ -78,29 +78,29 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
     const prevCount = prevSelectionCountRef.current;
     const currentCount = selectionCount;
 
-    // Only animate when transitioning from 0 to >0 (initial appearance)
-    if (prevCount === 0 && currentCount > 0) {
-      // Betslip button animation - slides in from right
+    // Animate on every count change (not just 0 to >0)
+    if (currentCount !== prevCount) {
+      // Betslip button animation - elastic effect on every count change
       if (slipRef.current) {
         gsap.fromTo(slipRef.current,
-          { x: 100, opacity: 0 },
-          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.4)" }
+          { scale: 0.8, opacity: 0.5 },
+          { scale: 1, opacity: 1, duration: 0.8, ease: "elastic.out(1, 0.4)" }
         );
       }
 
       // Settings button animation - same elastic effect
       if (settingsRef.current && onSettingsClick) {
         gsap.fromTo(settingsRef.current,
-          { x: 100, opacity: 0 },
-          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.4)" }
+          { scale: 0.8, opacity: 0.5 },
+          { scale: 1, opacity: 1, duration: 0.8, ease: "elastic.out(1, 0.4)" }
         );
       }
 
       // History button animation - same elastic effect
       if (historyRef.current && onHistoryClick && hasSavedBookings) {
         gsap.fromTo(historyRef.current,
-          { x: 100, opacity: 0 },
-          { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.4)" }
+          { scale: 0.8, opacity: 0.5 },
+          { scale: 1, opacity: 1, duration: 0.8, ease: "elastic.out(1, 0.4)" }
         );
       }
     }
