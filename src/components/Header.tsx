@@ -63,7 +63,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevSelectionCountRef = useRef<number>(0);
 
-  // Elastic snap animation on mount and when source changes
+  // Elastic snap animation on mount, when source changes, and when betslip count changes
   useEffect(() => {
     if (textRef.current) {
       gsap.fromTo(textRef.current, 
@@ -71,7 +71,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
         { x: 0, opacity: 1, duration: 1.5, ease: "elastic.out(1, 0.3)" }
       );
     }
-  }, [selectedSource.id]);
+  }, [selectedSource.id, selectionCount]);
 
   // Animate betslip, settings, and history buttons
   useEffect(() => {
