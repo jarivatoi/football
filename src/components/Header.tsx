@@ -231,7 +231,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
               <button
                 ref={slipRef}
                 onClick={onSlipClick}
-                className={`relative flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-colors shrink-0 ${
+                className={`relative flex items-center gap-2 pl-3 pr-4 py-2 rounded-lg font-semibold transition-colors shrink-0 ${
                   hasInvalidSelections
                     ? 'bg-red-500 hover:bg-red-600 text-white'
                     : 'bg-yellow-400 hover:bg-yellow-500 text-gray-900'
@@ -248,11 +248,11 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
                 </span>
               </button>
             )}
-          </div>
-          
-          {/* Offline indicator - always visible, not scrollable */}
-          <div className="shrink-0 pt-2">
-            <OfflineIndicator />
+            
+            {/* Offline indicator - inside scrollable container */}
+            <div className="shrink-0">
+              <OfflineIndicator />
+            </div>
           </div>
         </div>
       </div>
