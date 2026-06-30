@@ -211,7 +211,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
           </div>
           
           {/* Scrollable buttons container */}
-          <div ref={scrollContainerRef} className="flex gap-1.8 overflow-x-auto scrollbar-hide min-w-0 flex-1 pt-2 pr-2">
+          <div ref={scrollContainerRef} className="flex gap-1.5 overflow-x-auto scrollbar-hide min-w-0 flex-1 pt-2 pr-2">
             {/* Spacer to push buttons right */}
             <div className="ml-auto"></div>
             
