@@ -163,8 +163,8 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-3xl mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 -ml-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 -ml-1 shrink-0">
             {/* API Source Dropdown */}
             <div className="relative flex items-center gap-2" data-source-dropdown>
               <button
@@ -201,13 +201,14 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
             </div>
           </div>
           
-          <div className="flex items-center gap-2 overflow-x-visible min-w-0 flex-1 justify-end">
+          {/* Scrollable buttons container */}
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide min-w-0 flex-1 justify-end pt-2">
             {/* History Button - Only show if there are saved bookings */}
             {onHistoryClick && hasSavedBookings && (
               <button
                 ref={historyRef}
                 onClick={onHistoryClick}
-                className="flex items-center justify-center bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-lg transition-colors"
+                className="flex items-center justify-center bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-lg transition-colors shrink-0"
                 title="View booking history"
               >
                 <History className="w-5 h-5" />
@@ -219,7 +220,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
               <button
                 ref={settingsRef}
                 onClick={onSettingsClick}
-                className="flex items-center justify-center bg-gray-600 hover:bg-gray-700 text-white p-2 rounded-lg transition-colors"
+                className="flex items-center justify-center bg-gray-600 hover:bg-gray-700 text-white p-2 rounded-lg transition-colors shrink-0"
               >
                 <Settings className="w-5 h-5" />
               </button>
@@ -230,7 +231,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
               <button
                 ref={slipRef}
                 onClick={onSlipClick}
-                className={`relative flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-colors ${
+                className={`relative flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-colors shrink-0 ${
                   hasInvalidSelections
                     ? 'bg-red-500 hover:bg-red-600 text-white'
                     : 'bg-yellow-400 hover:bg-yellow-500 text-gray-900'
@@ -247,6 +248,10 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
                 </span>
               </button>
             )}
+          </div>
+          
+          {/* Offline indicator - always visible, not scrollable */}
+          <div className="shrink-0 pt-2">
             <OfflineIndicator />
           </div>
         </div>
