@@ -37,7 +37,7 @@ const OfflineIndicator: React.FC = () => {
   return (
     <>
       {/* Status indicator in header */}
-      <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium overflow-x-auto whitespace-nowrap ${
+      <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium shrink-0 ${
         isOnline 
           ? 'bg-green-100 text-green-800' 
           : 'bg-red-100 text-red-800'
