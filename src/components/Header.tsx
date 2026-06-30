@@ -147,7 +147,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
       // Small delay to ensure the button is rendered
       setTimeout(() => {
         if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollLeft = scrollContainerRef.current.scrollWidth;
+          scrollContainerRef.current.scrollLeft = 0;
         }
       }, 100);
     }
