@@ -60,6 +60,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
   const settingsRef = useRef<HTMLButtonElement>(null);
   const historyRef = useRef<HTMLButtonElement>(null);
   const slipRef = useRef<HTMLButtonElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevSelectionCountRef = useRef<number>(0);
 
   // Elastic snap animation on mount and when source changes
@@ -140,6 +141,18 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
     prevSelectionCountRef.current = currentCount;
   }, [selectionCount, onSettingsClick, onHistoryClick, hasSavedBookings]);
 
+  // Auto-scroll to show betslip button when it appears
+  useEffect(() => {
+    if (selectionCount > 0 && scrollContainerRef.current) {
+      // Small delay to ensure the button is rendered
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollLeft = scrollContainerRef.current.scrollWidth;
+        }
+      }, 100);
+    }
+  }, [selectionCount]);
+
   const handleSourceSelect = (source: ApiSource) => {
     onSourceChange(source);
     setShowSourceDropdown(false);
@@ -202,7 +215,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
           </div>
           
           {/* Scrollable buttons container */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide min-w-0 flex-1 pt-2 pr-2">
+          <div ref={scrollContainerRef} className="flex gap-2 overflow-x-auto scrollbar-hide min-w-0 flex-1 pt-2 pr-2">
             {/* Spacer to push buttons right */}
             <div className="ml-auto"></div>
             
