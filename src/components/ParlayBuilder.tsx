@@ -1305,11 +1305,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           betRefundRefundNetPayout: refundNetPayout
         });
         
-        console.log('[BetRefund Booking] Saved with individual financial data:', {
-          mainStake, mainTax, mainBonus, mainNetPayout,
-          refundStake, refundTax, refundBonus, refundNetPayout
-        });
-        
         // Clear sessionStorage after successful Bet Refund Mode bet placement
         sessionStorage.removeItem('betRefundMode');
         sessionStorage.removeItem('betRefundMainSelection');
