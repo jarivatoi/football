@@ -1711,8 +1711,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         </div>
       </div>
 
-      {/* Selections - Scrollable (hidden in Bet Refund Mode) */}
-      {!betRefundMode && (
+      {/* Selections - Scrollable (hidden in Bet Refund Mode and after placing bet) */}
+      {!betRefundMode && !lastResult && (
         <div ref={bookingResultRef} className="flex-1 overflow-y-auto p-4">
           <div className="space-y-3">
             {selections.map((selection, index) => (
@@ -2490,14 +2490,24 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   );
               })}
 
-              {/* API Source */}
-              {selectedSource && (
-                <div className="p-2 bg-blue-50 text-center border-b border-blue-200">
-                  <div className="text-xl font-bold text-blue-700">
-                    {selectedSource.displayName}
+              {/* Stake and Win Breakdown - Above booking ref */}
+              <div className="flex border-t border-gray-200">
+                <div className="flex-1 p-3 text-center border-r border-gray-200">
+                  <div className="text-xs text-gray-600">Win</div>
+                  <div className="text-lg font-bold text-gray-800">
+                    {(() => {
+                      if (apiBreakdown) {
+                        return formatCurrency(apiBreakdown.netPayout);
+                      }
+                      return formatCurrency(potentialReturn);
+                    })()}
                   </div>
                 </div>
-              )}
+                <div className="flex-1 p-3 text-center bg-gray-50">
+                  <div className="text-xs text-gray-600">Stake</div>
+                  <div className="text-lg font-bold text-gray-800">{parseInt(String(betAmount))}</div>
+                </div>
+              </div>
 
               {/* Booking Reference */}
               <div className="p-3 bg-green-500 text-white text-center">
@@ -2518,25 +2528,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
                   <span>📱</span>
                   <span>SMS BET{lastResult.ticketNo}</span>
-                </div>
-              </div>
-
-              {/* Stake and Win */}
-              <div className="flex border-t border-gray-200">
-                <div className="flex-1 p-3 text-center border-r border-gray-200">
-                  <div className="text-xs text-gray-600">Win</div>
-                  <div className="text-lg font-bold text-gray-800">
-                    {(() => {
-                      if (apiBreakdown) {
-                        return formatCurrency(apiBreakdown.netPayout);
-                      }
-                      return formatCurrency(potentialReturn);
-                    })()}
-                  </div>
-                </div>
-                <div className="flex-1 p-3 text-center bg-gray-50">
-                  <div className="text-xs text-gray-600">Stake</div>
-                  <div className="text-lg font-bold text-gray-800">{parseInt(String(betAmount))}</div>
                 </div>
               </div>
             </div>
