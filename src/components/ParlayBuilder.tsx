@@ -1315,15 +1315,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         sessionStorage.removeItem('betRefundMainSelection');
         sessionStorage.removeItem('betRefundOptions');
 
-        // Auto-scroll to results
+        // Auto-scroll to results - happens immediately after render
         setTimeout(() => {
-          // For both normal bets and Bet Refund Mode, scroll booking result to bottom
-          setTimeout(() => {
-            if (bookingRefRef.current) {
-              bookingRefRef.current.scrollTop = bookingRefRef.current.scrollHeight;
-            }
-          }, 500);
-        }, 500);
+          if (bookingRefRef.current) {
+            bookingRefRef.current.scrollTop = bookingRefRef.current.scrollHeight;
+          }
+        }, 0);
       } else {
         const mainSuccess = mainBetResult.ticketNo && mainBetResult.ticketNo.trim() !== '';
         const refundSuccess = refundBetResult.ticketNo && refundBetResult.ticketNo.trim() !== '';
