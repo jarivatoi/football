@@ -563,6 +563,9 @@ function App() {
   const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string, forceFresh: boolean = false) => {
     setLoading(true);
     setError(null);
+    
+    // Clear auto-load flag when manually loading a date (allows auto-load to trigger after this date completes)
+    (window as any).__autoLoadCompleted = null;
 
     // targetDate === null means "no date, get all matches"
     // targetDate === undefined means "use selectedDate"
