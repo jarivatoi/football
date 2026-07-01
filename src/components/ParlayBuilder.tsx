@@ -2571,33 +2571,18 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
         {/* Bet Refund Mode - Dual Booking Result Display */}
         {betRefundMode && lastResult && lastResult.success && lastResult.fullResponse?.mainBet && lastResult.fullResponse?.refundBet && (
-          <div className="mb-4 border-2 border-green-500 rounded-lg overflow-y-auto max-h-[60vh] bg-white order-1">
-            <div className="p-3 bg-green-100 border-b border-green-200">
-              <div className="text-center font-bold text-green-800">🎯 Bet Refund Mode - Both Bets Placed</div>
-            </div>
-            
-            {/* Main Bet */}
-            <div className="border-b-2 border-green-200">
-              <div className="p-2 bg-green-50 text-center">
-                <div className="text-sm font-bold text-green-700">MAIN BET</div>
+          <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white order-1">
+            <div ref={bookingRefRef} className="bg-white max-h-[60vh] overflow-y-auto">
+              {/* Header */}
+              <div className="p-3 bg-green-100 border-b border-green-200">
+                <div className="text-center font-bold text-green-800">🎯 Bet Refund Mode - Both Bets Placed</div>
               </div>
-              <div className="p-3 border-b border-gray-200 bg-yellow-50">
-                <div className="text-sm font-semibold text-gray-800 mb-2">
-                  {mainBetSelection?.homeTeam} v {mainBetSelection?.awayTeam}
+              
+              {/* Main Bet - Booking Ref and SMS only */}
+              <div className="border-b-2 border-green-200">
+                <div className="p-2 bg-green-50 text-center">
+                  <div className="text-sm font-bold text-green-700">MAIN BET</div>
                 </div>
-                <div className="text-xs text-gray-600 mb-2">
-                  {mainBetSelection?.periodCode || 'FT'} - {mainBetSelection?.priceType} @ {mainBetSelection?.odds}
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Stake:</span>
-                  <span className="font-bold">Rs {lastResult.fullResponse.mainStake}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Potential Win:</span>
-                  <span className="font-bold text-green-700">Rs {lastResult.fullResponse.mainBet.potentialPayout}</span>
-                </div>
-              </div>
-              <div ref={bookingRefRef} className="bg-white">
                 {selectedSource && (
                   <div className="p-2 bg-blue-50 text-center border-b border-blue-200">
                     <div className="text-xl font-bold text-blue-700">{selectedSource.displayName}</div>
@@ -2620,30 +2605,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Refund Bet */}
-            <div>
-              <div className="p-2 bg-green-50 text-center">
-                <div className="text-sm font-bold text-green-700">REFUND BET</div>
-              </div>
-              <div className="p-3 border-b border-gray-200 bg-yellow-50">
-                <div className="text-sm font-semibold text-gray-800 mb-2">
-                  {refundSelections[selectedRefundIndex]?.homeTeam} v {refundSelections[selectedRefundIndex]?.awayTeam}
+              {/* Refund Bet - Booking Ref and SMS only */}
+              <div>
+                <div className="p-2 bg-green-50 text-center">
+                  <div className="text-sm font-bold text-green-700">REFUND BET</div>
                 </div>
-                <div className="text-xs text-gray-600 mb-2">
-                  {refundSelections[selectedRefundIndex]?.periodCode || 'FT'} - {refundSelections[selectedRefundIndex]?.priceType} @ {refundSelections[selectedRefundIndex]?.odds}
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Stake:</span>
-                  <span className="font-bold">Rs {lastResult.fullResponse.refundStake}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Potential Win:</span>
-                  <span className="font-bold text-green-700">Rs {lastResult.fullResponse.refundBet.potentialPayout}</span>
-                </div>
-              </div>
-              <div className="bg-white">
                 <div className="p-2 bg-blue-50 text-center border-b border-blue-200">
                   <div className="text-xl font-bold text-blue-700">{selectedSource?.displayName}</div>
                 </div>
