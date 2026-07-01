@@ -2408,7 +2408,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         {/* REMOVED: Match list with delete buttons after placing bet */}
 
         {/* Booking Result Display - Match list + booking ref, SMS, and stake info */}
-        {!betRefundMode && lastResult && lastResult.success && lastResult.fullResponse && selections.length > 0 && (
+        {!betRefundMode && lastResult && lastResult.success && lastResult.fullResponse && lastResult.fullResponse.betList && selections.length > 0 && (
           <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white order-1">
             <div ref={bookingRefRef} className="bg-white max-h-[60vh] overflow-y-auto">
               {/* Match List - Same as refund mode, not scrollable */}
