@@ -723,8 +723,12 @@ function App() {
         }
         
         // If cache is valid, mark as complete
-        if (!expired && metadata?.isComplete) {
-          console.log('[LoadData] Cache is valid and complete, returning early for date:', dateToFetch);
+        // BUT only return early if ALL matches actually have markets loaded
+        // Otherwise, continue to fetch to complete the incomplete matches
+        const allMatchesHaveMarkets = validMatches.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
+        
+        if (!expired && metadata?.isComplete && allMatchesHaveMarkets) {
+          console.log('[LoadData] Cache is valid and complete with all markets, returning early for date:', dateToFetch);
           const matchesWithMarkets = validMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
 
           // Only update progress if NOT currently loading in background
