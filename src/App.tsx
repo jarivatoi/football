@@ -1063,7 +1063,7 @@ function App() {
       }
       
       // AUTO-LOAD NEXT DATE: Sequential loading after current date completes
-
+      console.log('[AutoLoad] Triggering auto-load for date:', date);
       autoLoadNextDate(date, mergeSourceId, mergeCategoryId, mergeCompetitionId);
     } catch (error) {
 
@@ -1073,10 +1073,12 @@ function App() {
   // Auto-load next date in sequence (sequential loading)
   const autoLoadNextDate = async (completedDate: string, sourceId: string, categoryId: string, competitionId: string) => {
     try {
+      console.log('[AutoLoad] Starting auto-load for next date after', completedDate);
+      
       // Check if we already auto-loaded this date (prevent duplicate auto-loads)
       const autoLoadKey = `autoLoad_${completedDate}`;
       if ((window as any).__autoLoadCompleted === autoLoadKey) {
-
+        console.log('[AutoLoad] Already auto-loaded this date, skipping');
         return;
       }
       (window as any).__autoLoadCompleted = autoLoadKey;
@@ -1087,7 +1089,7 @@ function App() {
       const completedIndex = calendarList.findIndex((d: any) => d.entryDate === completedDate);
       
       if (completedIndex === -1) {
-
+        console.log('[AutoLoad] Completed date not found in calendar');
         return;
       }
       
@@ -1095,11 +1097,12 @@ function App() {
       const nextDateEntry = calendarList[completedIndex + 1];
       
       if (!nextDateEntry) {
-
+        console.log('[AutoLoad] No next date in calendar');
         return;
       }
       
       const nextDate = nextDateEntry.entryDate;
+      console.log('[AutoLoad] Next date to load:', nextDate);
 
       // Check if next date is already complete
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
