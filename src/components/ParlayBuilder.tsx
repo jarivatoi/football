@@ -2651,22 +2651,25 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           </div>
         )}
 
-        <button
-          onClick={handlePlaceBet}
-          disabled={isPlacing || selections.length === 0}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors order-3"
-        >
-          {isPlacing ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-              Placing Bet...
-            </>
-          ) : (
-            <>
-              Place Parlay Bet
-            </>
-          )}
-        </button>
+        {/* Place Parlay Bet Button - Hidden after placing bet */}
+        {!lastResult && (
+          <button
+            onClick={handlePlaceBet}
+            disabled={isPlacing || selections.length === 0}
+            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors order-3"
+          >
+            {isPlacing ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                Placing Bet...
+              </>
+            ) : (
+              <>
+                Place Parlay Bet
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
