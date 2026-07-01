@@ -2414,6 +2414,63 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
         {/* REMOVED: Match list with delete buttons after placing bet */}
 
+        {/* Booking Result Display - Only booking ref, SMS, and stake info */}
+        {!betRefundMode && lastResult && lastResult.success && lastResult.fullResponse && selections.length > 0 && (
+          <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white order-1">
+            <div ref={bookingRefRef} className="bg-white max-h-[60vh] overflow-y-auto">
+              {/* API Source */}
+              {selectedSource && (
+                <div className="p-2 bg-blue-50 text-center border-b border-blue-200">
+                  <div className="text-xl font-bold text-blue-700">
+                    {selectedSource.displayName}
+                  </div>
+                </div>
+              )}
+
+              {/* Booking Reference */}
+              <div className="p-3 bg-green-500 text-white text-center">
+                <div className="text-2xl font-bold">
+                  Booking Ref# {lastResult.ticketNo}
+                </div>
+              </div>
+
+              {/* SMS Option */}
+              <div 
+                className="p-3 bg-yellow-400 text-center border-t border-yellow-500 cursor-pointer select-none active:bg-yellow-500 transition-colors"
+                onMouseDown={handleSmsPressStart}
+                onMouseUp={handleSmsPressEnd}
+                onMouseLeave={handleSmsPressEnd}
+                onTouchStart={handleSmsPressStart}
+                onTouchEnd={handleSmsPressEnd}
+              >
+                <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
+                  <span>📱</span>
+                  <span>SMS BET{lastResult.ticketNo}</span>
+                </div>
+              </div>
+
+              {/* Stake and Win */}
+              <div className="flex border-t border-gray-200">
+                <div className="flex-1 p-3 text-center border-r border-gray-200">
+                  <div className="text-xs text-gray-600">Win</div>
+                  <div className="text-lg font-bold text-gray-800">
+                    {(() => {
+                      if (apiBreakdown) {
+                        return formatCurrency(apiBreakdown.netPayout);
+                      }
+                      return formatCurrency(potentialReturn);
+                    })()}
+                  </div>
+                </div>
+                <div className="flex-1 p-3 text-center bg-gray-50">
+                  <div className="text-xs text-gray-600">Stake</div>
+                  <div className="text-lg font-bold text-gray-800">{parseInt(String(betAmount))}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Bet Refund Mode - Dual Booking Result Display */}
         {betRefundMode && lastResult && lastResult.success && lastResult.fullResponse?.mainBet && lastResult.fullResponse?.refundBet && (
           <div className="mb-4 border-2 border-green-500 rounded-lg overflow-y-auto max-h-[60vh] bg-white order-1">
