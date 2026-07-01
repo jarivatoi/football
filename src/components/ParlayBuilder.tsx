@@ -2417,7 +2417,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         {/* Booking Result Display - Match list + booking ref, SMS, and stake info */}
         {!betRefundMode && lastResult && lastResult.success && lastResult.fullResponse && selections.length > 0 && (
           <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white order-1">
-            <div ref={bookingRefRef} className="bg-white">
+            <div ref={bookingRefRef} className="bg-white max-h-[60vh] overflow-y-auto">
               {/* Match List - Same as refund mode, not scrollable */}
               {selections.map((selection, index) => {
                   const bet = lastResult.fullResponse.betList?.[index] || {};
