@@ -1121,11 +1121,13 @@ function App() {
                             nextCache.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
       
       if (isNextComplete) {
-
+        console.log('[AutoLoad] Next date', nextDate, 'is already complete in cache, skipping to next');
         // Recursively try the next date
         autoLoadNextDate(nextDate, sourceId, categoryId, competitionId);
         return;
       }
+      
+      console.log('[AutoLoad] Actually calling loadData for next date:', nextDate);
       
       // Load the next date in background
       loadData(nextDate, categoryId === 'all' ? undefined : categoryId, 
