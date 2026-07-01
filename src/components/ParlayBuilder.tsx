@@ -1305,11 +1305,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           betRefundRefundNetPayout: refundNetPayout
         });
         
-        // Clear sessionStorage after successful Bet Refund Mode bet placement
-        sessionStorage.removeItem('betRefundMode');
-        sessionStorage.removeItem('betRefundMainSelection');
-        sessionStorage.removeItem('betRefundOptions');
-
         // Auto-scroll to results - happens immediately after render
         setTimeout(() => {
           if (bookingRefRef.current) {
