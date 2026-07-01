@@ -629,13 +629,14 @@ function App() {
     // Prevent duplicate loads for the same date with same filters
     const loadKey = `${dateToFetch}_${catId}_${compId}_${sourceId}`;
     if ((window as any).__loadingDate === loadKey) {
-
+      console.log('[LoadData] Already loading this date, skipping:', loadKey);
       setLoading(false);
       return;
     }
     (window as any).__loadingDate = loadKey;
     
     try {
+      console.log('[LoadData] Starting load for date:', dateToFetch);
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
 
       const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
@@ -830,6 +831,7 @@ function App() {
 
       // Fetch matches DIRECTLY from Totelepep API with category/competition filters
       const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId, undefined, forceFresh);
+      console.log('[LoadData] Fetched', fetchedMatches.length, 'matches for date:', dateToFetch);
 
       // If API returns 0 matches, mark date as complete immediately (nothing to load)
       if (fetchedMatches.length === 0 && dateToFetch) {
