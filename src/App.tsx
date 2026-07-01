@@ -607,10 +607,10 @@ function App() {
     
     console.log('[LoadData] Cache check for', dateToFetch, '- isAlreadyComplete:', isAlreadyComplete, 'existingCache:', existingCache?.length || 0, 'isExpired:', isExpired);
 
-    // Only set to loading state if cache is NOT valid (expired or doesn't exist)
-    // If cache exists and is valid, don't trigger loading state
-    if (dateToFetch && !isAlreadyComplete && (!existingCache || existingCache.length === 0 || isExpired)) {
-      // Set progress to loading state (BLUE) only if cache is missing or expired
+    // Only set to loading state if cache is NOT valid (expired or doesn't exist) OR incomplete
+    // If cache exists and is complete, don't trigger loading state
+    if (dateToFetch && !isAlreadyComplete) {
+      // Set progress to loading state (BLUE) if cache is missing, expired, or incomplete
       setDateProgress(prev => ({
         ...prev,
         [dateToFetch]: {
