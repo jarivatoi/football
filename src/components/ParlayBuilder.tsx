@@ -1668,11 +1668,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             <button
               onClick={() => {
                 onClearAll();
-                // Exit bet refund mode when clearing all selections
-                if (betRefundMode) {
-                  if (onExitBetRefundMode) onExitBetRefundMode();
-                  if (onSetSelections) onSetSelections([]);
-                }
+                // Don't clear selections here - let the confirmation modal handle it
+                // The confirmClearAll function in App.tsx will clear everything after confirmation
               }}
               className="text-red-600 hover:text-red-800 text-sm font-medium flex items-center gap-1"
             >
