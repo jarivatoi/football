@@ -2491,22 +2491,57 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               })}
 
               {/* Stake and Win Breakdown - Above booking ref */}
-              <div className="flex border-t border-gray-200">
-                <div className="flex-1 p-3 text-center border-r border-gray-200">
-                  <div className="text-xs text-gray-600">Win</div>
-                  <div className="text-lg font-bold text-gray-800">
-                    {(() => {
-                      if (apiBreakdown) {
-                        return formatCurrency(apiBreakdown.netPayout);
-                      }
-                      return formatCurrency(potentialReturn);
-                    })()}
+              <div className="border-t border-gray-200">
+                {/* Simple Win/Stake display */}
+                <div className="flex">
+                  <div className="flex-1 p-3 text-center border-r border-gray-200">
+                    <div className="text-xs text-gray-600">Win</div>
+                    <div className="text-lg font-bold text-gray-800">
+                      {(() => {
+                        if (apiBreakdown) {
+                          return formatCurrency(apiBreakdown.netPayout);
+                        }
+                        return formatCurrency(potentialReturn);
+                      })()}
+                    </div>
+                  </div>
+                  <div className="flex-1 p-3 text-center bg-gray-50">
+                    <div className="text-xs text-gray-600">Stake</div>
+                    <div className="text-lg font-bold text-gray-800">{parseInt(String(betAmount))}</div>
                   </div>
                 </div>
-                <div className="flex-1 p-3 text-center bg-gray-50">
-                  <div className="text-xs text-gray-600">Stake</div>
-                  <div className="text-lg font-bold text-gray-800">{parseInt(String(betAmount))}</div>
-                </div>
+                
+                {/* Detailed breakdown with bonus - only show when apiBreakdown exists with bonus */}
+                {apiBreakdown && apiBreakdown.bonus > 0 && (
+                  <div className="p-3 bg-blue-50 border-t border-blue-200">
+                    <div className="text-xs text-gray-600 space-y-1">
+                      <div className="flex justify-between">
+                        <span>Base Stake:</span>
+                        <span className="font-medium">Rs {Math.round(apiBreakdown.stake)}</span>
+                      </div>
+                      <div className="flex justify-between text-red-600">
+                        <span>Tax:</span>
+                        <span className="font-medium">-Rs {apiBreakdown.tax.toFixed(2)}</span>
+                      </div>
+                      {apiBreakdown.bonus > 0 && (() => {
+                        // Calculate bonus percentage from API response
+                        const basePayoutWithoutBonus = apiBreakdown.netPayout - apiBreakdown.bonus;
+                        const rawPercentage = basePayoutWithoutBonus > 0 ? (apiBreakdown.bonus / basePayoutWithoutBonus) * 100 : 0;
+                        const bonusPercentage = Math.round(rawPercentage);
+                        return (
+                          <div className="flex justify-between text-green-600">
+                            <span>Bonus ({bonusPercentage}%):</span>
+                            <span className="font-medium">+Rs {formatCurrency(apiBreakdown.bonus)}</span>
+                          </div>
+                        );
+                      })()}
+                      <div className="flex justify-between border-t border-blue-200 pt-1 font-bold text-sm">
+                        <span className="text-gray-700">Net Payout:</span>
+                        <span className="text-green-600">Rs {formatCurrency(apiBreakdown.netPayout)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Booking Reference */}
