@@ -2245,8 +2245,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       )}
 
       <div className="border-t pt-4 flex flex-col">
-        {/* Prominent Stake Input - Hidden in Bet Refund Mode */}
-        {!betRefundMode && (
+        {/* Prominent Stake Input - Hidden in Bet Refund Mode and after placing bet */}
+        {!betRefundMode && !lastResult && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 order-2">
             <div className="flex items-center justify-between mb-3">
               <label className="block text-lg font-bold text-gray-800">
@@ -2286,8 +2286,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
           </div>
         )}
 
-        {/* Potential Return Section - Hidden in Bet Refund Mode */}
-        {!betRefundMode && (
+        {/* Potential Return Section - Hidden in Bet Refund Mode and after placing bet */}
+        {!betRefundMode && !lastResult && (
           <div className="bg-blue-50 p-4 rounded-lg mb-4 order-2">
           {/* Show Potential Return when stake has been edited (betAmount differs from apiBreakdown.stake) */}
           {lastResult && apiBreakdown && betAmount !== apiBreakdown.stake ? (
