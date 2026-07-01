@@ -1077,6 +1077,7 @@ function App() {
       }
       
       // AUTO-LOAD NEXT DATE: Sequential loading after current date completes
+      console.log('[AutoLoad] === REACHED AUTO-LOAD SECTION for date:', date, '===');
       console.log('[AutoLoad] Triggering auto-load for date:', date);
       autoLoadNextDate(date, mergeSourceId, mergeCategoryId, mergeCompetitionId);
     } catch (error) {
