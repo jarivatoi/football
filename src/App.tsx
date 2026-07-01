@@ -604,6 +604,8 @@ function App() {
                               existingMetadata?.isComplete && 
                               !isExpired &&
                               existingCache.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
+    
+    console.log('[LoadData] Cache check for', dateToFetch, '- isAlreadyComplete:', isAlreadyComplete, 'existingCache:', existingCache?.length || 0, 'isExpired:', isExpired);
 
     // Only set to loading state if cache is NOT valid (expired or doesn't exist)
     // If cache exists and is valid, don't trigger loading state
