@@ -2414,10 +2414,82 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
         {/* REMOVED: Match list with delete buttons after placing bet */}
 
-        {/* Booking Result Display - Only booking ref, SMS, and stake info */}
+        {/* Booking Result Display - Match list + booking ref, SMS, and stake info */}
         {!betRefundMode && lastResult && lastResult.success && lastResult.fullResponse && selections.length > 0 && (
           <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white order-1">
-            <div ref={bookingRefRef} className="bg-white max-h-[60vh] overflow-y-auto">
+            <div ref={bookingRefRef} className="bg-white">
+              {/* Match List - Same as refund mode, not scrollable */}
+              {selections.map((selection, index) => {
+                  const bet = lastResult.fullResponse.betList?.[index] || {};
+                  return (
+                    <div key={index} className="p-3 border-b border-gray-200 bg-yellow-50 last:border-b-0">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          {/* Selection name @ odds */}
+                          <div className="text-sm font-semibold text-gray-800">
+                            {(() => {
+                              let selectionName = '';
+                              if (bet.optionName) {
+                                selectionName = bet.optionName;
+                              } else if (selection) {
+                                if (selection.priceType === 'home') selectionName = selection.homeTeam;
+                                else if (selection.priceType === 'draw') selectionName = 'Draw';
+                                else if (selection.priceType === 'away') selectionName = selection.awayTeam;
+                                else selectionName = selection.priceType;
+                              }
+                              const odds = bet.optionOdd || (typeof selection?.odds === 'string' ? selection.odds : selection?.odds?.toFixed(2));
+                              return `${selectionName} @ ${odds}`;
+                            })()}
+                          </div>
+                          {/* Match name */}
+                          <div className="text-xs text-gray-600 font-medium mt-1">
+                            {selection?.homeTeam} v {selection?.awayTeam}
+                          </div>
+                          {/* Competition */}
+                          {(selection?.league || bet.competitionName) && (
+                            <div className="text-xs text-gray-500 font-medium mt-1">
+                              ⚽ {bet.competitionName || selection?.league}
+                            </div>
+                          )}
+                          {/* Date */}
+                          {selection?.matchDate && (
+                            <div className="text-xs text-gray-500 font-medium">
+                              {(() => {
+                                try {
+                                  const date = new Date(selection.matchDate);
+                                  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                                  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                  const day = days[date.getDay()];
+                                  const dateNum = date.getDate();
+                                  const month = months[date.getMonth()];
+                                  const year = date.getFullYear();
+                                  return `${day} ${dateNum} ${month} ${year}`;
+                                } catch {
+                                  return selection.matchDate;
+                                }
+                              })()}
+                            </div>
+                          )}
+                          {/* Time and market */}
+                          <div className="text-xs text-gray-500 mt-1">
+                            {(() => {
+                              const kickoff = selection?.kickoff || 'Today';
+                              const marketDisplayName = bet.marketDisplayName || selection?.marketDisplayName || '1 X 2';
+                              const periodCode = selection?.periodCode || 'FT';
+                              const periodSuffix = periodCode === 'FT' ? ' - Full Time' : 
+                                                  periodCode === 'H1' ? ' - Half Time' : 
+                                                  periodCode === '2H' ? ' - 2nd Half' : 
+                                                  ` - ${periodCode}`;
+                              const marketName = marketDisplayName.includes(' - ') ? marketDisplayName : `${marketDisplayName}${periodSuffix}`;
+                              return `${kickoff} ${marketName}`;
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+              })}
+
               {/* API Source */}
               {selectedSource && (
                 <div className="p-2 bg-blue-50 text-center border-b border-blue-200">
