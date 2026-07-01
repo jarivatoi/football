@@ -2408,10 +2408,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         {/* REMOVED: Match list with delete buttons after placing bet */}
 
         {/* Booking Result Display - Match list + booking ref, SMS, and stake info */}
-        {!betRefundMode && lastResult && lastResult.success && lastResult.fullResponse && lastResult.fullResponse.betList && selections.length > 0 && (() => {
-          console.log('[DEBUG] Rendering Normal Mode booking result');
-          return true;
-        })() && (
+        {!betRefundMode && lastResult && lastResult.success && lastResult.fullResponse && lastResult.fullResponse.betList && selections.length > 0 && (
           <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white order-1">
             <div ref={bookingRefRef} className="bg-white max-h-[60vh] overflow-y-auto">
               {/* Match List - Same as refund mode, not scrollable */}
@@ -2566,10 +2563,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         )}
 
         {/* Bet Refund Mode - Dual Booking Result Display */}
-        {betRefundMode && lastResult && lastResult.success && lastResult.fullResponse?.mainBet && lastResult.fullResponse?.refundBet && (() => {
-          console.log('[DEBUG] Rendering Bet Refund Mode booking result');
-          return true;
-        })() && (
+        {betRefundMode && lastResult && lastResult.success && lastResult.fullResponse?.mainBet && lastResult.fullResponse?.refundBet && (
           <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white order-1">
             <div ref={bookingRefRef} className="bg-white max-h-[60vh] overflow-y-auto">
               {/* Header */}
