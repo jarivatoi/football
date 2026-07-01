@@ -3808,7 +3808,7 @@ function App() {
             {/* Content */}
             <div className="px-6 py-4">
               <p className="text-gray-700">
-                Are you sure you want to clear all {parlaySelections.length} selection{parlaySelections.length !== 1 ? 's' : ''} from your betslip?
+                Are you sure you want to clear all {showBetRefundMode ? '2 selections (Main Bet + Refund Bet)' : `${parlaySelections.length} selection${parlaySelections.length !== 1 ? 's' : ''}`} from your betslip?
               </p>
               <p className="text-sm text-gray-500 mt-2">
                 This action cannot be undone.
