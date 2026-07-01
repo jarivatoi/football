@@ -1822,8 +1822,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         </div>
       )}
 
-      {/* Bet Refund Mode UI */}
-      {betRefundMode && mainBetSelection && selections.length >= 1 && (
+      {/* Bet Refund Mode UI - Hidden after placing bet */}
+      {betRefundMode && !lastResult && mainBetSelection && selections.length >= 1 && (
         <div ref={betRefundModeRef} className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-300 rounded-lg p-4 mb-4 overflow-y-auto max-h-[calc(100vh-200px)]">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-bold text-purple-800">🎯 Bet Refund Mode</h3>
@@ -2588,6 +2588,19 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     <div className="text-xl font-bold text-blue-700">{selectedSource.displayName}</div>
                   </div>
                 )}
+                {/* Stake and Win Breakdown */}
+                <div className="flex border-t border-gray-200">
+                  <div className="flex-1 p-3 text-center border-r border-gray-200">
+                    <div className="text-xs text-gray-600">Win</div>
+                    <div className="text-lg font-bold text-gray-800">
+                      {lastResult.fullResponse.mainBet.potentialPayout}
+                    </div>
+                  </div>
+                  <div className="flex-1 p-3 text-center bg-gray-50">
+                    <div className="text-xs text-gray-600">Stake</div>
+                    <div className="text-lg font-bold text-gray-800">{lastResult.fullResponse.mainStake}</div>
+                  </div>
+                </div>
                 <div className="p-3 bg-green-500 text-white text-center">
                   <div className="text-2xl font-bold">Booking Ref# {lastResult.fullResponse.mainBet.ticketNo}</div>
                 </div>
@@ -2613,6 +2626,19 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 </div>
                 <div className="p-2 bg-blue-50 text-center border-b border-blue-200">
                   <div className="text-xl font-bold text-blue-700">{selectedSource?.displayName}</div>
+                </div>
+                {/* Stake and Win Breakdown */}
+                <div className="flex border-t border-gray-200">
+                  <div className="flex-1 p-3 text-center border-r border-gray-200">
+                    <div className="text-xs text-gray-600">Win</div>
+                    <div className="text-lg font-bold text-gray-800">
+                      {lastResult.fullResponse.refundBet.potentialPayout}
+                    </div>
+                  </div>
+                  <div className="flex-1 p-3 text-center bg-gray-50">
+                    <div className="text-xs text-gray-600">Stake</div>
+                    <div className="text-lg font-bold text-gray-800">{lastResult.fullResponse.refundStake}</div>
+                  </div>
                 </div>
                 {lastResult.fullResponse.refundBet.ticketNo && (
                   <>
