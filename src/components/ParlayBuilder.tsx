@@ -1317,19 +1317,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
         // Auto-scroll to results
         setTimeout(() => {
-          if (betRefundMode && betRefundModeRef.current) {
-            // For Bet Refund Mode, scroll the container to the bottom
-            const container = betRefundModeRef.current;
-            container.scrollTop = container.scrollHeight;
-
-          } else if (!betRefundMode) {
-            // For normal bets, auto-scroll booking result to bottom
-            setTimeout(() => {
-              if (bookingRefRef.current) {
-                bookingRefRef.current.scrollTop = bookingRefRef.current.scrollHeight;
-              }
-            }, 500);
-          }
+          // For both normal bets and Bet Refund Mode, scroll booking result to bottom
+          setTimeout(() => {
+            if (bookingRefRef.current) {
+              bookingRefRef.current.scrollTop = bookingRefRef.current.scrollHeight;
+            }
+          }, 500);
         }, 500);
       } else {
         const mainSuccess = mainBetResult.ticketNo && mainBetResult.ticketNo.trim() !== '';
