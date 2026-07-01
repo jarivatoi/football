@@ -668,6 +668,7 @@ function App() {
       // This ensures data is always available
       // BUT skip if forceFresh - always fetch fresh data
       // ALSO skip if cache is incomplete - wait for API to get full data
+      console.log('[LoadData] Cache load check - cachedMatches:', cachedMatches?.length, 'forceFresh:', forceFresh, 'metadata.isComplete:', metadata?.isComplete);
       if (cachedMatches && cachedMatches.length > 0 && !forceFresh && metadata?.isComplete) {
         
         // Filter out matches that already started (kickoff passed)
@@ -723,6 +724,7 @@ function App() {
         
         // If cache is valid, mark as complete
         if (!expired && metadata?.isComplete) {
+          console.log('[LoadData] Cache is valid and complete, returning early for date:', dateToFetch);
           const matchesWithMarkets = validMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
 
           // Only update progress if NOT currently loading in background
