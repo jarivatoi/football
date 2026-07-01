@@ -519,7 +519,7 @@ function App() {
   // Initialize PWA features
   useEffect(() => {
     registerServiceWorker();
-    requestNotificationPermission();
+    // requestNotificationPermission(); // Disabled - not needed for this app
     scheduleBackgroundSync();
     
     // Sync current selectedDate to window for use in async loadData closures
