@@ -611,11 +611,15 @@ function App() {
     // If cache exists and is complete, don't trigger loading state
     if (dateToFetch && !isAlreadyComplete) {
       // Set progress to loading state (BLUE) if cache is missing, expired, or incomplete
+      // Use existing cache length as total if available, otherwise 0
+      const totalMatches = existingCache?.length || 0;
+      const loadedMatches = existingCache?.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length || 0;
+      
       setDateProgress(prev => ({
         ...prev,
         [dateToFetch]: {
-          loaded: prev[dateToFetch]?.loaded || 0,
-          total: prev[dateToFetch]?.total || 0,
+          loaded: loadedMatches,
+          total: totalMatches,
           isComplete: false // Force to loading state
         }
       }));
