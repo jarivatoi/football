@@ -636,6 +636,7 @@ function App() {
       setLoading(false);
       return;
     }
+    console.log('[LoadData] Setting __loadingDate to:', loadKey);
     (window as any).__loadingDate = loadKey;
     
     try {
