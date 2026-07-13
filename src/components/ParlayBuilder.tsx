@@ -446,13 +446,6 @@ const placeSmspariazBet = async (selections: ParlaySelection[], stake: number, s
   try {
     // SMS Pariaz uses selection IDs for bet placement
     // selectionId is stored in the ParlaySelection.selectionId field
-    console.log('[SMS Pariaz Bet] Selections:', selections.map(s => ({
-      matchId: s.matchId,
-      priceType: s.priceType,
-      selectionId: s.selectionId,
-      optionNo: s.optionNo,
-      optionCode: s.optionCode,
-    })));
     const selectionIds = selections.map(sel => {
       const selId = sel.selectionId || '';
       return selId;

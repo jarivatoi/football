@@ -353,8 +353,6 @@ class SmspariazExtractor {
       // Use targetDate (YYYY-MM-DD) as the match date, NOT oddsData.fd which is display format like "14 Jul"
       const forDate = targetDate || new Date().toISOString().split('T')[0];
 
-      console.log('[SMS Pariaz] Metadata:', { numFiles, forDate, targetDate, marketsCount: Object.keys(this.marketsMap).length, selectionsCount: Object.keys(this.selectionsMap).length });
-
       if (numFiles === 0) {
         return [];
       }
@@ -373,23 +371,9 @@ class SmspariazExtractor {
               return;
             }
             
-            // Log first cache file structure for debugging
-            if (i === 1) {
-              console.log('[SMS Pariaz] Cache file 1 raw keys:', Object.keys(cacheData));
-              const firstKey = Object.keys(cacheData).find(k => k !== 'pos');
-              if (firstKey && cacheData[firstKey]) {
-                console.log('[SMS Pariaz] First country block:', {
-                  name: cacheData[firstKey].name,
-                  hasLeagues: !!cacheData[firstKey].league,
-                  leagueCount: cacheData[firstKey].league?.length || 0,
-                });
-              }
-            }
-            
             // Cache data is an object with numeric keys (country indices)
             // e.g., {"0": {id: 12, name: "Argentina", league: [...], pos: 1}, "1": {...}}
             const countryKeys = Object.keys(cacheData).filter(k => k !== 'pos');
-            console.log(`[SMS Pariaz] Cache file ${i}: ${countryKeys.length} countries, keys:`, countryKeys);
             
             countryKeys.forEach((key) => {
               const countryBlock = cacheData[key];
@@ -421,8 +405,6 @@ class SmspariazExtractor {
       }
 
       await Promise.all(fetchPromises);
-
-      console.log('[SMS Pariaz] Total matches parsed:', matches.length);
 
       return matches;
     } catch (error) {
