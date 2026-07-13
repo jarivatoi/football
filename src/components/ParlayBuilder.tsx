@@ -1723,64 +1723,41 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                    else if (selection.priceType === 'btts_yes') selectionName = 'Yes';
                    else if (selection.priceType === 'btts_no') selectionName = 'No';
                    else {
-                     // For All Markets selections, extract from priceType
                      const parts = selection.priceType.split('-');
                      selectionName = parts.length > 1 ? parts.slice(1).join('-') : selection.priceType;
                    }
                    
-                   // Display: SelectionName @ Odds
-                   return `${selectionName} @ ${typeof selection.odds === 'string' ? selection.odds : selection.odds.toFixed(2)}`;
+                   // Build market name with period
+                   const mktDisplayName = selection.marketDisplayName || '1 X 2';
+                   const period = selection.periodCode || 'FT';
+                   const periodLabel = period === 'FT' ? 'Full Time' : period === 'H1' ? 'Half Time' : period === '2H' ? '2nd Half' : period;
+                   const odds = typeof selection.odds === 'string' ? selection.odds : selection.odds.toFixed(2);
+                   return `${mktDisplayName} - ${periodLabel} - ${selectionName} @ ${odds}`;
                  })()}
                </div>
                <div className="text-xs text-gray-600 font-medium">
                  {selection.homeTeam} v {selection.awayTeam}
                </div>
-               {selection.matchDate && (
+               {(selection.competitionName || selection.league) && (
                  <div className="text-xs text-gray-500 font-medium">
-                   {(() => {
-                     // Format date from YYYY-MM-DD to "Sun 14 Jun 2026"
+                   ⚽ {selection.competitionName || selection.league}
+                 </div>
+               )}
+               <div className="text-xs text-gray-500 font-medium">
+                 {(() => {
+                   let dateStr = '';
+                   if (selection.matchDate) {
                      try {
                        const date = new Date(selection.matchDate);
                        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                       const day = days[date.getDay()];
-                       const dateNum = date.getDate();
-                       const month = months[date.getMonth()];
-                       const year = date.getFullYear();
-                       return `${day} ${dateNum} ${month} ${year}`;
+                       dateStr = `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
                      } catch {
-                       return selection.matchDate;
+                       dateStr = selection.matchDate;
                      }
-                   })()}
-                 </div>
-               )}
-               <div className="text-xs text-gray-500">
-                 {(() => {
-                   // Use marketDisplayName from API if available, otherwise build it
-                   if (selection.marketDisplayName) {
-                     return `${selection.kickoff}     ${selection.marketDisplayName}`;
                    }
-                   
-                   // Fallback: build market name from components
-                   const line = selection.marketLine || '';
-                   const period = selection.periodCode || 'FT';
-                   const code = selection.marketCode?.toUpperCase() || '';
-                   
-                   // Format market name
-                   let marketName = '1 X 2';
-                   if (code === 'HSH') marketName = 'Highest Scoring Half';
-                   else if (code === 'OU' || code === 'UO') marketName = line ? `Under Over ${line}` : 'Over/Under';
-                   else if (code === 'BTTS') marketName = 'Both Teams To Score';
-                   else if (code === 'AH' || code === 'HC') marketName = line ? `Asian Handicap ${line}` : 'Asian Handicap';
-                   else if (code === 'CP') marketName = '1 X 2';
-                   else marketName = selection.marketCode || '1 X 2';
-                   
-                   // Add period suffix
-                   if (period === 'H1') marketName += ' - Half Time';
-                   else if (period === '2H') marketName += ' - 2nd Half';
-                   else if (period === 'FT') marketName += ' - Full Time';
-                   
-                   return `${selection.kickoff}     ${marketName}`;
+                   const kickoff = selection.kickoff || '';
+                   return kickoff ? `${dateStr} - ${kickoff}` : dateStr;
                  })()}
                </div>
                {selection.hasError && (
@@ -2410,7 +2387,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     <div key={index} className="p-3 border-b border-gray-200 bg-yellow-50 last:border-b-0">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          {/* Selection name @ odds */}
+                          {/* Market - Period - Selection @ odds */}
                           <div className="text-sm font-semibold text-gray-800">
                             {(() => {
                               let selectionName = '';
@@ -2420,10 +2397,17 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                                 if (selection.priceType === 'home') selectionName = selection.homeTeam;
                                 else if (selection.priceType === 'draw') selectionName = 'Draw';
                                 else if (selection.priceType === 'away') selectionName = selection.awayTeam;
-                                else selectionName = selection.priceType;
+                                else {
+                                  // For All Markets selections, strip marketBookNo prefix (e.g., "34920-Equal" → "Equal")
+                                  const parts = selection.priceType.split('-');
+                                  selectionName = parts.length > 1 ? parts.slice(1).join('-') : selection.priceType;
+                                }
                               }
                               const odds = bet.optionOdd || (typeof selection?.odds === 'string' ? selection.odds : selection?.odds?.toFixed(2));
-                              return `${selectionName} @ ${odds}`;
+                              const mktDisplayName = bet.marketDisplayName || selection?.marketDisplayName || '1 X 2';
+                              const periodCode = selection?.periodCode || 'FT';
+                              const periodLabel = periodCode === 'FT' ? 'Full Time' : periodCode === 'H1' ? 'Half Time' : periodCode === '2H' ? '2nd Half' : periodCode;
+                              return `${mktDisplayName} - ${periodLabel} - ${selectionName} @ ${odds}`;
                             })()}
                           </div>
                           {/* Match name */}
@@ -2436,37 +2420,22 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                               ⚽ {bet.competitionName || selection?.league}
                             </div>
                           )}
-                          {/* Date */}
-                          {selection?.matchDate && (
-                            <div className="text-xs text-gray-500 font-medium">
-                              {(() => {
+                          {/* Date - Time */}
+                          <div className="text-xs text-gray-500 font-medium">
+                            {(() => {
+                              let dateStr = '';
+                              if (selection?.matchDate) {
                                 try {
                                   const date = new Date(selection.matchDate);
                                   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                                   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                                  const day = days[date.getDay()];
-                                  const dateNum = date.getDate();
-                                  const month = months[date.getMonth()];
-                                  const year = date.getFullYear();
-                                  return `${day} ${dateNum} ${month} ${year}`;
+                                  dateStr = `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
                                 } catch {
-                                  return selection.matchDate;
+                                  dateStr = selection.matchDate;
                                 }
-                              })()}
-                            </div>
-                          )}
-                          {/* Time and market */}
-                          <div className="text-xs text-gray-500 mt-1">
-                            {(() => {
-                              const kickoff = selection?.kickoff || 'Today';
-                              const marketDisplayName = bet.marketDisplayName || selection?.marketDisplayName || '1 X 2';
-                              const periodCode = selection?.periodCode || 'FT';
-                              const periodSuffix = periodCode === 'FT' ? ' - Full Time' : 
-                                                  periodCode === 'H1' ? ' - Half Time' : 
-                                                  periodCode === '2H' ? ' - 2nd Half' : 
-                                                  ` - ${periodCode}`;
-                              const marketName = marketDisplayName.includes(' - ') ? marketDisplayName : `${marketDisplayName}${periodSuffix}`;
-                              return `${kickoff} ${marketName}`;
+                              }
+                              const kickoff = selection?.kickoff || '';
+                              return kickoff ? `${dateStr} - ${kickoff}` : dateStr;
                             })()}
                           </div>
                         </div>

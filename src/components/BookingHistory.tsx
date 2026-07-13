@@ -260,7 +260,10 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                                 else selectionName = selection.priceType;
                               }
                               const odds = typeof selection?.odds === 'string' ? selection.odds : selection?.odds?.toFixed(2);
-                              return `${selectionName} @ ${odds}`;
+                              const mktDisplayName = selection?.marketDisplayName || '1 X 2';
+                              const periodCode = selection?.periodCode || 'FT';
+                              const periodLabel = periodCode === 'FT' ? 'Full Time' : periodCode === 'H1' ? 'Half Time' : periodCode === '2H' ? '2nd Half' : periodCode;
+                              return `${mktDisplayName} - ${periodLabel} - ${selectionName} @ ${odds}`;
                             })()}
                           </div>
                           <div className="text-xs text-gray-600 font-medium mt-1">
@@ -271,29 +274,23 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                               ⚽ {selection.competitionName || selection.league}
                             </div>
                           )}
-                          {selection?.matchDate && (
-                            <div className="text-xs text-gray-500 font-medium">
-                              {(() => {
+                          <div className="text-xs text-gray-500 font-medium">
+                            {(() => {
+                              let dateStr = '';
+                              if (selection?.matchDate) {
                                 try {
                                   const date = new Date(selection.matchDate);
                                   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                                   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                                  const day = days[date.getDay()];
-                                  const dateNum = date.getDate();
-                                  const month = months[date.getMonth()];
-                                  const year = date.getFullYear();
-                                  return `${day} ${dateNum} ${month} ${year}`;
+                                  dateStr = `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
                                 } catch {
-                                  return selection.matchDate;
+                                  dateStr = selection.matchDate;
                                 }
-                              })()}
-                            </div>
-                          )}
-                          {selection?.kickoff && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {selection.kickoff} {selection.marketDisplayName || '1 X 2'}
-                            </div>
-                          )}
+                              }
+                              const kickoff = selection?.kickoff || '';
+                              return kickoff ? `${dateStr} - ${kickoff}` : dateStr;
+                            })()}
+                          </div>
                         </div>
                       </div>
                     </div>
