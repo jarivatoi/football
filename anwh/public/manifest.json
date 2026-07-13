@@ -1,0 +1,42 @@
+{
+  "name": "X-ray ANWH",
+  "short_name": "X-ray ANWH",
+  "description": "Professional work schedule management system by NARAYYA",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "prefer_related_applications": false,
+  "scope": "./",
+  "id": "xray-anwh-pwa",
+  "icons": [
+    {
+      "src": "./icon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "shortcuts": [
+    { "name": "Open Calendar", "url": "./", "icons": [{ "src": "./icon.svg", "sizes": "any" }] }
+  ]
+}
