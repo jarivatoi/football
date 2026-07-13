@@ -22,6 +22,7 @@ import UserProfile from './components/UserProfile';
 import { MaintenanceMode } from './components/MaintenanceMode';
 import { totelepepService } from './services/totelepepService';
 import { totelepepExtractor } from './services/totelepepExtractor';
+import { smspariazExtractor } from './services/smspariazExtractor';
 import type { TotelepepMatch } from './services/totelepepExtractor';
 import { saveBetslip, loadBetslip, clearBetslip } from './utils/matchCache';
 import { registerServiceWorker, requestNotificationPermission, scheduleBackgroundSync } from './utils/pwaUtils';
@@ -205,15 +206,20 @@ function App() {
     // Save to localStorage
     localStorage.setItem('selectedApiSource', JSON.stringify(source));
     
-    // Update the extractor base URL
-    (totelepepExtractor as any).baseUrl = source.baseUrl;
-    
-    // Cancel ALL background loading tasks from previous source
-    totelepepExtractor.cancelAllBackgroundLoading();
-    
-    // Clear in-memory cache ONLY (keep IndexedDB caches for each source)
-    // This allows resuming progress when switching back to a source within TTL
-    totelepepExtractor.clearCache();
+    // Only update totelepepExtractor if NOT switching to SMS Pariaz
+    if (source.id !== 'smspariaz') {
+      // Update the extractor base URL
+      (totelepepExtractor as any).baseUrl = source.baseUrl;
+      
+      // Cancel ALL background loading tasks from previous source
+      totelepepExtractor.cancelAllBackgroundLoading();
+      
+      // Clear in-memory cache ONLY (keep IndexedDB caches for each source)
+      totelepepExtractor.clearCache();
+    } else {
+      // Switching to SMS Pariaz - clear its cache
+      smspariazExtractor.clearCache();
+    }
     
     // DON'T clear IndexedDB caches - they're source-specific and expire naturally
     // Cache keys include source ID: date_2026-06-18_all_all_totelepep
@@ -252,9 +258,8 @@ function App() {
     
     setShowParlayBuilder(false);
     
-    // Reload calendar without any filters
-    
-    await loadCalendarList('', '');
+    // Reload calendar without any filters - pass source ID to avoid state timing issues
+    await loadCalendarList('', '', source.id);
     
     // Try to restore progress from IndexedDB cache for the new source
     try {
@@ -560,6 +565,9 @@ function App() {
     };
   }, [selectedCategory, selectedCompetition]);
   
+  // Helper: check if current source is SMS Pariaz
+  const isSmspariaz = () => (selectedSource?.id === 'smspariaz');
+
   const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string, forceFresh: boolean = false) => {
     setLoading(true);
     setError(null);
@@ -845,8 +853,15 @@ function App() {
         }
       };
 
-      // Fetch matches DIRECTLY from Totelepep API with category/competition filters
-      const fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId, undefined, forceFresh);
+      // Fetch matches from the appropriate API source
+      let fetchedMatches: any[];
+      if (isSmspariaz()) {
+        // SMS Pariaz source - use SMS Pariaz extractor
+        fetchedMatches = await smspariazExtractor.extractMatches(dateToFetch);
+      } else {
+        // Totelepep-compatible sources
+        fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId, undefined, forceFresh);
+      }
       console.log('[LoadData] Fetched', fetchedMatches.length, 'matches for date:', dateToFetch);
 
       // If API returns 0 matches, mark date as complete immediately (nothing to load)
@@ -1324,9 +1339,29 @@ function App() {
   };
 
   // Load calendar list data with optional filters
-  const loadCalendarList = async (categoryId?: string, competitionId?: string) => {
+  const loadCalendarList = async (categoryId?: string, competitionId?: string, overrideSourceId?: string) => {
     try {
       const sourceName = selectedSource?.displayName || 'Totelepep';
+      // Use overrideSourceId if provided (for source switching before state updates)
+      const effectiveSourceId = overrideSourceId || selectedSource?.id || 'totelepep';
+
+      // SMS Pariaz source - use its own date list
+      if (effectiveSourceId === 'smspariaz') {
+        const dates = await smspariazExtractor.getAvailableDates();
+        if (dates && dates.length > 0) {
+          const formattedCalendar = dates.map(d => ({
+            date: d.date,
+            matchCount: d.matchCount,
+            displayName: d.displayName,
+          }));
+          setCalendarList(formattedCalendar);
+          setAvailableDates(formattedCalendar);
+        } else {
+          setCalendarList([]);
+          setAvailableDates([]);
+        }
+        return;
+      }
 
       // Clear in-memory cache ONLY (keep IndexedDB for matches)
       (totelepepExtractor as any).cache = new Map();
@@ -2911,7 +2946,7 @@ function App() {
     );
   }
 
-  const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string, optionName?: string) => {
+  const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string, optionName?: string, selectionId?: string) => {
     // Find the match details
     const match = matches.find(m => m.id === matchId);
     
@@ -2994,6 +3029,20 @@ function App() {
           ? marketCode 
           : (match.marketCode || 'CP');
       
+        // For quick 1X2 selections, look up selectionId from match's allMarkets
+        let resolvedSelectionId = selectionId || '';
+        if (!resolvedSelectionId && match.allMarkets && match.allMarkets.length > 0) {
+          // Find the main 1X2 FT market
+          const mainMarket = match.allMarkets.find((m: any) => m.marketCode === 'CP' && (m.periodCode === 'FT' || !m.periodCode));
+          if (mainMarket && mainMarket.selections) {
+            // Map priceType to selection
+            const selIndex = priceType === 'home' ? 0 : priceType === 'draw' ? 1 : priceType === 'away' ? 2 : -1;
+            if (selIndex >= 0 && mainMarket.selections[selIndex]) {
+              resolvedSelectionId = mainMarket.selections[selIndex].selectionId || '';
+            }
+          }
+        }
+
         // Add new selection with error flag
         const newSelection: ParlaySelection = {
           matchId,
@@ -3019,6 +3068,7 @@ function App() {
           optionCode: optionCode || '',
           optionNo: optionNo || '',
           optionName: optionName || '',
+          selectionId: resolvedSelectionId,
           hasError: hasError, // Mark if this selection has an error
         };
         // If this is a duplicate, mark BOTH selections with error
@@ -3040,7 +3090,7 @@ function App() {
     }
   };
 
-  const handleLongPress = (matchId: string, priceType: string, odds: number, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string, optionName?: string) => {
+  const handleLongPress = (matchId: string, priceType: string, odds: number, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string, optionName?: string, selectionId?: string) => {
 
 
 
@@ -3077,6 +3127,7 @@ function App() {
       optionCode,
       optionNo,
       optionName,
+      selectionId,
       competitionName: match.league,
       competitionId: match.competitionId
     };

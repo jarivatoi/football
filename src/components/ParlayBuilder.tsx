@@ -441,6 +441,115 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
   }
 };
 
+// SMS Pariaz bet placement function
+const placeSmspariazBet = async (selections: ParlaySelection[], stake: number, selectedSource?: ApiSource) => {
+  try {
+    // SMS Pariaz uses selection IDs for bet placement
+    // selectionId is stored in the ParlaySelection.selectionId field
+    console.log('[SMS Pariaz Bet] Selections:', selections.map(s => ({
+      matchId: s.matchId,
+      priceType: s.priceType,
+      selectionId: s.selectionId,
+      optionNo: s.optionNo,
+      optionCode: s.optionCode,
+    })));
+    const selectionIds = selections.map(sel => {
+      const selId = sel.selectionId || '';
+      return selId;
+    }).filter(id => id);
+
+    if (selectionIds.length === 0) {
+      return { success: false, errorMessage: 'No valid selection IDs found' };
+    }
+
+    // Calculate total odds
+    const totalOdds = selections.reduce((acc, sel) => {
+      const odds = typeof sel.odds === 'string' ? parseFloat(sel.odds) : sel.odds;
+      return acc * odds;
+    }, 1);
+
+    // SMS Pariaz tax calculation (14%)
+    const G_TAX = 0.14;
+    const taxAmount = (stake / (1 + G_TAX)) * G_TAX;
+    const netStake = stake - taxAmount;
+    const payoutAfterTax = netStake * totalOdds;
+
+    // Build form data for SMS Pariaz
+    const formData = new URLSearchParams();
+    const betType = selections.length > 1 ? 'a' : 's'; // accumulator or single
+    
+    formData.append('bet-game', betType);
+    formData.append('bet-selection', selectionIds.join(','));
+    formData.append('bet-numselection', String(selections.length));
+    formData.append('bet-stake', String(stake));
+    formData.append('bet-staketax', taxAmount.toFixed(2));
+    formData.append('bet-payout', payoutAfterTax.toFixed(2));
+
+    // Use CORS proxy for bet placement
+    const betUrl = 'https://www.smspariaz.com/smsfootball/service/validatebet.php';
+    const proxyUrl = 'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=' + encodeURIComponent(betUrl);
+
+    const response = await fetch(proxyUrl, {
+      method: 'POST',
+      headers: {
+        'Accept': '*/*',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: formData.toString()
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const html = await response.text();
+
+    // Parse SMS Pariaz response (returns HTML with ticket info)
+    const ticketMatch = html.match(/ticket[_-]?(?:no|number|id|code)[:\s]*(\w+)/i) ||
+                        html.match(/booking[:\s]*(\w+)/i) ||
+                        html.match(/(\d{5,})/);
+    
+    const ticketNo = ticketMatch ? ticketMatch[1] : undefined;
+    const success = response.ok && !html.toLowerCase().includes('error') && !html.toLowerCase().includes('invalid') && !!ticketNo;
+
+    // Build bet list for UI display
+    const betList = selections.map((sel, idx) => ({
+      matchName: `${sel.homeTeam} v ${sel.awayTeam}`,
+      optionName: sel.priceType?.includes('-') ? sel.priceType.split('-').slice(1).join('-') : (sel.optionName || sel.priceType),
+      odds: sel.odds,
+      potentialPayout: (Number(stake) * totalOdds).toFixed(2),
+      taxAmount: (taxAmount / selections.length).toFixed(2),
+      bonusAmount: '0',
+      betErrorCode: 0,
+      betErrorMessage: 'null',
+      ticketNo: ticketNo || '',
+    }));
+
+    return {
+      success,
+      ticketNo,
+      potentialPayout: payoutAfterTax.toFixed(2),
+      errorMessage: success ? null : 'Bet placement failed',
+      multiErrorMessage: null,
+      balanceAmount: null,
+      betList,
+      multiStake: stake.toString(),
+      multiPrice: totalOdds.toFixed(2),
+      taxAmount: taxAmount.toFixed(2),
+      bonusAmount: '0',
+      rebateAmount: '0',
+      bookingReference: ticketNo
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      errorMessage: error instanceof Error ? error.message : 'Network error'
+    };
+  }
+};
+
 // Extract market data based on match and league
 const extractMarketData = (selection: ParlaySelection) => {
   // Use the actual competitionId from the match data
@@ -692,6 +801,7 @@ export interface ParlaySelection {
   optionName?: string;  // Option display name from API (e.g., "1-4 - Zhejiang FC")
   competitionName?: string;  // Competition name (e.g., "China - Chinese Super League")
   competitionId?: string;
+  selectionId?: string;  // SMS Pariaz selection ID for bet placement
   hasError?: boolean;  // Track if this selection has an error
 }
 
@@ -941,6 +1051,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         phoneNumber = '+23052502599';
       } else if (selectedSource?.id === 'stevenhills') {
         phoneNumber = '+23059590182';
+      } else if (selectedSource?.id === 'smspariaz') {
+        phoneNumber = '8685';
       }
       
       // iOS uses &body=, Android uses ?body=
@@ -1239,7 +1351,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         return;
       }
 
-      const mainBetResult = await placeTotelepepBet(mainBetSelections, mainStake, selectedSource);
+      const placeBet = selectedSource?.id === 'smspariaz' ? placeSmspariazBet : placeTotelepepBet;
+      const mainBetResult: any = await placeBet(mainBetSelections, mainStake, selectedSource);
       
       // Place refund bet
       const refundBetSelections: ParlaySelection[] = [{
@@ -1253,7 +1366,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
       // Validate refund stake and place bet if valid
       if (refundStake && refundStake > 0) {
-        refundBetResult = await placeTotelepepBet(refundBetSelections, refundStake, selectedSource);
+        refundBetResult = await placeBet(refundBetSelections, refundStake, selectedSource);
         
         // Check if refund bet succeeded
         if (!refundBetResult.ticketNo || refundBetResult.ticketNo.trim() === '') {
@@ -1392,8 +1505,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     setIsPlacing(true);
 
     try {
-      // Use real booking API with selected source
-      const bookingResult = await placeTotelepepBet(selections, betAmount, selectedSource);
+      // Use the appropriate bet placement function based on source
+      const bookingResult: any = selectedSource?.id === 'smspariaz'
+        ? await placeSmspariazBet(selections, betAmount, selectedSource)
+        : await placeTotelepepBet(selections, betAmount, selectedSource);
       // Enhanced success checking to handle cases where ticket is generated but errors are present
       const hasTicket = bookingResult.ticketNo && bookingResult.ticketNo.trim() !== '';
       const hasErrors = (bookingResult.errorMessage && bookingResult.errorMessage.trim() !== '' && bookingResult.errorMessage !== 'None') || 

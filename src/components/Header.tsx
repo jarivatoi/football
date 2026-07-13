@@ -40,6 +40,14 @@ export const API_SOURCES: ApiSource[] = [
     baseUrl: 'https://www.valueplus.mu/webapi/GetSport',
     displayName: 'Valueplus',
     hasBonus: false  // Valueplus does not provide bonus (update if needed)
+  },
+  {
+    id: 'smspariaz',
+    name: 'SMS Pariaz',
+    baseUrl: 'https://www.smspariaz.com/smsfootball/',
+    displayName: 'Sms Pariaz',
+    hasBonus: true,  // SMS Pariaz has bonus tiers (1.15x for 2-5, 1.20x for 6-10, etc.)
+    bonusPercentage: 15  // Approximate starting bonus
   }
 ];
 
