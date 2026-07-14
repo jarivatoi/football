@@ -371,12 +371,6 @@ function App() {
     }
     
     // If no cache found or error, reload data with new source
-    console.log('[Source Change] No valid cache found, reloading data:', {
-      showAllMatches,
-      selectedDate,
-      newSourceId: source.id,
-      willLoad: showAllMatches ? 'allMatches' : (selectedDate || 'NO DATE SELECTED')
-    });
     
     if (showAllMatches) {
       
@@ -613,8 +607,6 @@ function App() {
                               !isExpired &&
                               existingCache.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
     
-    console.log('[LoadData] Cache check for', dateToFetch, '- isAlreadyComplete:', isAlreadyComplete, 'existingCache:', existingCache?.length || 0, 'isExpired:', isExpired);
-
     // Only set to loading state if cache is NOT valid (expired or doesn't exist) OR incomplete
     // If cache exists and is complete, don't trigger loading state
     if (dateToFetch && !isAlreadyComplete) {
@@ -650,11 +642,9 @@ function App() {
       setLoading(false);
       return;
     }
-    console.log('[LoadData] Setting __loadingDate to:', loadKey);
     (window as any).__loadingDate = loadKey;
     
     try {
-      console.log('[LoadData] Starting load for date:', dateToFetch);
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
 
       const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
@@ -680,7 +670,6 @@ function App() {
       // This ensures data is always available
       // BUT skip if forceFresh - always fetch fresh data
       // ALSO skip if cache is incomplete - wait for API to get full data
-      console.log('[LoadData] Cache load check - cachedMatches:', cachedMatches?.length, 'forceFresh:', forceFresh, 'metadata.isComplete:', metadata?.isComplete);
       if (cachedMatches && cachedMatches.length > 0 && !forceFresh && metadata?.isComplete) {
         
         // Filter out matches that already started (kickoff passed)
@@ -862,7 +851,6 @@ function App() {
         // Totelepep-compatible sources
         fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId, undefined, forceFresh);
       }
-      console.log('[LoadData] Fetched', fetchedMatches.length, 'matches for date:', dateToFetch);
 
       // If API returns 0 matches, mark date as complete immediately (nothing to load)
       if (fetchedMatches.length === 0 && dateToFetch) {
