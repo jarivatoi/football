@@ -242,18 +242,18 @@ function App() {
     setSelectedCategory('');
     setSelectedCompetition('');
     
-    // Clear parlay selections since odds are source-specific
-    // But first, try to load betslip for the new source
+    // Clear parlay selections immediately since odds are source-specific
+    setParlaySelections([]);
+    clearBetslip(); // Clear in-memory betslip state
+    
+    // Then try to load saved betslip for the new source
     const newSourceId = source.id;
     loadBetslip(newSourceId).then(savedSelections => {
       if (savedSelections && savedSelections.length > 0) {
-
         setParlaySelections(savedSelections);
-      } else {
-        setParlaySelections([]);
       }
     }).catch(() => {
-      setParlaySelections([]);
+      // Ignore errors - selections already cleared
     });
     
     setShowParlayBuilder(false);
@@ -560,7 +560,10 @@ function App() {
   }, [selectedCategory, selectedCompetition]);
   
   // Helper: check if current source is SMS Pariaz
-  const isSmspariaz = () => (selectedSource?.id === 'smspariaz');
+  const isSmspariaz = () => {
+    const effectiveSourceId = (totelepepExtractor as any).currentSourceId || selectedSource?.id || 'totelepep';
+    return effectiveSourceId === 'smspariaz';
+  };
 
   const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string, forceFresh: boolean = false) => {
     setLoading(true);
@@ -666,11 +669,11 @@ function App() {
 
       }
       
-      // STEP 1: Load from cache immediately (even if expired)
-      // This ensures data is always available
+      // STEP 1: Load from cache immediately (only if NOT expired)
+      // If expired (>30 mins), skip cache and fetch fresh from API
       // BUT skip if forceFresh - always fetch fresh data
       // ALSO skip if cache is incomplete - wait for API to get full data
-      if (cachedMatches && cachedMatches.length > 0 && !forceFresh && metadata?.isComplete) {
+      if (cachedMatches && cachedMatches.length > 0 && !forceFresh && !expired && metadata?.isComplete) {
         
         // Filter out matches that already started (kickoff passed)
         const now = new Date();
