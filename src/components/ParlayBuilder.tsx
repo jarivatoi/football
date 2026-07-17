@@ -511,7 +511,7 @@ const placeSmspariazBet = async (selections: ParlaySelection[], stake: number, s
       matchName: `${sel.homeTeam} v ${sel.awayTeam}`,
       optionName: sel.priceType?.includes('-') ? sel.priceType.split('-').slice(1).join('-') : (sel.optionName || sel.priceType),
       odds: sel.odds,
-      potentialPayout: (Number(stake) * totalOdds).toFixed(2),
+      potentialPayout: payoutAfterTax.toFixed(2),
       taxAmount: (taxAmount / selections.length).toFixed(2),
       bonusAmount: '0',
       betErrorCode: 0,
