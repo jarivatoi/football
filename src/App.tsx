@@ -1115,36 +1115,30 @@ function App() {
   // Auto-load next date in sequence (sequential loading)
   const autoLoadNextDate = async (completedDate: string, sourceId: string, categoryId: string, competitionId: string) => {
     try {
-      console.log('[AutoLoad] Starting auto-load for next date after', completedDate);
-      
-      // Check if we already auto-loaded this date (prevent duplicate auto-loads)
-      const autoLoadKey = `autoLoad_${completedDate}`;
-      if ((window as any).__autoLoadCompleted === autoLoadKey) {
-        console.log('[AutoLoad] Already auto-loaded this date, skipping');
-        return;
+      // Get calendar list based on source
+      let calendarEntries: {entryDate: string}[] = [];
+      if (sourceId === 'smspariaz') {
+        const smsDates = await smspariazExtractor.getAvailableDates();
+        calendarEntries = (smsDates || []).map((d: any) => ({ entryDate: d.date }));
+      } else {
+        calendarEntries = (totelepepExtractor as any).calendarList || [];
       }
-      (window as any).__autoLoadCompleted = autoLoadKey;
-      
-      const calendarList = (totelepepExtractor as any).calendarList || [];
       
       // Find the index of the completed date
-      const completedIndex = calendarList.findIndex((d: any) => d.entryDate === completedDate);
+      const completedIndex = calendarEntries.findIndex((d: any) => d.entryDate === completedDate);
       
       if (completedIndex === -1) {
-        console.log('[AutoLoad] Completed date not found in calendar');
         return;
       }
       
       // Get next date
-      const nextDateEntry = calendarList[completedIndex + 1];
+      const nextDateEntry = calendarEntries[completedIndex + 1];
       
       if (!nextDateEntry) {
-        console.log('[AutoLoad] No next date in calendar');
         return;
       }
       
       const nextDate = nextDateEntry.entryDate;
-      console.log('[AutoLoad] Next date to load:', nextDate);
 
       // Check if next date is already complete
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
@@ -1158,13 +1152,15 @@ function App() {
                             nextCache.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
       
       if (isNextComplete) {
-        console.log('[AutoLoad] Next date', nextDate, 'is already complete in cache, skipping to next');
         // Recursively try the next date
         autoLoadNextDate(nextDate, sourceId, categoryId, competitionId);
         return;
       }
       
-      console.log('[AutoLoad] Actually calling loadData for next date:', nextDate);
+      // Set currentSourceId for SMS Pariaz so loadData routes correctly
+      if (sourceId === 'smspariaz') {
+        (totelepepExtractor as any).currentSourceId = 'smspariaz';
+      }
       
       // Load the next date in background
       loadData(nextDate, categoryId === 'all' ? undefined : categoryId, 
