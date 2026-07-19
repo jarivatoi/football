@@ -1433,12 +1433,18 @@ function App() {
   // Load initial data on mount
   useEffect(() => {
 
+    // Set source ID on extractor immediately so all loadData calls use correct source
+    if (selectedSource?.id === 'smspariaz') {
+      (totelepepExtractor as any).currentSourceId = 'smspariaz';
+    }
+
     // Cancel ALL existing background loading tasks first
     // This prevents multiple tasks from running simultaneously on app reload
     totelepepExtractor.cancelAllBackgroundLoading();
     
     // Clear auto-load completion flags on app reload
     (window as any).__autoLoadCompleted = null;
+    (window as any).__loadingDate = null; // Clear stale loading guard
     
     // Clear ALL caches on initial load (both in-memory and IndexedDB)
     totelepepExtractor.clearCache();
