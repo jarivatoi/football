@@ -536,7 +536,13 @@ function App() {
         await loadCalendarList(selectedCategory, selectedCompetition);
         
         // Check if the first date changed (meaning real-world date changed)
-        const newFirstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
+        let newFirstDate: string | undefined;
+        if (selectedSource?.id === 'smspariaz') {
+          const smsDates = await smspariazExtractor.getAvailableDates();
+          newFirstDate = smsDates && smsDates.length > 0 ? smsDates[0].date : undefined;
+        } else {
+          newFirstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
+        }
         if (newFirstDate && newFirstDate !== (window as any).__lastCalendarFirstDate) {
 
 
@@ -550,7 +556,13 @@ function App() {
     };
     
     // Store initial first date
-    (window as any).__lastCalendarFirstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
+    if (selectedSource?.id === 'smspariaz') {
+      smspariazExtractor.getAvailableDates().then(dates => {
+        (window as any).__lastCalendarFirstDate = dates && dates.length > 0 ? dates[0].date : undefined;
+      });
+    } else {
+      (window as any).__lastCalendarFirstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
+    }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
@@ -1452,7 +1464,18 @@ function App() {
 
         // NOW it's safe to load data
         loadCalendarList().then(async () => {
-          const firstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
+          // Get first date based on source - SMS Pariaz uses state, Totelepep uses extractor
+          const isSmspariazSource = selectedSource?.id === 'smspariaz';
+          let firstDate: string | undefined;
+          
+          if (isSmspariazSource) {
+            // For SMS Pariaz, get first date from the dates we just loaded
+            const dates = await smspariazExtractor.getAvailableDates();
+            firstDate = dates && dates.length > 0 ? dates[0].date : undefined;
+          } else {
+            firstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
+          }
+          
           const sourceId = selectedSource?.id || 'totelepep';
           
           // Check if all_matches cache exists and has data
@@ -1485,21 +1508,36 @@ function App() {
 
             // Still load the first date in background to ensure it's fresh
             if (firstDate) {
-              (totelepepExtractor as any).cache = new Map();
+              if (isSmspariazSource) {
+                (totelepepExtractor as any).currentSourceId = 'smspariaz';
+              } else {
+                (totelepepExtractor as any).cache = new Map();
+              }
               loadData(firstDate, selectedCategory, selectedCompetition, true);
             }
           } else if (firstDate) {
             // Load first date as fallback
-            (totelepepExtractor as any).cache = new Map();
+            if (isSmspariazSource) {
+              (totelepepExtractor as any).currentSourceId = 'smspariaz';
+            } else {
+              (totelepepExtractor as any).cache = new Map();
+            }
             loadData(firstDate, selectedCategory, selectedCompetition, true);
           }
           
           // Initialize progress state for all dates
-          const calendarList = (totelepepExtractor as any).calendarList || [];
+          // Use correct calendar list based on source
+          let calendarListForProgress: any[] = [];
+          if (isSmspariazSource) {
+            const smsDates = await smspariazExtractor.getAvailableDates();
+            calendarListForProgress = (smsDates || []).map((d: any) => ({ entryDate: d.date, matchCount: d.matchCount }));
+          } else {
+            calendarListForProgress = (totelepepExtractor as any).calendarList || [];
+          }
           const currentCategory = selectedCategory || 'all';
           const currentCompetition = selectedCompetition || 'all';
           
-          const progressChecks = calendarList.map(async (dateEntry: any) => {
+          const progressChecks = calendarListForProgress.map(async (dateEntry: any) => {
             const cacheKey = `date_${dateEntry.entryDate}_${currentCategory}_${currentCompetition}_${sourceId}`;
             const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
             const { matches: cachedMatches, metadata } = await getCachedMatches(cacheKey);
