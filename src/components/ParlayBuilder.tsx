@@ -939,8 +939,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
     // If we already have apiBreakdown with bonus data from a recent successful bet, use it
     if (apiBreakdown && apiBreakdown.bonus > 0) {
-      const basePayoutWithoutBonus = apiBreakdown.netPayout - apiBreakdown.bonus;
-      const rawPercentage = basePayoutWithoutBonus > 0 ? (apiBreakdown.bonus / basePayoutWithoutBonus) * 100 : 0;
+      const rawPercentage = apiBreakdown.netPayout > 0 ? (apiBreakdown.bonus / apiBreakdown.netPayout) * 100 : 0;
       const bonusPercentage = Math.round(rawPercentage);
       setDetectedBonusPercentage(bonusPercentage);
 
@@ -998,8 +997,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
         // Calculate bonus percentage
         if (bonusAmount > 0 && netPayout > 0) {
-          const basePayoutWithoutBonus = netPayout - bonusAmount;
-          const rawPercentage = basePayoutWithoutBonus > 0 ? (bonusAmount / basePayoutWithoutBonus) * 100 : 0;
+          const rawPercentage = (bonusAmount / netPayout) * 100;
           const bonusPercentage = Math.round(rawPercentage);
           setDetectedBonusPercentage(bonusPercentage);
 
@@ -2361,9 +2359,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   </div>
                   {apiBreakdown.bonus > 0 && (() => {
                     // Calculate bonus percentage from API response
-                    // Formula: bonus% = (bonus / (netPayout - bonus)) × 100 (rounded to integer)
-                    const basePayoutWithoutBonus = apiBreakdown.netPayout - apiBreakdown.bonus;
-                    const rawPercentage = basePayoutWithoutBonus > 0 ? (apiBreakdown.bonus / basePayoutWithoutBonus) * 100 : 0;
+                    // Formula: bonus% = (bonus / netPayout) × 100 (rounded to integer)
+                    const rawPercentage = apiBreakdown.netPayout > 0 ? (apiBreakdown.bonus / apiBreakdown.netPayout) * 100 : 0;
                     // Round the final percentage to nearest integer
                     const bonusPercentage = Math.round(rawPercentage);
                     return (
@@ -2408,9 +2405,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 </div>
                 {apiBreakdown.bonus > 0 && (() => {
                   // Calculate bonus percentage from API response
-                  // Formula: bonus% = (bonus / (netPayout - bonus)) × 100 (rounded to integer)
-                  const basePayoutWithoutBonus = apiBreakdown.netPayout - apiBreakdown.bonus;
-                  const rawPercentage = basePayoutWithoutBonus > 0 ? (apiBreakdown.bonus / basePayoutWithoutBonus) * 100 : 0;
+                  // Formula: bonus% = (bonus / netPayout) × 100 (rounded to integer)
+                  const rawPercentage = apiBreakdown.netPayout > 0 ? (apiBreakdown.bonus / apiBreakdown.netPayout) * 100 : 0;
                   // Round the final percentage to nearest integer
                   const bonusPercentage = Math.round(rawPercentage);
                   
@@ -2420,7 +2416,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     totalOdds,
                     netPayout: apiBreakdown.netPayout,
                     bonus: apiBreakdown.bonus,
-                    basePayoutWithoutBonus,
                     rawPercentage,
                     bonusPercentage
                   });
@@ -2563,8 +2558,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                       </div>
                       {apiBreakdown.bonus > 0 && (() => {
                         // Calculate bonus percentage from API response
-                        const basePayoutWithoutBonus = apiBreakdown.netPayout - apiBreakdown.bonus;
-                        const rawPercentage = basePayoutWithoutBonus > 0 ? (apiBreakdown.bonus / basePayoutWithoutBonus) * 100 : 0;
+                        const rawPercentage = apiBreakdown.netPayout > 0 ? (apiBreakdown.bonus / apiBreakdown.netPayout) * 100 : 0;
                         const bonusPercentage = Math.round(rawPercentage);
                         return (
                           <div className="flex justify-between text-green-600">
@@ -2662,8 +2656,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                         <span className="font-medium">-Rs {mainTax.toFixed(2)}</span>
                       </div>
                       {displayBonus > 0 && (() => {
-                        const basePayoutWithoutBonus = displayPayout - displayBonus;
-                        const rawPercentage = basePayoutWithoutBonus > 0 ? (displayBonus / basePayoutWithoutBonus) * 100 : 0;
+                        const rawPercentage = displayPayout > 0 ? (displayBonus / displayPayout) * 100 : 0;
                         const bonusPercentage = Math.round(rawPercentage);
                         return (
                           <div className="flex justify-between text-green-600">
@@ -2742,8 +2735,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                         <span className="font-medium">-Rs {refundTax.toFixed(2)}</span>
                       </div>
                       {displayBonus > 0 && (() => {
-                        const basePayoutWithoutBonus = displayPayout - displayBonus;
-                        const rawPercentage = basePayoutWithoutBonus > 0 ? (displayBonus / basePayoutWithoutBonus) * 100 : 0;
+                        const rawPercentage = displayPayout > 0 ? (displayBonus / displayPayout) * 100 : 0;
                         const bonusPercentage = Math.round(rawPercentage);
                         return (
                           <div className="flex justify-between text-green-600">

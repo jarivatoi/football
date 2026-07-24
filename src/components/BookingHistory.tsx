@@ -504,11 +504,10 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                       </div>
                     )}
                     {selectedBooking.bonus !== undefined && selectedBooking.bonus > 0 && (() => {
-                      // Calculate bonus percentage: bonus / (netPayout - bonus) × 100
+                      // Calculate bonus percentage: bonus / netPayout × 100
                       const netPayout = selectedBooking.netPayout || selectedBooking.potentialWin;
-                      const basePayoutWithoutBonus = netPayout - selectedBooking.bonus;
-                      const bonusPercentage = basePayoutWithoutBonus > 0 
-                        ? Math.round((selectedBooking.bonus / basePayoutWithoutBonus) * 100) 
+                      const bonusPercentage = netPayout > 0
+                        ? Math.round((selectedBooking.bonus / netPayout) * 100)
                         : 0;
                       return (
                         <div className="flex justify-between text-green-600">
