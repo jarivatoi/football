@@ -1278,8 +1278,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       // Remove commas before parsing
       stake = parseFloat((firstBet.stake || betAmount.toString()).replace(/,/g, ''));
       apiPotentialPayout = parseFloat((firstBet.potentialPayout || lastResult.potentialPayout || '0').replace(/,/g, ''));
-      taxAmount = parseFloat((firstBet.taxAmount || '0').replace(/,/g, '')) || 0;
-      bonusAmount = parseFloat((firstBet.bonusAmount || '0').replace(/,/g, '')) || 0;
+      // Always use top-level taxAmount/bonusAmount for totals (betList items may contain per-selection values for SMS Pariaz parlays)
+      taxAmount = parseFloat((fullResponse.taxAmount || firstBet.taxAmount || '0').replace(/,/g, '')) || 0;
+      bonusAmount = parseFloat((fullResponse.bonusAmount || firstBet.bonusAmount || '0').replace(/,/g, '')) || 0;
     }
     return {
       stake: stake,
