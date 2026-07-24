@@ -651,7 +651,6 @@ function App() {
     // Prevent duplicate loads for the same date with same filters
     const loadKey = `${dateToFetch}_${catId}_${compId}_${sourceId}`;
     if ((window as any).__loadingDate === loadKey) {
-      console.log('[LoadData] Already loading this date, skipping:', loadKey);
       setLoading(false);
       return;
     }
@@ -879,7 +878,7 @@ function App() {
         }));
         
         // Trigger auto-load for next date (since this date is complete with 0 matches)
-        const sourceId = (totelepepExtractor as any).currentSourceId || selectedSource?.id || 'totelepep';
+        // Use captured sourceId (not dynamic currentSourceId) to prevent race conditions
         await autoLoadNextDate(dateToFetch, sourceId, catId || 'all', compId || 'all');
         
         // If API returns 0 but we have partial cache, use the cache instead
@@ -945,14 +944,17 @@ function App() {
       
       
       // Only update UI if this is the date the user is currently viewing
-      // This prevents auto-load from overwriting the current view
-      if (dateToFetch === selectedDate) {
+      // AND the source hasn't changed since this load started (prevents stale data overwrite)
+      const currentEffectiveSourceId = (totelepepExtractor as any).currentSourceId || selectedSource?.id || 'totelepep';
+      const sourceChanged = currentEffectiveSourceId !== sourceId;
+      
+      if (!sourceChanged && dateToFetch === selectedDate) {
         setMatches(sortedMatches);
         // Group matches by date
         const grouped = totelepepService.groupMatchesByDate(sortedMatches);
         setGroupedMatches(grouped);
 
-      } else {
+      } else if (!sourceChanged) {
         // Still add to allLoadedMatches so filtered counts work for background-loaded dates
         const grouped = totelepepService.groupMatchesByDate(sortedMatches);
         setAllLoadedMatches(prev => ({
@@ -1017,7 +1019,8 @@ function App() {
       
       // For SMS Pariaz (loads all at once), trigger auto-load after date completes
       // Totelepep handles this via onMarketProgress callback, but SMS Pariaz has no progressive loading
-      if (isSmspariaz() && dateToFetch && fetchedMatches.length > 0) {
+      // Use captured sourceId (not dynamic isSmspariaz()) to prevent race conditions when source changes during load
+      if (sourceId === 'smspariaz' && dateToFetch && fetchedMatches.length > 0) {
         // Mark date as complete
         setDateProgress(prev => ({
           ...prev,

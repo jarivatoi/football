@@ -959,9 +959,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       setIsDetectingBonus(true);
 
       try {
-        // Place a Rs 50 reference bet
+        // Place a Rs 50 reference bet - use source-appropriate bet function
         const referenceStake = 50;
-        const result: any = await placeTotelepepBet([mainBetSelection], referenceStake, selectedSource);
+        const placeRefBet = selectedSource?.id === 'smspariaz' ? placeSmspariazBet : placeTotelepepBet;
+        const result: any = await placeRefBet([mainBetSelection], referenceStake, selectedSource);
 
         // Check if reference bet was successful
         if (!result.success) {

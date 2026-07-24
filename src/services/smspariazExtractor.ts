@@ -172,7 +172,7 @@ class SmspariazExtractor {
       this.selectionsMap = data.selections || {};
       this.dateList = data.date || [];
     } catch (e) {
-      console.error('[SMS Pariaz] Failed to fetch metadata:', e);
+      // Metadata fetch failed silently
     }
   }
 
@@ -374,7 +374,6 @@ class SmspariazExtractor {
         fetchPromises.push(
           this.fetchWithFallback(cacheUrl).then((cacheData) => {
             if (!cacheData || typeof cacheData !== 'object') {
-              console.warn(`[SMS Pariaz] Cache file ${i}: invalid data, type:`, typeof cacheData, 'value:', String(cacheData).substring(0, 200));
               return;
             }
             
@@ -405,8 +404,8 @@ class SmspariazExtractor {
                 });
               }
             });
-          }).catch((err) => {
-            console.warn(`[SMS Pariaz] Failed to fetch cache file ${i}:`, err.message || err);
+          }).catch(() => {
+            // Cache file not found (404) - expected for some indices
           })
         );
       }
@@ -415,7 +414,6 @@ class SmspariazExtractor {
 
       return matches;
     } catch (error) {
-      console.error('[SMS Pariaz] Extract failed:', error);
       return [];
     }
   }
@@ -487,7 +485,6 @@ class SmspariazExtractor {
         response: { html, rawPayout, taxAmount, payoutAfterTax },
       };
     } catch (error) {
-      console.error('[SMS Pariaz] Bet placement failed:', error);
       return {
         success: false,
         message: `Bet placement failed: ${error}`,
