@@ -1251,8 +1251,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   const potentialReturn = betAmount * totalOdds;
   
   // After successful bet, extract detailed breakdown from API response
-  // Unified breakdown — works for any API source since both placeTotelepepBet
-  // and placeSmspariazBet return the same response shape with top-level totals
+  // Unified breakdown — works for any API source.
+  // Top-level taxAmount/bonusAmount used first (SMS Pariaz always has them),
+  // falls back to summing betList (Totelepep puts values per-bet only).
   const apiBreakdown = useMemo(() => {
     if (!lastResult || !lastResult.success || !lastResult.fullResponse) {
       return null;
@@ -1264,8 +1265,16 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
     const stake = parse(r.multiStake, betAmount.toString());
     const apiPotentialPayout = parse(r.potentialPayout || lastResult.potentialPayout);
-    const taxAmount = parse(r.taxAmount);
-    const bonusAmount = parse(r.bonusAmount);
+
+    // Try top-level first; if 0/missing, sum from betList
+    let taxAmount = parse(r.taxAmount);
+    let bonusAmount = parse(r.bonusAmount);
+    if (taxAmount === 0 && r.betList?.length > 0) {
+      taxAmount = r.betList.reduce((sum: number, bet: any) => sum + (parse(bet.taxAmount)), 0);
+    }
+    if (bonusAmount === 0 && r.betList?.length > 0) {
+      bonusAmount = r.betList.reduce((sum: number, bet: any) => sum + (parse(bet.bonusAmount)), 0);
+    }
 
     return {
       stake,
@@ -1511,10 +1520,16 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         });
 
         // Auto-save booking to IndexedDB with API response data
-        // Always use top-level totals (source-agnostic — works for both Totelepep and SMS Pariaz)
+        // Top-level first; fall back to summing betList (Totelepep puts values per-bet)
         const parseVal = (val: any) => parseFloat((val || '0').toString().replace(/,/g, '')) || 0;
         let taxToSave = parseVal(bookingResult.taxAmount);
         let bonusToSave = parseVal(bookingResult.bonusAmount);
+        if (taxToSave === 0 && bookingResult.betList?.length > 0) {
+          taxToSave = bookingResult.betList.reduce((s: number, b: any) => s + parseVal(b.taxAmount), 0);
+        }
+        if (bonusToSave === 0 && bookingResult.betList?.length > 0) {
+          bonusToSave = bookingResult.betList.reduce((s: number, b: any) => s + parseVal(b.bonusAmount), 0);
+        }
         let netPayoutToSave = parseVal(bookingResult.potentialPayout);
 
         saveBooking({
@@ -1546,10 +1561,16 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         });
         
         // Auto-save booking to IndexedDB with API response data
-        // Always use top-level totals (source-agnostic — works for both Totelepep and SMS Pariaz)
+        // Top-level first; fall back to summing betList (Totelepep puts values per-bet)
         const parseVal2 = (val: any) => parseFloat((val || '0').toString().replace(/,/g, '')) || 0;
         let taxToSave = parseVal2(bookingResult.taxAmount);
         let bonusToSave = parseVal2(bookingResult.bonusAmount);
+        if (taxToSave === 0 && bookingResult.betList?.length > 0) {
+          taxToSave = bookingResult.betList.reduce((s: number, b: any) => s + parseVal2(b.taxAmount), 0);
+        }
+        if (bonusToSave === 0 && bookingResult.betList?.length > 0) {
+          bonusToSave = bookingResult.betList.reduce((s: number, b: any) => s + parseVal2(b.bonusAmount), 0);
+        }
         let netPayoutToSave = parseVal2(bookingResult.potentialPayout);
         
         saveBooking({
