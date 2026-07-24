@@ -3163,6 +3163,18 @@ function App() {
     }
 
 
+    // Resolve selectionId from allMarkets if not passed directly (same as handlePriceClick)
+    let resolvedSelectionId = selectionId || '';
+    if (!resolvedSelectionId && match.allMarkets && match.allMarkets.length > 0) {
+      const mainMarket = match.allMarkets.find((m: any) => m.marketCode === 'CP' && (m.periodCode === 'FT' || !m.periodCode));
+      if (mainMarket && mainMarket.selections) {
+        const selIndex = priceType === 'home' ? 0 : priceType === 'draw' ? 1 : priceType === 'away' ? 2 : -1;
+        if (selIndex >= 0 && mainMarket.selections[selIndex]) {
+          resolvedSelectionId = mainMarket.selections[selIndex].selectionId || '';
+        }
+      }
+    }
+
     // Create main bet selection
     const mainSelection: ParlaySelection = {
       matchId,
@@ -3182,7 +3194,7 @@ function App() {
       optionCode,
       optionNo,
       optionName,
-      selectionId,
+      selectionId: resolvedSelectionId,
       competitionName: match.league,
       competitionId: match.competitionId
     };
@@ -3245,6 +3257,7 @@ function App() {
             optionCode: sel.optionCode,
             optionNo: sel.optionNo,
             optionName: sel.name,
+            selectionId: sel.selectionId || '',
             competitionId: match.competitionId
           });
         });
