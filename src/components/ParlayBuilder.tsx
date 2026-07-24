@@ -1251,39 +1251,24 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   const potentialReturn = betAmount * totalOdds;
   
   // After successful bet, extract detailed breakdown from API response
+  // Unified breakdown — works for any API source since both placeTotelepepBet
+  // and placeSmspariazBet return the same response shape with top-level totals
   const apiBreakdown = useMemo(() => {
     if (!lastResult || !lastResult.success || !lastResult.fullResponse) {
       return null;
     }
     
-    const fullResponse = lastResult.fullResponse;
-    const betList = fullResponse.betList;
-    // For multi-bets, betList is empty - use top-level fields
-    const isMultiBet = !betList || betList.length === 0;
-    
-    let stake: number;
-    let apiPotentialPayout: number;
-    let taxAmount: number;
-    let bonusAmount: number;
-    
-    if (isMultiBet) {
-      
-      // Remove commas before parsing (API returns "2,546" not "2546")
-      stake = parseFloat((fullResponse.multiStake || betAmount.toString()).replace(/,/g, ''));
-      apiPotentialPayout = parseFloat((fullResponse.potentialPayout || lastResult.potentialPayout || '0').replace(/,/g, ''));
-      taxAmount = parseFloat((fullResponse.taxAmount || '0').replace(/,/g, '')) || 0;
-      bonusAmount = parseFloat((fullResponse.bonusAmount || '0').replace(/,/g, '')) || 0;
-    } else {
-      const firstBet = betList[0];
-      // Remove commas before parsing
-      stake = parseFloat((firstBet.stake || betAmount.toString()).replace(/,/g, ''));
-      apiPotentialPayout = parseFloat((firstBet.potentialPayout || lastResult.potentialPayout || '0').replace(/,/g, ''));
-      // Always use top-level taxAmount/bonusAmount for totals (betList items may contain per-selection values for SMS Pariaz parlays)
-      taxAmount = parseFloat((fullResponse.taxAmount || firstBet.taxAmount || '0').replace(/,/g, '')) || 0;
-      bonusAmount = parseFloat((fullResponse.bonusAmount || firstBet.bonusAmount || '0').replace(/,/g, '')) || 0;
-    }
+    const r = lastResult.fullResponse;
+    const parse = (val: string | undefined | null, fallback = '0') =>
+      parseFloat((val || fallback).toString().replace(/,/g, '')) || 0;
+
+    const stake = parse(r.multiStake, betAmount.toString());
+    const apiPotentialPayout = parse(r.potentialPayout || lastResult.potentialPayout);
+    const taxAmount = parse(r.taxAmount);
+    const bonusAmount = parse(r.bonusAmount);
+
     return {
-      stake: stake,
+      stake,
       tax: taxAmount,
       bonus: bonusAmount,
       potentialPayout: apiPotentialPayout,
@@ -1526,22 +1511,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         });
 
         // Auto-save booking to IndexedDB with API response data
-        // Extract tax and bonus from bookingResult (same logic as apiBreakdown)
-        const betList = bookingResult.betList;
-        const isMultiBet = !betList || betList.length === 0;
-        let taxToSave = 0;
-        let bonusToSave = 0;
-        let netPayoutToSave = parseFloat((bookingResult.potentialPayout || '0').replace(/,/g, '')) || 0;
-
-        if (isMultiBet) {
-          // Multi-bet: use top-level fields
-          taxToSave = parseFloat((bookingResult.taxAmount || '0').replace(/,/g, '')) || 0;
-          bonusToSave = parseFloat((bookingResult.bonusAmount || '0').replace(/,/g, '')) || 0;
-        } else {
-          // Single bet or parlay: sum from betList
-          taxToSave = betList.reduce((sum: number, bet: any) => sum + (parseFloat((bet.taxAmount || '0').replace(/,/g, '')) || 0), 0);
-          bonusToSave = betList.reduce((sum: number, bet: any) => sum + (parseFloat((bet.bonusAmount || '0').replace(/,/g, '')) || 0), 0);
-        }
+        // Always use top-level totals (source-agnostic — works for both Totelepep and SMS Pariaz)
+        const parseVal = (val: any) => parseFloat((val || '0').toString().replace(/,/g, '')) || 0;
+        let taxToSave = parseVal(bookingResult.taxAmount);
+        let bonusToSave = parseVal(bookingResult.bonusAmount);
+        let netPayoutToSave = parseVal(bookingResult.potentialPayout);
 
         saveBooking({
           ticketNo: bookingResult.ticketNo || '',
@@ -1572,33 +1546,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         });
         
         // Auto-save booking to IndexedDB with API response data
-        // Extract tax and bonus from bookingResult (same logic as apiBreakdown)
-        const betList = bookingResult.betList;
-        const isMultiBet = !betList || betList.length === 0;
-        let taxToSave = 0;
-        let bonusToSave = 0;
-        let netPayoutToSave = parseFloat((bookingResult.potentialPayout || '0').replace(/,/g, '')) || 0;
+        // Always use top-level totals (source-agnostic — works for both Totelepep and SMS Pariaz)
+        const parseVal2 = (val: any) => parseFloat((val || '0').toString().replace(/,/g, '')) || 0;
+        let taxToSave = parseVal2(bookingResult.taxAmount);
+        let bonusToSave = parseVal2(bookingResult.bonusAmount);
+        let netPayoutToSave = parseVal2(bookingResult.potentialPayout);
         
-        if (isMultiBet) {
-          // Multi-bet: use top-level fields
-          taxToSave = parseFloat((bookingResult.taxAmount || '0').replace(/,/g, '')) || 0;
-          bonusToSave = parseFloat((bookingResult.bonusAmount || '0').replace(/,/g, '')) || 0;
-        } else {
-          // Single bet or parlay: sum from betList
-          taxToSave = betList.reduce((sum: number, bet: any) => sum + (parseFloat((bet.taxAmount || '0').replace(/,/g, '')) || 0), 0);
-          bonusToSave = betList.reduce((sum: number, bet: any) => sum + (parseFloat((bet.bonusAmount || '0').replace(/,/g, '')) || 0), 0);
-        }
-        
-        saveBooking({
-          ticketNo: bookingResult.ticketNo || '',
-          selections: [...selections],
-          stake: betAmount,
-          potentialWin: bookingResult.potentialPayout,
-          tax: taxToSave,
-          bonus: bonusToSave,
-          netPayout: netPayoutToSave
-        });
-
         saveBooking({
           ticketNo: bookingResult.ticketNo || '',
           selections: [...selections],
