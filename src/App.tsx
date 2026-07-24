@@ -203,16 +203,20 @@ function App() {
     
     setSelectedSource(source);
     
+    // Set source ID on extractor IMMEDIATELY so all subsequent operations use correct source
+    // This must happen before any cache/load operations to avoid race conditions
+    (totelepepExtractor as any).currentSourceId = source.id;
+    
     // Save to localStorage
     localStorage.setItem('selectedApiSource', JSON.stringify(source));
     
-    // Only update totelepepExtractor if NOT switching to SMS Pariaz
+    // Always cancel Totelepep background loading when switching sources
+    // This prevents stale Totelepep callbacks from overwriting new source data
+    totelepepExtractor.cancelAllBackgroundLoading();
+    
     if (source.id !== 'smspariaz') {
       // Update the extractor base URL
       (totelepepExtractor as any).baseUrl = source.baseUrl;
-      
-      // Cancel ALL background loading tasks from previous source
-      totelepepExtractor.cancelAllBackgroundLoading();
       
       // Clear in-memory cache ONLY (keep IndexedDB caches for each source)
       totelepepExtractor.clearCache();
@@ -371,21 +375,10 @@ function App() {
     }
     
     // If no cache found or error, reload data with new source
-    
-    if (showAllMatches) {
-      
-      loadAllMatches('', '');
-    } else if (selectedDate) {
-      // Temporarily set the source ID on the extractor so loadData uses the correct source
-      // This fixes the race condition where selectedSource state hasn't updated yet
-      (totelepepExtractor as any).currentSourceId = source.id;
-      
+    // Don't call loadAllMatches here - allLoadedMatches state is stale (React async)
+    // The cache restoration above or auto-load will handle loading data for the new source
+    if (!showAllMatches && selectedDate) {
       loadData(selectedDate, '', '', true); // forceFresh=true to ensure API fetch
-      
-      // Clear the temp source ID after a short delay to not interfere with subsequent loads
-      setTimeout(() => {
-        delete (totelepepExtractor as any).currentSourceId;
-      }, 1000);
     }
   };
   
@@ -1022,6 +1015,26 @@ function App() {
       
       setLastUpdated(new Date());
       
+      // For SMS Pariaz (loads all at once), trigger auto-load after date completes
+      // Totelepep handles this via onMarketProgress callback, but SMS Pariaz has no progressive loading
+      if (isSmspariaz() && dateToFetch && fetchedMatches.length > 0) {
+        // Mark date as complete
+        setDateProgress(prev => ({
+          ...prev,
+          [dateToFetch]: {
+            loaded: validMatches.length,
+            total: validMatches.length,
+            isComplete: true
+          }
+        }));
+        
+        // Merge into All Matches cache
+        await mergeDateIntoAllMatches(dateToFetch, sourceId, catId || 'all', compId || 'all');
+        
+        // Trigger auto-load for next date
+        autoLoadNextDate(dateToFetch, sourceId, catId || 'all', compId || 'all');
+      }
+      
     } catch (error) {
       setError('Failed to load data. Please try again.');
     } finally {
@@ -1157,10 +1170,8 @@ function App() {
         return;
       }
       
-      // Set currentSourceId for SMS Pariaz so loadData routes correctly
-      if (sourceId === 'smspariaz') {
-        (totelepepExtractor as any).currentSourceId = 'smspariaz';
-      }
+      // Set currentSourceId dynamically so loadData routes correctly for any source
+      (totelepepExtractor as any).currentSourceId = sourceId;
       
       // Load the next date in background
       loadData(nextDate, categoryId === 'all' ? undefined : categoryId, 
@@ -1434,9 +1445,7 @@ function App() {
   useEffect(() => {
 
     // Set source ID on extractor immediately so all loadData calls use correct source
-    if (selectedSource?.id === 'smspariaz') {
-      (totelepepExtractor as any).currentSourceId = 'smspariaz';
-    }
+    (totelepepExtractor as any).currentSourceId = selectedSource?.id || 'totelepep';
 
     // Cancel ALL existing background loading tasks first
     // This prevents multiple tasks from running simultaneously on app reload
@@ -1515,18 +1524,16 @@ function App() {
 
             // Still load the first date in background to ensure it's fresh
             if (firstDate) {
-              if (isSmspariazSource) {
-                (totelepepExtractor as any).currentSourceId = 'smspariaz';
-              } else {
+              (totelepepExtractor as any).currentSourceId = selectedSource?.id || 'totelepep';
+              if (!isSmspariazSource) {
                 (totelepepExtractor as any).cache = new Map();
               }
               loadData(firstDate, selectedCategory, selectedCompetition, true);
             }
           } else if (firstDate) {
             // Load first date as fallback
-            if (isSmspariazSource) {
-              (totelepepExtractor as any).currentSourceId = 'smspariaz';
-            } else {
+            (totelepepExtractor as any).currentSourceId = selectedSource?.id || 'totelepep';
+            if (!isSmspariazSource) {
               (totelepepExtractor as any).cache = new Map();
             }
             loadData(firstDate, selectedCategory, selectedCompetition, true);
