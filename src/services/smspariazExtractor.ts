@@ -147,8 +147,15 @@ class SmspariazExtractor {
           } catch {
             return text;
           }
+        } else if (response.status === 404) {
+          // File doesn't exist - don't try other proxies, fail immediately
+          throw new Error(`404 Not Found: ${url}`);
         }
       } catch (e) {
+        // If it's a 404 error, re-throw immediately (don't try other proxies)
+        if (e instanceof Error && e.message.includes('404')) {
+          throw e;
+        }
         continue;
       }
     }

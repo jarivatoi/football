@@ -1479,7 +1479,16 @@ function App() {
         await clearCacheMatches(allMatchesCacheKey);
 
         // NOW it's safe to load data
+        // Capture the source ID at startup to detect if user switched sources during loading
+        const startupSourceId = selectedSource?.id || 'totelepep';
+        
         loadCalendarList().then(async () => {
+          // Guard: if user switched sources during this async chain, bail out
+          const currentEffectiveSourceId = (totelepepExtractor as any).currentSourceId || selectedSource?.id || 'totelepep';
+          if (currentEffectiveSourceId !== startupSourceId) {
+            return; // Source changed since startup began, don't interfere
+          }
+          
           // Get first date based on source - SMS Pariaz uses state, Totelepep uses extractor
           const isSmspariazSource = selectedSource?.id === 'smspariaz';
           let firstDate: string | undefined;
