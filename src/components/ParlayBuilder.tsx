@@ -2457,8 +2457,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
         {/* Booking Result Display - Match list + booking ref, SMS, and stake info */}
         {lastResult && lastResult.success && lastResult.fullResponse && lastResult.fullResponse.betList && (
-          <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white order-1">
-            <div ref={bookingRefRef} className="bg-white max-h-[60vh] overflow-y-auto">
+          <div className="flex-1 border-2 border-green-500 rounded-lg overflow-hidden bg-white order-1 flex flex-col">
+            <div ref={bookingRefRef} className="bg-white h-full overflow-y-auto flex-1">
               {/* Match List - Same as refund mode, not scrollable */}
               {selections.map((selection, index) => {
                   const bet = lastResult.fullResponse.betList?.[index] || {};
@@ -2603,8 +2603,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
         {/* Bet Refund Mode - Dual Booking Result Display */}
         {betRefundMode && lastResult && lastResult.success && lastResult.fullResponse?.mainBet && lastResult.fullResponse?.refundBet && (
-          <div className="mb-4 border-2 border-green-500 rounded-lg overflow-hidden bg-white order-1">
-            <div ref={bookingRefRef} className="bg-white max-h-[60vh] overflow-y-auto">
+          <div className="flex-1 border-2 border-green-500 rounded-lg overflow-hidden bg-white order-1 flex flex-col">
+            <div ref={bookingRefRef} className="bg-white h-full overflow-y-auto flex-1">
               {/* Header */}
               <div className="p-3 bg-green-100 border-b border-green-200">
                 <div className="text-center font-bold text-green-800">🎯 Bet Refund Mode - Both Bets Placed</div>
