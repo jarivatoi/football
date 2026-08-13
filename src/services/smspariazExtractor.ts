@@ -4,6 +4,8 @@
  * so the rest of the app can use it transparently.
  */
 
+import { saveMatchesChunk, getChunkSize } from '../utils/matchCache';
+
 // Reuse the same match type as totelepep
 export interface SmspariazMatch {
   id: string;
@@ -347,10 +349,14 @@ class SmspariazExtractor {
    * Returns matches with main 1X2 market immediately, then progressively loads additional markets
    * (same pattern as Totelepep's progressive market loading)
    */
-  async extractMatches(targetDate?: string): Promise<SmspariazMatch[]> {
+  async extractMatches(targetDate?: string, categoryId?: string, competitionId?: string): Promise<SmspariazMatch[]> {
     try {
       // Cancel any previous progressive loading
       this.cancelProgressiveLoading();
+
+      // Construct cache key (same format as Totelepep)
+      const sourceId = 'smspariaz';
+      const cacheKey = targetDate ? `date_${targetDate}_${categoryId || 'all'}_${competitionId || 'all'}_${sourceId}` : `all_dates_${new Date().toISOString().split('T')[0]}_${sourceId}`;
 
       // Step 1: Fetch metadata (markets map, selections map, date list)
       await this.fetchOddsMetadata();
@@ -426,9 +432,21 @@ class SmspariazExtractor {
         return basic;
       });
 
-      // Step 5: Start progressive background loading of additional markets
+      // Step 5: Save basic matches to IndexedDB (same as Totelepep)
+      if (basicMatches.length > 0) {
+        const chunkSize = getChunkSize();
+        const totalMatches = basicMatches.length;
+        for (let i = 0; i < totalMatches; i += chunkSize) {
+          const chunk = basicMatches.slice(i, i + chunkSize);
+          const loadedCount = Math.min(i + chunkSize, totalMatches);
+          const isComplete = loadedCount >= totalMatches;
+          await saveMatchesChunk(chunk, cacheKey, loadedCount, totalMatches, isComplete);
+        }
+      }
+
+      // Step 6: Start progressive background loading of additional markets
       if (basicMatches.length > 0 && targetDate) {
-        this.startProgressiveMarketLoad(basicMatches, targetDate);
+        this.startProgressiveMarketLoad(basicMatches, targetDate, cacheKey);
       }
 
       return basicMatches;
@@ -453,7 +471,7 @@ class SmspariazExtractor {
   /**
    * Progressively populate additional markets in batches (same pattern as Totelepep)
    */
-  private startProgressiveMarketLoad(matches: SmspariazMatch[], date: string): void {
+  private startProgressiveMarketLoad(matches: SmspariazMatch[], date: string, cacheKey: string): void {
     this._progressiveCancelled = false;
     const totalMatches = matches.length;
     const chunkSize = 10;
@@ -485,22 +503,10 @@ class SmspariazExtractor {
           this.onMarketProgress(date, loadedCount, totalMatches);
         }
 
-        // Update IndexedDB cache with this chunk
+        // Update this chunk in IndexedDB with markets (same as Totelepep)
         try {
-          const { getCachedMatches, updateMatchesInCache } = await import('../utils/matchCache');
-          const sourceId = 'smspariaz';
-          const cacheKey = `date_${date}_all_all_${sourceId}`;
-          const { matches: cachedMatches } = await getCachedMatches(cacheKey);
-          if (cachedMatches && cachedMatches.length > 0) {
-            // Update the cached matches with the newly loaded markets
-            for (const updatedMatch of chunk) {
-              const idx = cachedMatches.findIndex((m: any) => m.id === updatedMatch.id);
-              if (idx >= 0) {
-                cachedMatches[idx] = { ...cachedMatches[idx], ...updatedMatch };
-              }
-            }
-            await updateMatchesInCache(cachedMatches, cacheKey, totalMatches);
-          }
+          const { updateMatchesInCache } = await import('../utils/matchCache');
+          await updateMatchesInCache(chunk, cacheKey, totalMatches);
         } catch {
           // Cache update failed - non-critical
         }
@@ -509,6 +515,11 @@ class SmspariazExtractor {
         const nextIndex = startIndex + chunkSize;
         if (nextIndex < totalMatches) {
           processChunk(nextIndex);
+        } else {
+          // Final progress update (ensure complete)
+          if (this.onMarketProgress) {
+            this.onMarketProgress(date, totalMatches, totalMatches);
+          }
         }
       }, 30); // 30ms delay between chunks
 

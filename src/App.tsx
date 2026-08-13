@@ -862,8 +862,8 @@ function App() {
       // Fetch matches from the appropriate API source
       let fetchedMatches: any[];
       if (isSmspariaz()) {
-        // SMS Pariaz source - use SMS Pariaz extractor
-        fetchedMatches = await smspariazExtractor.extractMatches(dateToFetch);
+        // SMS Pariaz source - use SMS Pariaz extractor (same params as Totelepep)
+        fetchedMatches = await smspariazExtractor.extractMatches(dateToFetch, catId, compId);
       } else {
         // Totelepep-compatible sources
         fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId, undefined, forceFresh);
@@ -1022,25 +1022,9 @@ function App() {
       
       setLastUpdated(new Date());
       
-      // For SMS Pariaz, mark date as complete for initial load (matches displayable with 1X2)
-      // Progressive market loading happens in background and updates cache via onMarketProgress
-      if (sourceId === 'smspariaz' && dateToFetch && fetchedMatches.length > 0) {
-        // Mark date as complete (basic markets are loaded, additional markets loading in background)
-        setDateProgress(prev => ({
-          ...prev,
-          [dateToFetch]: {
-            loaded: validMatches.length,
-            total: validMatches.length,
-            isComplete: true
-          }
-        }));
-        
-        // Merge into All Matches cache
-        await mergeDateIntoAllMatches(dateToFetch, sourceId, catId || 'all', compId || 'all');
-        
-        // Trigger auto-load for next date
-        autoLoadNextDate(dateToFetch, sourceId, catId || 'all', compId || 'all');
-      }
+      // Both SMS Pariaz and Totelepep: let onMarketProgress handle date completion
+      // (progressive market loading reports progress via onMarketProgress callback)
+      // When loaded >= total, marketProgressHandler marks date as complete and triggers auto-merge
       
     } catch (error) {
       setError('Failed to load data. Please try again.');
