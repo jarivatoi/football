@@ -1276,11 +1276,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
     return {
       stake,
-      tax: taxAmount,
-      bonus: bonusAmount,
-      potentialPayout: apiPotentialPayout,
-      netPayout: apiPotentialPayout,
-      finalPayout: apiPotentialPayout + bonusAmount
+      tax: Math.round(taxAmount),
+      bonus: Math.round(bonusAmount),
+      potentialPayout: Math.round(apiPotentialPayout),
+      netPayout: Math.round(apiPotentialPayout),
+      finalPayout: Math.round(apiPotentialPayout + bonusAmount)
     };
   }, [lastResult, betAmount]);
 
@@ -1385,12 +1385,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         });
         
         // Save ONE combined booking with both refs and their individual financial data
-        const mainTax = parseFloat(String(mainBetResult.betList?.[0]?.taxAmount || '0').replace(/,/g, ''));
-        const mainBonus = parseFloat(String(mainBetResult.betList?.[0]?.bonusAmount || '0').replace(/,/g, ''));
-        const mainNetPayout = parseFloat(String(mainBetResult.betList?.[0]?.payout || mainBetResult.potentialPayout || '0').replace(/,/g, ''));
-        const refundTax = parseFloat(String(refundBetResult.betList?.[0]?.taxAmount || '0').replace(/,/g, ''));
-        const refundBonus = parseFloat(String(refundBetResult.betList?.[0]?.bonusAmount || '0').replace(/,/g, ''));
-        const refundNetPayout = parseFloat(String(refundBetResult.betList?.[0]?.payout || refundBetResult.potentialPayout || '0').replace(/,/g, ''));
+        const mainTax = Math.round(parseFloat(String(mainBetResult.betList?.[0]?.taxAmount || '0').replace(/,/g, '')));
+        const mainBonus = Math.round(parseFloat(String(mainBetResult.betList?.[0]?.bonusAmount || '0').replace(/,/g, '')));
+        const mainNetPayout = Math.round(parseFloat(String(mainBetResult.betList?.[0]?.payout || mainBetResult.potentialPayout || '0').replace(/,/g, '')));
+        const refundTax = Math.round(parseFloat(String(refundBetResult.betList?.[0]?.taxAmount || '0').replace(/,/g, '')));
+        const refundBonus = Math.round(parseFloat(String(refundBetResult.betList?.[0]?.bonusAmount || '0').replace(/,/g, '')));
+        const refundNetPayout = Math.round(parseFloat(String(refundBetResult.betList?.[0]?.payout || refundBetResult.potentialPayout || '0').replace(/,/g, '')));
         
         saveBooking({
           ticketNo: `${mainBetResult.ticketNo} - ${refundBetResult.ticketNo}`,
@@ -2636,13 +2636,13 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 {/* Detailed breakdown - always show when potentialPayout exists */}
                 {lastResult.fullResponse.mainBet.potentialPayout && apiBreakdown && (() => {
                   const mainBetList = lastResult.fullResponse.mainBet.betList;
-                  const mainTax = mainBetList && mainBetList.length > 0 ? parseFloat((mainBetList[0].taxAmount || '0').replace(/,/g, '')) : 0;
+                  const mainTax = mainBetList && mainBetList.length > 0 ? Math.round(parseFloat((mainBetList[0].taxAmount || '0').replace(/,/g, ''))) : 0;
                   const mainBonus = mainBetList && mainBetList.length > 0 ? parseFloat((mainBetList[0].bonusAmount || '0').replace(/,/g, '')) : 0;
                   const mainNetPayout = mainBetList && mainBetList.length > 0 ? parseFloat((mainBetList[0].payout || mainBetList[0].potentialPayout || '0').replace(/,/g, '')) : 0;
                   
                   // Use apiBreakdown for bonus % if individual bet bonus is 0
-                  const displayBonus = mainBonus > 0 ? mainBonus : apiBreakdown.bonus;
-                  const displayPayout = mainNetPayout > 0 ? mainNetPayout : apiBreakdown.netPayout;
+                  const displayBonus = Math.round(mainBonus > 0 ? mainBonus : apiBreakdown.bonus);
+                  const displayPayout = Math.round(mainNetPayout > 0 ? mainNetPayout : apiBreakdown.netPayout);
                   
                   return (
                   <div className="p-3 bg-blue-50 border-t border-blue-200">
@@ -2715,13 +2715,13 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 {/* Detailed breakdown - always show when potentialPayout exists */}
                 {lastResult.fullResponse.refundBet.potentialPayout && apiBreakdown && (() => {
                   const refundBetList = lastResult.fullResponse.refundBet.betList;
-                  const refundTax = refundBetList && refundBetList.length > 0 ? parseFloat((refundBetList[0].taxAmount || '0').replace(/,/g, '')) : 0;
+                  const refundTax = refundBetList && refundBetList.length > 0 ? Math.round(parseFloat((refundBetList[0].taxAmount || '0').replace(/,/g, ''))) : 0;
                   const refundBonus = refundBetList && refundBetList.length > 0 ? parseFloat((refundBetList[0].bonusAmount || '0').replace(/,/g, '')) : 0;
                   const refundNetPayout = refundBetList && refundBetList.length > 0 ? parseFloat((refundBetList[0].payout || refundBetList[0].potentialPayout || '0').replace(/,/g, '')) : 0;
                   
                   // Use apiBreakdown for bonus % if individual bet bonus is 0
-                  const displayBonus = refundBonus > 0 ? refundBonus : apiBreakdown.bonus;
-                  const displayPayout = refundNetPayout > 0 ? refundNetPayout : apiBreakdown.netPayout;
+                  const displayBonus = Math.round(refundBonus > 0 ? refundBonus : apiBreakdown.bonus);
+                  const displayPayout = Math.round(refundNetPayout > 0 ? refundNetPayout : apiBreakdown.netPayout);
                   
                   return (
                   <div className="p-3 bg-blue-50 border-t border-blue-200">
