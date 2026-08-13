@@ -1022,18 +1022,24 @@ function App() {
       
       setLastUpdated(new Date());
       
-      // For SMS Pariaz, progressive market loading is now handled by onMarketProgress callback
-      // (same as Totelepep). The callback will mark date as complete when all markets are loaded.
-      // Set initial progress to show matches are loading (basic 1X2 returned, markets loading in background)
+      // For SMS Pariaz, mark date as complete for initial load (matches displayable with 1X2)
+      // Progressive market loading happens in background and updates cache via onMarketProgress
       if (sourceId === 'smspariaz' && dateToFetch && fetchedMatches.length > 0) {
+        // Mark date as complete (basic markets are loaded, additional markets loading in background)
         setDateProgress(prev => ({
           ...prev,
           [dateToFetch]: {
-            loaded: 0,
+            loaded: validMatches.length,
             total: validMatches.length,
-            isComplete: false
+            isComplete: true
           }
         }));
+        
+        // Merge into All Matches cache
+        await mergeDateIntoAllMatches(dateToFetch, sourceId, catId || 'all', compId || 'all');
+        
+        // Trigger auto-load for next date
+        autoLoadNextDate(dateToFetch, sourceId, catId || 'all', compId || 'all');
       }
       
     } catch (error) {
