@@ -127,6 +127,12 @@ class SmspariazExtractor {
   private marketsMap: Record<string, string> = {};
   private selectionsMap: Record<string, string> = {};
   private dateList: Array<{ date: string; num: number; text: string }> = [];
+
+  // Progressive market loading (same pattern as Totelepep)
+  public onMarketProgress: ((date: string, loaded: number, total: number) => void) | null = null;
+  private _fullMatchesMap = new Map<string, SmspariazMatch>();
+  private _progressiveTimerIds: number[] = [];
+  private _progressiveCancelled = false;
   
   async fetchWithFallback(url: string): Promise<any> {
     const encodedUrl = encodeURIComponent(url);
@@ -203,8 +209,9 @@ class SmspariazExtractor {
 
   /**
    * Convert a SMS Pariaz match object to our internal TotelepepMatch format
+   * When fullMarkets=false, only the main 1X2 market is included (for progressive loading)
    */
-  private convertMatch(match: any, countryName: string, leagueName: string, dateStr: string): SmspariazMatch {
+  private convertMatch(match: any, countryName: string, leagueName: string, dateStr: string, fullMarkets = true): SmspariazMatch {
     const matchCode = String(match.c);
     const matchId = String(match.i);
     const kickoff = match.t || '';
@@ -235,8 +242,8 @@ class SmspariazExtractor {
       ]
     });
 
-    // Add other markets
-    if (match.market) {
+    // Add other markets (only when fullMarkets=true for progressive loading)
+    if (fullMarkets && match.market) {
       Object.keys(match.market).forEach((spMarketCode) => {
         if (spMarketCode === '1') return; // Skip main market (already added)
         
@@ -244,7 +251,7 @@ class SmspariazExtractor {
         const mapped = mapMarketCode(spMarketCode);
         const marketName = this.getMarketName(spMarketCode);
         
-        const selections: SmspariazMatch['allMarkets'] extends (infer T)[] ? T extends { selections: infer S } ? S : never : never = [];
+        const selections: Array<{name: string; odds: number | string; optionCode?: string; optionNo?: string; selectionId?: string; optionName?: string}> = [];
 
         if (marketData.s) {
           Object.keys(marketData.s).forEach((selId) => {
@@ -337,10 +344,14 @@ class SmspariazExtractor {
 
   /**
    * Main method: Extract matches for a given date
-   * Returns TotelepepMatch[] compatible format
+   * Returns matches with main 1X2 market immediately, then progressively loads additional markets
+   * (same pattern as Totelepep's progressive market loading)
    */
   async extractMatches(targetDate?: string): Promise<SmspariazMatch[]> {
     try {
+      // Cancel any previous progressive loading
+      this.cancelProgressiveLoading();
+
       // Step 1: Fetch metadata (markets map, selections map, date list)
       await this.fetchOddsMetadata();
 
@@ -357,28 +368,22 @@ class SmspariazExtractor {
       if (oddsData.date) this.dateList = oddsData.date;
 
       const numFiles = oddsData.nf || 0;
-      // Use targetDate (YYYY-MM-DD) as the match date, NOT oddsData.fd which is display format like "14 Jul"
       const forDate = targetDate || new Date().toISOString().split('T')[0];
 
       if (numFiles === 0) {
         return [];
       }
 
-      // Step 3: Fetch all cache files (chunked match data)
-      const matches: SmspariazMatch[] = [];
+      // Step 3: Fetch all cache files and parse FULL matches (stored for progressive loading)
+      const fullMatches: SmspariazMatch[] = [];
       const fetchPromises: Promise<void>[] = [];
 
-      // Build cache file URLs
       for (let i = 1; i <= numFiles; i++) {
         const cacheUrl = `${this.cacheBaseUrl}odds_${i}`;
         fetchPromises.push(
           this.fetchWithFallback(cacheUrl).then((cacheData) => {
-            if (!cacheData || typeof cacheData !== 'object') {
-              return;
-            }
+            if (!cacheData || typeof cacheData !== 'object') return;
             
-            // Cache data is an object with numeric keys (country indices)
-            // e.g., {"0": {id: 12, name: "Argentina", league: [...], pos: 1}, "1": {...}}
             const countryKeys = Object.keys(cacheData).filter(k => k !== 'pos');
             
             countryKeys.forEach((key) => {
@@ -394,10 +399,10 @@ class SmspariazExtractor {
                   if (league.match && Array.isArray(league.match)) {
                     league.match.forEach((match: any) => {
                       if (match.mainodds) {
-                        // Use match-specific date if available, otherwise use forDate
                         const matchDate = match.d || forDate;
-                        const converted = this.convertMatch(match, countryName, leagueName, matchDate);
-                        matches.push(converted);
+                        // Parse with ALL markets
+                        const converted = this.convertMatch(match, countryName, leagueName, matchDate, true);
+                        fullMatches.push(converted);
                       }
                     });
                   }
@@ -412,10 +417,117 @@ class SmspariazExtractor {
 
       await Promise.all(fetchPromises);
 
-      return matches;
+      // Step 4: Store full matches for progressive loading, return basic matches (1X2 only)
+      this._fullMatchesMap.clear();
+      const basicMatches: SmspariazMatch[] = fullMatches.map(full => {
+        this._fullMatchesMap.set(full.id, full);
+        // Create basic version with only main 1X2 market
+        const basic = this.convertMatchFromFull(full);
+        return basic;
+      });
+
+      // Step 5: Start progressive background loading of additional markets
+      if (basicMatches.length > 0 && targetDate) {
+        this.startProgressiveMarketLoad(basicMatches, targetDate);
+      }
+
+      return basicMatches;
     } catch (error) {
       return [];
     }
+  }
+
+  /**
+   * Create a basic match (1X2 only) from a full match
+   */
+  private convertMatchFromFull(full: SmspariazMatch): SmspariazMatch {
+    const mainMarket = full.allMarkets?.[0];
+    return {
+      ...full,
+      allMarkets: mainMarket ? [mainMarket] : [],
+      marketCount: 1,
+      availableMarkets: mainMarket ? [mainMarket.marketDisplayName || mainMarket.name] : [],
+    };
+  }
+
+  /**
+   * Progressively populate additional markets in batches (same pattern as Totelepep)
+   */
+  private startProgressiveMarketLoad(matches: SmspariazMatch[], date: string): void {
+    this._progressiveCancelled = false;
+    const totalMatches = matches.length;
+    const chunkSize = 10;
+    let loadedCount = 0;
+
+    const processChunk = (startIndex: number) => {
+      if (this._progressiveCancelled) return;
+
+      const timerId = window.setTimeout(async () => {
+        if (this._progressiveCancelled) return;
+
+        const chunk = matches.slice(startIndex, startIndex + chunkSize);
+        for (const match of chunk) {
+          const full = this._fullMatchesMap.get(match.id);
+          if (full && full.allMarkets && full.allMarkets.length > 1) {
+            // Copy all markets from full match to basic match
+            match.allMarkets = full.allMarkets;
+            match.marketCount = full.marketCount;
+            match.availableMarkets = full.availableMarkets;
+            // Also update overUnder and bothTeamsScore from full data
+            match.overUnder = full.overUnder;
+            match.bothTeamsScore = full.bothTeamsScore;
+          }
+          loadedCount++;
+        }
+
+        // Report progress
+        if (this.onMarketProgress) {
+          this.onMarketProgress(date, loadedCount, totalMatches);
+        }
+
+        // Update IndexedDB cache with this chunk
+        try {
+          const { getCachedMatches, updateMatchesInCache } = await import('../utils/matchCache');
+          const sourceId = 'smspariaz';
+          const cacheKey = `date_${date}_all_all_${sourceId}`;
+          const { matches: cachedMatches } = await getCachedMatches(cacheKey);
+          if (cachedMatches && cachedMatches.length > 0) {
+            // Update the cached matches with the newly loaded markets
+            for (const updatedMatch of chunk) {
+              const idx = cachedMatches.findIndex((m: any) => m.id === updatedMatch.id);
+              if (idx >= 0) {
+                cachedMatches[idx] = { ...cachedMatches[idx], ...updatedMatch };
+              }
+            }
+            await updateMatchesInCache(cachedMatches, cacheKey, totalMatches);
+          }
+        } catch {
+          // Cache update failed - non-critical
+        }
+
+        // Process next chunk
+        const nextIndex = startIndex + chunkSize;
+        if (nextIndex < totalMatches) {
+          processChunk(nextIndex);
+        }
+      }, 30); // 30ms delay between chunks
+
+      this._progressiveTimerIds.push(timerId);
+    };
+
+    if (totalMatches > 0) {
+      processChunk(0);
+    }
+  }
+
+  /**
+   * Cancel any ongoing progressive market loading
+   */
+  cancelProgressiveLoading(): void {
+    this._progressiveCancelled = true;
+    this._progressiveTimerIds.forEach(id => window.clearTimeout(id));
+    this._progressiveTimerIds = [];
+    this._fullMatchesMap.clear();
   }
 
   /**
@@ -493,6 +605,7 @@ class SmspariazExtractor {
   }
 
   clearCache(): void {
+    this.cancelProgressiveLoading();
     this.marketsMap = {};
     this.selectionsMap = {};
     this.dateList = [];

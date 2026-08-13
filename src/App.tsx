@@ -213,6 +213,7 @@ function App() {
     // Always cancel Totelepep background loading when switching sources
     // This prevents stale Totelepep callbacks from overwriting new source data
     totelepepExtractor.cancelAllBackgroundLoading();
+    smspariazExtractor.cancelProgressiveLoading();
     
     if (source.id !== 'smspariaz') {
       // Update the extractor base URL
@@ -778,8 +779,8 @@ function App() {
       // Track which dates have already triggered the "background loading complete" refresh
       const completedDates = new Set<string>();
       
-      // Set up market progress callback before fetching
-      totelepepExtractor.onMarketProgress = async (date, loaded, total) => {
+      // Set up market progress callback before fetching (same for both sources)
+      const marketProgressHandler = async (date: string, loaded: number, total: number) => {
         const percentage = Math.round((loaded / total) * 100);
 
         setDateProgress(prev => ({
@@ -853,6 +854,10 @@ function App() {
           }
         }
       };
+
+      // Assign progress handler to both extractors
+      totelepepExtractor.onMarketProgress = marketProgressHandler;
+      smspariazExtractor.onMarketProgress = marketProgressHandler;
 
       // Fetch matches from the appropriate API source
       let fetchedMatches: any[];
@@ -1017,25 +1022,18 @@ function App() {
       
       setLastUpdated(new Date());
       
-      // For SMS Pariaz (loads all at once), trigger auto-load after date completes
-      // Totelepep handles this via onMarketProgress callback, but SMS Pariaz has no progressive loading
-      // Use captured sourceId (not dynamic isSmspariaz()) to prevent race conditions when source changes during load
+      // For SMS Pariaz, progressive market loading is now handled by onMarketProgress callback
+      // (same as Totelepep). The callback will mark date as complete when all markets are loaded.
+      // Set initial progress to show matches are loading (basic 1X2 returned, markets loading in background)
       if (sourceId === 'smspariaz' && dateToFetch && fetchedMatches.length > 0) {
-        // Mark date as complete
         setDateProgress(prev => ({
           ...prev,
           [dateToFetch]: {
-            loaded: validMatches.length,
+            loaded: 0,
             total: validMatches.length,
-            isComplete: true
+            isComplete: false
           }
         }));
-        
-        // Merge into All Matches cache
-        await mergeDateIntoAllMatches(dateToFetch, sourceId, catId || 'all', compId || 'all');
-        
-        // Trigger auto-load for next date
-        autoLoadNextDate(dateToFetch, sourceId, catId || 'all', compId || 'all');
       }
       
     } catch (error) {
@@ -1453,6 +1451,7 @@ function App() {
     // Cancel ALL existing background loading tasks first
     // This prevents multiple tasks from running simultaneously on app reload
     totelepepExtractor.cancelAllBackgroundLoading();
+    smspariazExtractor.cancelProgressiveLoading();
     
     // Clear auto-load completion flags on app reload
     (window as any).__autoLoadCompleted = null;
@@ -3554,6 +3553,7 @@ function App() {
     
     // Cancel all active background loading tasks
     totelepepExtractor.cancelAllBackgroundLoading();
+    smspariazExtractor.cancelProgressiveLoading();
     
     // Clear auto-load completion flags (allow re-auto-loading after cache clear)
     (window as any).__autoLoadCompleted = null;
