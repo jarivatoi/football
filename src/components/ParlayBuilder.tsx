@@ -140,9 +140,14 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       // CRITICAL: Use API values if available, otherwise fall back to getOptionDetails() mapping
       // IMPORTANT: selection.optionNo must be numeric (1, 2, 3), not a letter (X, H, D, A)
       const apiOptionNo = (selection.optionNo && /^[0-9]+$/.test(selection.optionNo)) ? selection.optionNo : optionDetails.optionNo;
-      // IMPORTANT: selection.optionCode must be valid (H, D, A, O, U, etc.), not market codes like 'X'
-      const apiOptionCode = (selection.optionCode && /^[HDAOU12YNC]+$/.test(selection.optionCode)) ? selection.optionCode : optionDetails.optionCode;
-      const apiOptionName = optionDetails.optionName;  // Always use getOptionDetails for optionName
+      // IMPORTANT: selection.optionCode must be valid - allow standard codes (H, D, A, O, U, etc.)
+      // AND Correct Score codes (e.g., "1-0", "2-1", "0-0") which contain digits and dashes
+      const apiOptionCode = (selection.optionCode && selection.optionCode !== 'undefined' && selection.optionCode !== 'null' && selection.optionCode.trim() !== ''
+        && (/^[HDAOU12YNC]+$/.test(selection.optionCode) || /^\d+-\d+$/.test(selection.optionCode)))
+        ? selection.optionCode : optionDetails.optionCode;
+      // Use API optionName when available (e.g., "1-0" for Correct Score), otherwise fall back to getOptionDetails
+      const apiOptionName = selection.optionName && selection.optionName !== 'undefined' && selection.optionName !== 'null' && selection.optionName.trim() !== ''
+        ? selection.optionName : optionDetails.optionName;
       
       formData.append(`data[SingleBets][${index}][optionNo]`, apiOptionNo);
       formData.append(`data[SingleBets][${index}][optionCode]`, apiOptionCode);
