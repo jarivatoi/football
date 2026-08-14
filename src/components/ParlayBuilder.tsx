@@ -140,12 +140,13 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       // CRITICAL: Use API values if available, otherwise fall back to getOptionDetails() mapping
       // IMPORTANT: selection.optionNo must be numeric (1, 2, 3), not a letter (X, H, D, A)
       const apiOptionNo = (selection.optionNo && /^[0-9]+$/.test(selection.optionNo)) ? selection.optionNo : optionDetails.optionNo;
-      // IMPORTANT: selection.optionCode must be valid - allow standard codes (H, D, A, O, U, etc.)
-      // AND Correct Score codes (e.g., "1-0", "2-1", "0-0") which contain digits and dashes
-      const apiOptionCode = (selection.optionCode && selection.optionCode !== 'undefined' && selection.optionCode !== 'null' && selection.optionCode.trim() !== ''
-        && (/^[HDAOU12YNC]+$/.test(selection.optionCode) || /^\d+-\d+$/.test(selection.optionCode)))
+      // Trust API optionCode directly - it's the source of truth for all market types
+      // (H/D/A for 1X2, O/U for OverUnder, Y/N for BTTS, 1-0/2-1 for Correct Score, AOS for Any Other Score, etc.)
+      // Only reject clearly invalid values: empty, 'X' (old draw code), 'undefined', 'null'
+      const apiOptionCode = (selection.optionCode && selection.optionCode !== 'undefined' && selection.optionCode !== 'null' 
+        && selection.optionCode.trim() !== '' && selection.optionCode !== 'X')
         ? selection.optionCode : optionDetails.optionCode;
-      // Use API optionName when available (e.g., "1-0" for Correct Score), otherwise fall back to getOptionDetails
+      // Use API optionName when available (e.g., "1-0" for Correct Score, "AOS" for Any Other Score), otherwise fall back to getOptionDetails
       const apiOptionName = selection.optionName && selection.optionName !== 'undefined' && selection.optionName !== 'null' && selection.optionName.trim() !== ''
         ? selection.optionName : optionDetails.optionName;
       
