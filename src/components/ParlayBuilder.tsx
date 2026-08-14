@@ -457,15 +457,7 @@ const placeSmspariazBet = async (selections: ParlaySelection[], stake: number, s
       return selId;
     }).filter(id => id);
 
-    console.log('[SMS Pariaz Bet] Selections:', selections.map(s => ({
-      homeTeam: s.homeTeam, awayTeam: s.awayTeam, priceType: s.priceType,
-      selectionId: s.selectionId, optionCode: s.optionCode, optionName: s.optionName,
-      marketCode: s.marketCode, marketBookNo: s.marketBookNo
-    })));
-    console.log('[SMS Pariaz Bet] Resolved selectionIds:', selectionIds);
-
     if (selectionIds.length === 0) {
-      console.error('[SMS Pariaz Bet] No valid selection IDs found!');
       return { success: false, errorMessage: 'No valid selection IDs found' };
     }
 
@@ -511,8 +503,6 @@ const placeSmspariazBet = async (selections: ParlaySelection[], stake: number, s
     }
 
     const html = await response.text();
-    console.log('[SMS Pariaz Bet] Response status:', response.status);
-    console.log('[SMS Pariaz Bet] Response body:', html.substring(0, 500));
 
     // Parse SMS Pariaz response (returns HTML with ticket info)
     const ticketMatch = html.match(/ticket[_-]?(?:no|number|id|code)[:\s]*(\w+)/i) ||
@@ -520,10 +510,7 @@ const placeSmspariazBet = async (selections: ParlaySelection[], stake: number, s
                         html.match(/(\d{5,})/);
     
     const ticketNo = ticketMatch ? ticketMatch[1] : undefined;
-    const hasError = html.toLowerCase().includes('error');
-    const hasInvalid = html.toLowerCase().includes('invalid');
-    const success = response.ok && !hasError && !hasInvalid && !!ticketNo;
-    console.log('[SMS Pariaz Bet] ticketNo:', ticketNo, '| hasError:', hasError, '| hasInvalid:', hasInvalid, '| success:', success);
+    const success = response.ok && !html.toLowerCase().includes('error') && !html.toLowerCase().includes('invalid') && !!ticketNo;
 
     // Build bet list for UI display
     const betList = selections.map((sel, idx) => ({
