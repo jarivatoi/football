@@ -742,7 +742,6 @@ function App() {
         const allMatchesHaveMarkets = validMatches.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
         
         if (!expired && metadata?.isComplete && allMatchesHaveMarkets) {
-          console.log('[LoadData] Cache is valid and complete with all markets, returning early for date:', dateToFetch);
           const matchesWithMarkets = validMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
 
           // Only update progress if NOT currently loading in background
@@ -1108,8 +1107,6 @@ function App() {
       }
       
       // AUTO-LOAD NEXT DATE: Sequential loading after current date completes
-      console.log('[AutoLoad] === REACHED AUTO-LOAD SECTION for date:', date, '===');
-      console.log('[AutoLoad] Triggering auto-load for date:', date);
       autoLoadNextDate(date, mergeSourceId, mergeCategoryId, mergeCompetitionId);
     } catch (error) {
 
@@ -2993,19 +2990,6 @@ function App() {
   const handlePriceClick = (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string, optionName?: string, selectionId?: string) => {
     // Find the match details
     const match = matches.find(m => m.id === matchId);
-    
-    console.log('[Price Click] Full debug:', {
-      matchId,
-      priceType,
-      marketBookNo_param: marketBookNo,
-      marketCode_param: marketCode,
-      marketId_param: marketId,
-      matchMarketBookNo: match?.marketBookNo,
-      matchMarketCode: match?.marketCode,
-      matchMarketId: match?.marketId,
-      selectedSource: selectedSource?.id,
-      selectedSourceBaseUrl: selectedSource?.baseUrl
-    });
     
     if (match) {
       // Check if this exact selection already exists
