@@ -3414,7 +3414,9 @@ function App() {
     // Keep search filters when changing dates
     // setSearchTerm, setSearchMode, and setSearchOddsValue are NOT reset
 
-
+    // CRITICAL: Update window.__currentSelectedDate SYNCHRONOUSLY before loadData
+    // This prevents timing issues where loadData checks the old selectedDate value
+    (window as any).__currentSelectedDate = newDate;
 
     setSelectedDate(newDate);
 
