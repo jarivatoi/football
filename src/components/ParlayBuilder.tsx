@@ -176,16 +176,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       let safeMarketBookNo = '76713'; // Default fallback
       let safeMarketCode = 'CP'; // Default fallback
       
-      console.log(`[Bet Placement] Selection ${index + 1}:`, {
-        matchId: selection.matchId,
-        homeTeam: selection.homeTeam,
-        awayTeam: selection.awayTeam,
-        priceType: selection.priceType,
-        marketBookNo: selection.marketBookNo,
-        marketCode: selection.marketCode,
-        marketId: selection.marketId
-      });
-      
       // Priority 1: Use selection.marketBookNo if it's valid
       if (selection.marketBookNo && 
           typeof selection.marketBookNo === 'string' && 
@@ -335,15 +325,6 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
     const baseUrl = selectedSource?.baseUrl.replace('/webapi/GetSport', '') || 'https://www.totelepep.mu';
     const betUrl = 'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=' + encodeURIComponent(`${baseUrl}/webapi/placebet`);
     
-    console.log('[Bet Placement] API Info:', {
-      selectedSourceId: selectedSource?.id,
-      selectedSourceBaseUrl: selectedSource?.baseUrl,
-      extractedBaseUrl: baseUrl,
-      betUrl: betUrl
-    });
-    
-    // Log the complete form data being sent
-
     const response = await fetch(betUrl, {
       method: 'POST',
       headers: {
