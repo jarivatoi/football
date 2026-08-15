@@ -572,7 +572,16 @@ function App() {
   };
 
   const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string, forceFresh: boolean = false) => {
-    setLoading(true);
+    // CRITICAL: Use __currentSelectedDate (set synchronously in handleDateChange) 
+    // instead of stale `selectedDate` from closure
+    const currentViewDate = (window as any).__currentSelectedDate || selectedDate;
+    const isBackgroundLoad = targetDate && targetDate !== currentViewDate;
+    
+    // Only set loading state for foreground loads (user-initiated date clicks)
+    // Background auto-loads should NOT trigger loading state or clear current matches
+    if (!isBackgroundLoad) {
+      setLoading(true);
+    }
     setError(null);
     
     // Clear auto-load flag when manually loading a date (allows auto-load to trigger after this date completes)
@@ -652,7 +661,7 @@ function App() {
     // Prevent duplicate loads for the same date with same filters
     const loadKey = `${dateToFetch}_${catId}_${compId}_${sourceId}`;
     if ((window as any).__loadingDate === loadKey) {
-      setLoading(false);
+      if (!isBackgroundLoad) setLoading(false);
       return;
     }
     (window as any).__loadingDate = loadKey;
@@ -768,7 +777,7 @@ function App() {
 
           }
           
-          setLoading(false);
+          if (!isBackgroundLoad) setLoading(false);
           return;
         }
       }
@@ -810,7 +819,9 @@ function App() {
 
           // Only refresh UI if currently viewing THIS specific date
           // Don't refresh if user is viewing a different date or has filters applied
-          if (date === selectedDate && !showAllMatches && !searchTerm) {
+          // CRITICAL: Use __currentSelectedDate (set synchronously) not stale closure `selectedDate`
+          const progressViewDate = (window as any).__currentSelectedDate || selectedDate;
+          if (date === progressViewDate && !showAllMatches && !searchTerm) {
             // Refresh UI from IndexedDB now that loading is complete
 
             try {
@@ -949,10 +960,12 @@ function App() {
       
       // Only update UI if this is the date the user is currently viewing
       // AND the source hasn't changed since this load started (prevents stale data overwrite)
+      // CRITICAL: Use __currentSelectedDate (set synchronously) not stale closure `selectedDate`
+      const latestViewDate = (window as any).__currentSelectedDate || selectedDate;
       const currentEffectiveSourceId = (totelepepExtractor as any).currentSourceId || selectedSource?.id || 'totelepep';
       const sourceChanged = currentEffectiveSourceId !== sourceId;
       
-      if (!sourceChanged && dateToFetch === selectedDate) {
+      if (!sourceChanged && dateToFetch === latestViewDate) {
         setMatches(sortedMatches);
         // Group matches by date
         const grouped = totelepepService.groupMatchesByDate(sortedMatches);
@@ -1033,7 +1046,7 @@ function App() {
 
 
       (window as any).__loadingDate = null;
-      setLoading(false);
+      if (!isBackgroundLoad) setLoading(false);
     }
   };
   
