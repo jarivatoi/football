@@ -1263,11 +1263,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
 
     return {
       stake,
-      tax: Math.round(taxAmount),
-      bonus: Math.round(bonusAmount),
-      potentialPayout: Math.round(apiPotentialPayout),
-      netPayout: Math.round(apiPotentialPayout),
-      finalPayout: Math.round(apiPotentialPayout + bonusAmount)
+      tax: parseFloat(taxAmount.toFixed(2)),
+      bonus: parseFloat(bonusAmount.toFixed(2)),
+      potentialPayout: parseFloat(apiPotentialPayout.toFixed(2)),
+      netPayout: parseFloat(apiPotentialPayout.toFixed(2)),
+      finalPayout: parseFloat((apiPotentialPayout + bonusAmount).toFixed(2))
     };
   }, [lastResult, betAmount]);
 
@@ -2396,16 +2396,6 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                   const rawPercentage = apiBreakdown.netPayout > 0 ? (apiBreakdown.bonus / apiBreakdown.netPayout) * 100 : 0;
                   // Round the final percentage to nearest integer
                   const bonusPercentage = Math.round(rawPercentage);
-                  
-                  console.log('[Bonus Calculation Debug]:', {
-                    stake: apiBreakdown.stake,
-                    tax: apiBreakdown.tax,
-                    totalOdds,
-                    netPayout: apiBreakdown.netPayout,
-                    bonus: apiBreakdown.bonus,
-                    rawPercentage,
-                    bonusPercentage
-                  });
                   
                   return (
                     <div className="flex justify-between text-green-600">
