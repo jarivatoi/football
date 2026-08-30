@@ -993,10 +993,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
   }, [betRefundMode, mainBetSelection, selectedSource]);
 
   // SMS Bet functionality with long press
-  const handleSmsPressStart = () => {
+  const handleSmsPressStart = (specificTicketNo?: string) => {
     const timer = setTimeout(() => {
       // Open SMS app
-      const ticketNo = lastResult?.ticketNo || '';
+      // Use specific ticket number if provided (for refund mode), otherwise fall back to lastResult
+      const ticketNo = specificTicketNo || lastResult?.ticketNo || '';
       const message = `BET${ticketNo}`;
       
       // Determine phone number based on selected source
@@ -2540,10 +2541,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
               {/* SMS Option */}
               <div 
                 className="p-3 bg-yellow-400 text-center border-t border-yellow-500 cursor-pointer select-none active:bg-yellow-500 transition-colors"
-                onMouseDown={handleSmsPressStart}
+                onMouseDown={() => handleSmsPressStart()}
                 onMouseUp={handleSmsPressEnd}
                 onMouseLeave={handleSmsPressEnd}
-                onTouchStart={handleSmsPressStart}
+                onTouchStart={() => handleSmsPressStart()}
                 onTouchEnd={handleSmsPressEnd}
               >
                 <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
@@ -2632,10 +2633,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 </div>
                 <div
                   className="p-3 bg-yellow-400 text-center border-t border-yellow-500 cursor-pointer"
-                  onMouseDown={handleSmsPressStart}
+                  onMouseDown={() => handleSmsPressStart(lastResult.fullResponse.mainBet.ticketNo)}
                   onMouseUp={handleSmsPressEnd}
                   onMouseLeave={handleSmsPressEnd}
-                  onTouchStart={handleSmsPressStart}
+                  onTouchStart={() => handleSmsPressStart(lastResult.fullResponse.mainBet.ticketNo)}
                   onTouchEnd={handleSmsPressEnd}
                 >
                   <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
@@ -2713,10 +2714,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     </div>
                     <div
                       className="p-3 bg-yellow-400 text-center border-t border-yellow-500 cursor-pointer"
-                      onMouseDown={handleSmsPressStart}
+                      onMouseDown={() => handleSmsPressStart(lastResult.fullResponse.refundBet.ticketNo)}
                       onMouseUp={handleSmsPressEnd}
                       onMouseLeave={handleSmsPressEnd}
-                      onTouchStart={handleSmsPressStart}
+                      onTouchStart={() => handleSmsPressStart(lastResult.fullResponse.refundBet.ticketNo)}
                       onTouchEnd={handleSmsPressEnd}
                     >
                       <div className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
