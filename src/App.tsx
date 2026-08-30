@@ -210,10 +210,14 @@ function App() {
     // Save to localStorage
     localStorage.setItem('selectedApiSource', JSON.stringify(source));
     
-    // Always cancel Totelepep background loading when switching sources
-    // This prevents stale Totelepep callbacks from overwriting new source data
+    // ALWAYS cancel ALL background loading from BOTH sources
+    // This prevents stale callbacks from overwriting new source data
     totelepepExtractor.cancelAllBackgroundLoading();
     smspariazExtractor.cancelProgressiveLoading();
+    
+    // CRITICAL: Clear ALL global flags to ensure clean state for new source
+    (window as any).__autoLoadCompleted = null;
+    (window as any).__loadingDate = null;
     
     if (source.id !== 'smspariaz') {
       // Update the extractor base URL
@@ -262,18 +266,22 @@ function App() {
     });
     
     setShowParlayBuilder(false);
+    setShowAllMatches(false);
     
     // Reload calendar without any filters - pass source ID to avoid state timing issues
     await loadCalendarList('', '', source.id);
     
-    // CRITICAL: Get the correct first date for the NEW source synchronously
+    // CRITICAL: Get the correct first date AND calendar list for the NEW source
     // React's setSelectedDate is async, so `selectedDate` state is still the OLD source's date
     let newFirstDate: string | undefined;
+    let newCalendarDates: string[] = [];
     if (source.id === 'smspariaz') {
       const smsDates = await smspariazExtractor.getAvailableDates();
       newFirstDate = smsDates && smsDates.length > 0 ? smsDates[0].date : undefined;
+      newCalendarDates = (smsDates || []).map((d: any) => d.date);
     } else {
       newFirstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
+      newCalendarDates = ((totelepepExtractor as any).calendarList || []).map((e: any) => e.entryDate);
     }
     
     // Sync __currentSelectedDate immediately so loadData uses the correct date
@@ -282,16 +290,15 @@ function App() {
     }
     
     // Try to restore progress from IndexedDB cache for the new source
+    let hasAnyCompleteCache = false;
     try {
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
       
       // First, try to restore individual date progress (for date-by-date loading)
       const progress: Record<string, { loaded: number; total: number; isComplete: boolean }> = {};
       
-      // Check each date in the calendar for cached progress
-      const calendarList = (totelepepExtractor as any).calendarList || [];
-      for (const dateEntry of calendarList) {
-        const date = dateEntry.entryDate;
+      // CRITICAL: Use the NEW source's calendar dates, not stale extractor state
+      for (const date of newCalendarDates) {
         const dateCacheKey = `date_${date}_all_all_${newSourceId}`;
         const { matches: dateMatches, metadata: dateMetadata } = await getCachedMatches(dateCacheKey);
         const dateExpired = await isCacheExpired(dateCacheKey);
@@ -303,14 +310,12 @@ function App() {
             total: dateMatches.length,
             isComplete: matchesWithMarkets === dateMatches.length
           };
-
         }
       }
       
       // If we found any date progress, restore it
       if (Object.keys(progress).length > 0) {
         setDateProgress(progress);
-
       }
       
       // Also check if there's a valid all_matches cache (for ALL MATCHES view)
@@ -319,7 +324,6 @@ function App() {
       const allMatchesExpired = await isCacheExpired(allMatchesCacheKey);
       
       if (allMatchesCache && allMatchesCache.length > 0 && !allMatchesExpired && allMatchesMetadata?.isComplete) {
-
         // Restore from cache
         const sortedMatches = allMatchesCache.sort((a, b) => {
           const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
@@ -343,27 +347,23 @@ function App() {
         setShowAllMatches(true);
         setLastUpdated(new Date());
         setLoading(false);
-
-        return;
+        hasAnyCompleteCache = true;
       }
       
-      // Check if the NEW source's first date has valid cache (don't force reload if cache is valid)
-      // CRITICAL: Use newFirstDate (from new source's calendar), not stale `selectedDate` state
-      const dateToCheck = newFirstDate || selectedDate;
-      if (dateToCheck) {
-        const selectedDateCacheKey = `date_${dateToCheck}_all_all_${newSourceId}`;
-        const { matches: selectedDateMatches, metadata: selectedDateMetadata } = await getCachedMatches(selectedDateCacheKey);
-        const selectedDateExpired = await isCacheExpired(selectedDateCacheKey);
+      // Check if the NEW source's first date has valid complete cache
+      if (!hasAnyCompleteCache && newFirstDate) {
+        const dateToCheckCacheKey = `date_${newFirstDate}_all_all_${newSourceId}`;
+        const { matches: dateMatches, metadata: dateMetadata } = await getCachedMatches(dateToCheckCacheKey);
+        const dateExpired = await isCacheExpired(dateToCheckCacheKey);
         
-        const isSelectedDateComplete = selectedDateMatches && 
-                                       selectedDateMatches.length > 0 && 
-                                       selectedDateMetadata?.isComplete && 
-                                       !selectedDateExpired &&
-                                       selectedDateMatches.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
+        const isComplete = dateMatches && 
+                           dateMatches.length > 0 && 
+                           dateMetadata?.isComplete && 
+                           !dateExpired &&
+                           dateMatches.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
         
-        if (isSelectedDateComplete) {
-
-          const sortedMatches = selectedDateMatches.sort((a, b) => {
+        if (isComplete) {
+          const sortedMatches = dateMatches.sort((a, b) => {
             const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
             if (dateComparison !== 0) return dateComparison;
             return a.kickoff.localeCompare(b.kickoff);
@@ -373,9 +373,8 @@ function App() {
           const grouped = totelepepService.groupMatchesByDate(sortedMatches);
           setGroupedMatches(grouped);
           
-          // Update progress for this date
           const matchesWithMarkets = sortedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
-          progress[dateToCheck] = {
+          progress[newFirstDate] = {
             loaded: matchesWithMarkets,
             total: sortedMatches.length,
             isComplete: matchesWithMarkets === sortedMatches.length
@@ -384,19 +383,18 @@ function App() {
           
           setLastUpdated(new Date());
           setLoading(false);
-
-          return;
+          hasAnyCompleteCache = true;
         }
       }
     } catch (error) {
-
+      // Cache restoration failed - will fetch fresh
     }
     
-    // If no cache found or error, reload data with new source
-    // CRITICAL: Use newFirstDate (from new source's calendar), not stale `selectedDate` state
-    const dateToLoad = newFirstDate || selectedDate;
-    if (!showAllMatches && dateToLoad) {
-      loadData(dateToLoad, '', '', true); // forceFresh=true to ensure API fetch
+    // CRITICAL: Always call loadData for the first date to start the auto-load chain
+    // Even if we restored from cache, loadData will detect complete cache and return early
+    // BUT it will also trigger autoLoadNextDate for subsequent dates
+    if (newFirstDate) {
+      loadData(newFirstDate, '', '', !hasAnyCompleteCache);
     }
   };
   
