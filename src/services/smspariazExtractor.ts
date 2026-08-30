@@ -118,8 +118,8 @@ class SmspariazExtractor {
   
   // CORS proxies (same as totelepep)
   private corsProxies = [
-    'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=',
     'https://corsproxy.io/?',
+    'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=',
     'https://api.allorigins.win/raw?url=',
     'https://api.codetabs.com/v1/proxy?quest=',
   ];
