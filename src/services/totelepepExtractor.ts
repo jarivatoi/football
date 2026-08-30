@@ -76,7 +76,17 @@ class TotelepepExtractor {
       
       try {
         const fetchUrl = `${proxy}${encodedUrl}`;
-        const response = await fetch(fetchUrl, options);
+        
+        // Add timeout to prevent hanging on mobile (15 seconds)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        
+        const response = await fetch(fetchUrl, {
+          ...options,
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
         
         if (response.ok) {
           // Update current proxy to the working one
