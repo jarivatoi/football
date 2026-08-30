@@ -1146,8 +1146,11 @@ function App() {
   const autoLoadNextDate = async (completedDate: string, sourceId: string, categoryId: string, competitionId: string) => {
     try {
       // CRITICAL: Stop auto-load if source has changed (prevents cross-source loading)
-      const currentSourceId = selectedSource?.id || 'totelepep';
-      if (currentSourceId !== sourceId) {
+      // Use extractor's currentSourceId (not React state which may be stale)
+      const extractorSourceId = (totelepepExtractor as any).baseUrl?.includes('stevenhills') ? 'stevenhills' :
+                                (totelepepExtractor as any).baseUrl?.includes('superscore') ? 'superscore' :
+                                (totelepepExtractor as any).baseUrl?.includes('valueplus') ? 'valueplus' : 'totelepep';
+      if (extractorSourceId !== sourceId) {
         return; // Source has changed, stop auto-load for old source
       }
       
