@@ -679,67 +679,64 @@ class TotelepepExtractor {
     
     try {
 
-      // Store calendar list data for date selector (only if not already set for this source)
+      // Store calendar list data for date selector
       if (jsonData && jsonData.calendarList && Array.isArray(jsonData.calendarList)) {
-        // Only update calendarList if it's empty (prevent overwriting with partial data from subsequent API calls)
-        if (!this.calendarList || this.calendarList.length === 0) {
-          // Validate and normalize calendarList entries
-          const normalizedCalendarList = jsonData.calendarList.map((entry: any) => {
-            if (entry && typeof entry === 'object') {
-              let entryDate = entry.entryDate || entry.date || entry.matchDate || entry.gameDate;
-              let matchCount = entry.matchCount || entry.count || entry.matches || entry.totalMatches || 0;
-              let displayDate = entry.displayDate || entry.displayName || entry.name || '';
+        // Validate and normalize calendarList entries
+        const normalizedCalendarList = jsonData.calendarList.map((entry: any) => {
+          if (entry && typeof entry === 'object') {
+            let entryDate = entry.entryDate || entry.date || entry.matchDate || entry.gameDate;
+            let matchCount = entry.matchCount || entry.count || entry.matches || entry.totalMatches || 0;
+            let displayDate = entry.displayDate || entry.displayName || entry.name || '';
 
-              if (!entryDate) {
-                for (const key in entry) {
-                  if (key.toLowerCase().includes('date') && typeof entry[key] === 'string') {
-                    entryDate = entry[key];
-                    break;
-                  }
+            if (!entryDate) {
+              for (const key in entry) {
+                if (key.toLowerCase().includes('date') && typeof entry[key] === 'string') {
+                  entryDate = entry[key];
+                  break;
                 }
               }
-              
-              if (!matchCount) {
-                for (const key in entry) {
-                  if ((key.toLowerCase().includes('count') || key.toLowerCase().includes('match')) && 
-                      typeof entry[key] === 'number') {
-                    matchCount = entry[key];
-                    break;
-                  }
-                }
-              }
-              
-              // Convert date to YYYY-MM-DD format - parse manually to avoid iOS Safari timezone issues
-              if (entryDate && typeof entryDate === 'string') {
-                // Extract just the date part (before 'T') and parse manually
-                const datePart = entryDate.split('T')[0]; // "2026-09-01" from "2026-09-01T00:00:00+04:00"
-                const parts = datePart.split('-');
-                if (parts.length === 3) {
-                  entryDate = `${parts[0]}-${parts[1]}-${parts[2]}`; // Already in YYYY-MM-DD
-                } else {
-                  // Fallback: try parsing with Date object
-                  const dateObj = new Date(entryDate);
-                  if (!isNaN(dateObj.getTime())) {
-                    const year = dateObj.getUTCFullYear();
-                    const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
-                    const day = String(dateObj.getUTCDate()).padStart(2, '0');
-                    entryDate = `${year}-${month}-${day}`;
-                  }
-                }
-              }
-              
-              return {
-                entryDate: entryDate || new Date().toISOString().split('T')[0],
-                matchCount: matchCount || 0,
-                displayDate: displayDate || ''
-              };
             }
-            return null;
-          }).filter((entry: any) => entry !== null);
-          
-          // Store this for use in the DateSelector
-          (this as any).calendarList = normalizedCalendarList;
-        }
+            
+            if (!matchCount) {
+              for (const key in entry) {
+                if ((key.toLowerCase().includes('count') || key.toLowerCase().includes('match')) && 
+                    typeof entry[key] === 'number') {
+                  matchCount = entry[key];
+                  break;
+                }
+              }
+            }
+            
+            // Convert date to YYYY-MM-DD format - parse manually to avoid iOS Safari timezone issues
+            if (entryDate && typeof entryDate === 'string') {
+              // Extract just the date part (before 'T') and parse manually
+              const datePart = entryDate.split('T')[0]; // "2026-09-01" from "2026-09-01T00:00:00+04:00"
+              const parts = datePart.split('-');
+              if (parts.length === 3) {
+                entryDate = `${parts[0]}-${parts[1]}-${parts[2]}`; // Already in YYYY-MM-DD
+              } else {
+                // Fallback: try parsing with Date object
+                const dateObj = new Date(entryDate);
+                if (!isNaN(dateObj.getTime())) {
+                  const year = dateObj.getUTCFullYear();
+                  const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+                  const day = String(dateObj.getUTCDate()).padStart(2, '0');
+                  entryDate = `${year}-${month}-${day}`;
+                }
+              }
+            }
+            
+            return {
+              entryDate: entryDate || new Date().toISOString().split('T')[0],
+              matchCount: matchCount || 0,
+              displayDate: displayDate || ''
+            };
+          }
+          return null;
+        }).filter((entry: any) => entry !== null);
+        
+        // Always update calendarList (cleared on source switch to ensure fresh data)
+        (this as any).calendarList = normalizedCalendarList;
       }
       
       // Debug: Log all top-level keys in the API response
