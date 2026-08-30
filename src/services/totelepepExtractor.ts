@@ -383,23 +383,59 @@ class TotelepepExtractor {
         this.onMarketProgress(date, loadedCount, totalMatches);
       }
       
-      // BLAZING FAST: Fetch ALL matches at once (no batching, no delays)
+      // Detect mobile device for optimized fetching
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const batchSize = isMobile ? 10 : 0; // 0 = all at once, 10 = batched for mobile
+      
       // Filter out matches that already have markets
       const needFetching = matches.filter(m => !m.allMarkets || m.allMarkets.length === 0);
       
       if (needFetching.length > 0) {
-        // Fetch ALL matches IN PARALLEL at once
-        const fetchPromises = needFetching.map(async (match) => {
-          try {
-            await this.fetchMarketsForMatch(match);
-          } catch (error) {
-            // Ignore individual match errors
+        if (batchSize === 0) {
+          // DESKTOP: Fetch ALL matches IN PARALLEL at once
+          const fetchPromises = needFetching.map(async (match) => {
+            try {
+              await this.fetchMarketsForMatch(match);
+            } catch (error) {
+              // Ignore individual match errors
+            }
+          });
+          
+          // Wait for all to complete
+          await Promise.all(fetchPromises);
+          loadedCount += needFetching.length;
+        } else {
+          // MOBILE: Fetch in batches to prevent network congestion
+          for (let i = 0; i < needFetching.length; i += batchSize) {
+            const batch = needFetching.slice(i, i + batchSize);
+            
+            // Check if cancelled
+            if (!this.activeBackgroundTasks.has(cacheKey)) {
+              return;
+            }
+            
+            const fetchPromises = batch.map(async (match) => {
+              try {
+                await this.fetchMarketsForMatch(match);
+              } catch (error) {
+                // Ignore individual match errors
+              }
+            });
+            
+            await Promise.all(fetchPromises);
+            loadedCount += batch.length;
+            
+            // Report progress
+            if (this.onMarketProgress) {
+              this.onMarketProgress(date, loadedCount, totalMatches);
+            }
+            
+            // Small delay between batches on mobile
+            if (i + batchSize < needFetching.length) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
           }
-        });
-        
-        // Wait for all to complete
-        await Promise.all(fetchPromises);
-        loadedCount += needFetching.length;
+        }
         
         // Report progress
         if (this.onMarketProgress) {
