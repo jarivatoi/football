@@ -52,7 +52,7 @@ interface TotelepepMatch {
 class TotelepepExtractor {
   // CORS Proxy fallback list (tries each one in order)
   private corsProxies = [
-    'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=',  // Primary (deployed)
+    'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=',  // YOUR Supabase proxy (primary)
     'https://corsproxy.io/?',                    // Fallback 1
     'https://api.allorigins.win/raw?url=',       // Fallback 2
     'https://api.codetabs.com/v1/proxy?quest=',  // Fallback 3
@@ -93,7 +93,7 @@ class TotelepepExtractor {
   }
   private cache: Map<string, { data: TotelepepMatch[]; timestamp: number }> = new Map();
   private cacheTimeout = 1 * 60 * 1000; // 1 minute instead of 5 minutes
-  private rateLimitDelay = 100; // 100ms between requests (optimized for speed)
+  private rateLimitDelay = 2000; // 2 seconds between requests
   private lastRequestTime = 0;
   private calendarList: Array<{entryDate: string, matchCount: number, displayDate: string}> = [];
   private categoryList: Array<{id: string, name: string}> = [];
@@ -282,7 +282,6 @@ class TotelepepExtractor {
         
         // ALWAYS fetch markets in background (even with forceFresh)
         // This ensures markets load automatically on first load
-        // Uses batched approach (10 at a time) - works on both desktop and mobile
         this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
         
         return matches;
@@ -351,7 +350,7 @@ class TotelepepExtractor {
   // Track active background loading tasks for cancellation
   private activeBackgroundTasks: Set<string> = new Set();
   
-  // Fetch markets for all matches in background (non-blocking) - OPTIMIZED WITH PARALLEL REQUESTS
+  // Fetch markets for all matches in background (non-blocking)
   private async fetchMarketsInBackground(
     matches: TotelepepMatch[],
     cacheKey: string,
@@ -363,6 +362,7 @@ class TotelepepExtractor {
     
     // Cancel any existing background task for this date
     if (this.activeBackgroundTasks.has(cacheKey)) {
+
       this.activeBackgroundTasks.delete(cacheKey);
     }
     
@@ -384,46 +384,57 @@ class TotelepepExtractor {
         this.onMarketProgress(date, loadedCount, totalMatches);
       }
       
-      // Fetch in parallel batches (fast but mobile-safe)
-      const batchSize = 10;
-      const needFetching = matches.filter(m => !m.allMarkets || m.allMarkets.length === 0);
-      
-      for (let i = 0; i < needFetching.length; i += batchSize) {
-        const batch = needFetching.slice(i, i + batchSize);
+      for (let i = 0; i < totalMatches; i += chunkSize) {
+        const chunk = matches.slice(i, i + chunkSize);
+        const chunkStart = i;
+        const chunkEnd = i + chunk.length;
         
-        // Check if cancelled
-        if (!this.activeBackgroundTasks.has(cacheKey)) {
-          return;
-        }
         
-        // Fetch batch in parallel
-        const fetchPromises = batch.map(async (match) => {
-          try {
-            await this.fetchMarketsForMatch(match);
-          } catch (error) {
-            // Ignore individual errors
+        // Fetch markets with rate limiting
+        for (const match of chunk) {
+          // Check if this task has been cancelled
+          if (!this.activeBackgroundTasks.has(cacheKey)) {
+
+            return; // Exit early
           }
-        });
-        
-        await Promise.all(fetchPromises);
-        loadedCount += batch.length;
-        
-        // Report progress
-        if (this.onMarketProgress) {
-          this.onMarketProgress(date, loadedCount, totalMatches);
+          
+          // Skip if already has markets (from cache)
+          if (match.allMarkets && match.allMarkets.length > 0) {
+            continue;
+          }
+          
+          try {
+            await this.enforceRateLimit();
+            await this.fetchMarketsForMatch(match);
+            loadedCount++;
+            
+            // Report progress every 10 matches or on last match
+            if (this.onMarketProgress && (loadedCount % 10 === 0 || loadedCount === totalMatches)) {
+              const percentage = Math.round((loadedCount/totalMatches)*100);
+              this.onMarketProgress(date, loadedCount, totalMatches);
+            }
+          } catch (error) {
+            loadedCount++; // Still count as processed (even if failed)
+            
+            // Report progress
+            if (this.onMarketProgress && (loadedCount % 10 === 0 || loadedCount === totalMatches)) {
+              this.onMarketProgress(date, loadedCount, totalMatches);
+            }
+          }
         }
         
-        // Small delay between batches
-        if (i + batchSize < needFetching.length) {
+        // Update this chunk in IndexedDB with markets
+        const { updateMatchesInCache } = await import('../utils/matchCache');
+        await updateMatchesInCache(chunk, cacheKey, totalMatches);
+        
+        // Delay between chunks
+        if (i + chunkSize < totalMatches) {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
-      
-      // Update all matches in IndexedDB
-      const { updateMatchesInCache } = await import('../utils/matchCache');
-      await updateMatchesInCache(matches, cacheKey, totalMatches);
       // Final progress update (ensure complete)
       if (this.onMarketProgress) {
+
         this.onMarketProgress(date, totalMatches, totalMatches);
       }
       
