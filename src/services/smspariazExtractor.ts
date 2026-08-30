@@ -156,12 +156,20 @@ class SmspariazExtractor {
           } catch {
             return text;
           }
+        } else if (response.status === 404) {
+          // Real 404 from target (proxy forwarded it) - file doesn't exist
+          // Don't try other proxies, fail immediately
+          throw new Error(`404 Not Found: ${url}`);
         } else {
-          // Any error (including 404) - try next proxy
+          // Other HTTP errors (403, 500, etc) - try next proxy
           lastError = new Error(`HTTP ${response.status} from ${proxy}`);
           continue;
         }
       } catch (e) {
+        // If it's a real 404, re-throw immediately (don't try other proxies)
+        if (e instanceof Error && e.message.includes('404')) {
+          throw e;
+        }
         lastError = e instanceof Error ? e : new Error(String(e));
         continue;
       }
