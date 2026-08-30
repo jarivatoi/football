@@ -1414,12 +1414,14 @@ function App() {
 
       // IMPORTANT: Pass a callback to force fresh API fetch (bypass IndexedDB for calendar)
       // This ensures we get the FULL calendar list, not just cached date
+      // skipBackgroundFetch=true prevents duplicate market fetch (handleSourceChange's loadData will do it)
       const matches = await totelepepExtractor.extractMatches(
         dateStr, 
         categoryId || '', 
         competitionId || '',
         undefined, // onProgress callback
-        true // forceFresh = true (bypass cache for calendar)
+        true, // forceFresh = true (bypass cache for calendar)
+        true  // skipBackgroundFetch = true (prevent duplicate market fetch)
       );
       
       // Small delay to ensure calendarList is set

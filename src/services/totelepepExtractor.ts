@@ -135,7 +135,8 @@ class TotelepepExtractor {
     categoryId?: string, 
     competitionId?: string,
     onProgress?: (loaded: number, total: number) => void,
-    forceFresh: boolean = false // Bypass cache (for calendar loading)
+    forceFresh: boolean = false, // Bypass cache (for calendar loading)
+    skipBackgroundFetch: boolean = false // Skip background market fetch (for calendar-only loads)
   ): Promise<TotelepepMatch[]> {
     try {
       // Check cache first
@@ -282,7 +283,10 @@ class TotelepepExtractor {
         
         // ALWAYS fetch markets in background (even with forceFresh)
         // This ensures markets load automatically on first load
-        this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
+        // SKIP when only loading calendar data (caller will trigger the real fetch)
+        if (!skipBackgroundFetch) {
+          this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
+        }
         
         return matches;
       }
