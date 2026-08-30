@@ -102,6 +102,8 @@ class TotelepepExtractor {
   
   // Market loading progress callback
   public onMarketProgress?: (date: string, loaded: number, total: number) => void;
+  // Fires AFTER all markets loaded AND saved to IndexedDB (triggers auto-load next date)
+  public onDateComplete?: (date: string) => void;
   // Dynamic competition mapping that can be updated based on actual data
   private dynamicCompetitionMap: Record<string, string> = {};
   // Fallback competition mapping based on team names
@@ -509,6 +511,12 @@ class TotelepepExtractor {
         const { updateMatchesInCache } = await import('../utils/matchCache');
         await updateMatchesInCache(matches, cacheKey, totalMatches);
         console.log(`[BG-FETCH] SAVED to IndexedDB: date=${date}`);
+        
+        // Fire onDateComplete AFTER save — triggers autoLoadNextDate with guaranteed saved data
+        if (this.onDateComplete) {
+          console.log(`[BG-FETCH] onDateComplete: date=${date}`);
+          this.onDateComplete(date);
+        }
       } else {
         console.log(`[BG-FETCH] SKIPPED save - task was cancelled: date=${date}`);
       }

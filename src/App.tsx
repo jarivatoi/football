@@ -898,6 +898,19 @@ function App() {
       // Assign progress handler to both extractors
       totelepepExtractor.onMarketProgress = marketProgressHandler;
       smspariazExtractor.onMarketProgress = marketProgressHandler;
+      
+      // onDateComplete: fires AFTER IndexedDB save — triggers auto-load next date
+      // This replaces the autoLoadNextDate call from mergeDateIntoAllMatches (which had a race condition)
+      totelepepExtractor.onDateComplete = async (date: string) => {
+        console.log(`[DATE-COMPLETE] Data saved to IndexedDB for ${date}, triggering autoLoadNextDate`);
+        try {
+          await mergeDateIntoAllMatches(date, loadSourceId, loadCategory, loadCompetition);
+          console.log(`[DATE-COMPLETE] mergeDateIntoAllMatches done for ${date}, calling autoLoadNextDate`);
+          autoLoadNextDate(date, loadSourceId, loadCategory, loadCompetition);
+        } catch (error) {
+          console.log(`[DATE-COMPLETE] ERROR:`, error);
+        }
+      };
 
       // Fetch matches from the appropriate API source
       let fetchedMatches: any[];
@@ -1151,9 +1164,8 @@ function App() {
         loadAllMatches(selectedCategory, selectedCompetition);
       }
       
-      // AUTO-LOAD NEXT DATE: Sequential loading after current date completes
-      console.log(`[MERGE] Calling autoLoadNextDate: date=${date}, mergeSourceId=${mergeSourceId}, mergeCategoryId=${mergeCategoryId}, mergeCompetitionId=${mergeCompetitionId}`);
-      autoLoadNextDate(date, mergeSourceId, mergeCategoryId, mergeCompetitionId);
+      // AUTO-LOAD NEXT DATE is now handled by onDateComplete callback
+      // (fires AFTER IndexedDB save, preventing the race condition where merge read empty data)
     } catch (error) {
       console.log(`[MERGE] ERROR:`, error);
     }
