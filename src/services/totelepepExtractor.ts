@@ -452,9 +452,11 @@ class TotelepepExtractor {
   ): Promise<void> {
     // Extract date from cacheKey (e.g., "date_2026-06-19_all_all_totelepep" -> "2026-06-19")
     const date = cacheKey.split('_')[1];
+    console.log(`[BG-FETCH] START: date=${date}, cacheKey=${cacheKey}, totalMatches=${totalMatches}, alreadyLoaded=${matches.filter(m => m.allMarkets && m.allMarkets.length > 0).length}`);
     
     // Cancel any existing background task for this date
     if (this.activeBackgroundTasks.has(cacheKey)) {
+      console.log(`[BG-FETCH] CANCELLING existing task for ${date}`);
       this.activeBackgroundTasks.delete(cacheKey);
     }
     
@@ -500,14 +502,20 @@ class TotelepepExtractor {
       // Wait for all fetches to complete
       await Promise.all(fetchPromises);
       
+      console.log(`[BG-FETCH] ALL FETCHES DONE: date=${date}, cacheKey=${cacheKey}, taskActive=${this.activeBackgroundTasks.has(cacheKey)}`);
+      
       // Save all matches to IndexedDB at once
       if (this.activeBackgroundTasks.has(cacheKey)) {
         const { updateMatchesInCache } = await import('../utils/matchCache');
         await updateMatchesInCache(matches, cacheKey, totalMatches);
+        console.log(`[BG-FETCH] SAVED to IndexedDB: date=${date}`);
+      } else {
+        console.log(`[BG-FETCH] SKIPPED save - task was cancelled: date=${date}`);
       }
       
       // Final progress update
       if (this.onMarketProgress) {
+        console.log(`[BG-FETCH] FINAL PROGRESS: date=${date}, total=${totalMatches}`);
         this.onMarketProgress(date, totalMatches, totalMatches);
       }
       
