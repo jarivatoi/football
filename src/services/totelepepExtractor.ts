@@ -93,7 +93,7 @@ class TotelepepExtractor {
   }
   private cache: Map<string, { data: TotelepepMatch[]; timestamp: number }> = new Map();
   private cacheTimeout = 1 * 60 * 1000; // 1 minute instead of 5 minutes
-  private rateLimitDelay = 2000; // 2 seconds between requests
+  private rateLimitDelay = 100; // 100ms between requests (optimized for speed)
   private lastRequestTime = 0;
   private calendarList: Array<{entryDate: string, matchCount: number, displayDate: string}> = [];
   private categoryList: Array<{id: string, name: string}> = [];
@@ -350,7 +350,7 @@ class TotelepepExtractor {
   // Track active background loading tasks for cancellation
   private activeBackgroundTasks: Set<string> = new Set();
   
-  // Fetch markets for all matches in background (non-blocking)
+  // Fetch markets for all matches in background (non-blocking) - OPTIMIZED WITH PARALLEL REQUESTS
   private async fetchMarketsInBackground(
     matches: TotelepepMatch[],
     cacheKey: string,
@@ -362,7 +362,6 @@ class TotelepepExtractor {
     
     // Cancel any existing background task for this date
     if (this.activeBackgroundTasks.has(cacheKey)) {
-
       this.activeBackgroundTasks.delete(cacheKey);
     }
     
@@ -384,57 +383,51 @@ class TotelepepExtractor {
         this.onMarketProgress(date, loadedCount, totalMatches);
       }
       
-      for (let i = 0; i < totalMatches; i += chunkSize) {
-        const chunk = matches.slice(i, i + chunkSize);
-        const chunkStart = i;
-        const chunkEnd = i + chunk.length;
+      // OPTIMIZED: Fetch in parallel batches of 10 (like SMS Pariaz)
+      const batchSize = 10;
+      
+      for (let i = 0; i < totalMatches; i += batchSize) {
+        const batch = matches.slice(i, i + batchSize);
         
+        // Check if this task has been cancelled
+        if (!this.activeBackgroundTasks.has(cacheKey)) {
+          return; // Exit early
+        }
         
-        // Fetch markets with rate limiting
-        for (const match of chunk) {
-          // Check if this task has been cancelled
-          if (!this.activeBackgroundTasks.has(cacheKey)) {
-
-            return; // Exit early
-          }
-          
-          // Skip if already has markets (from cache)
-          if (match.allMarkets && match.allMarkets.length > 0) {
-            continue;
-          }
-          
-          try {
-            await this.enforceRateLimit();
-            await this.fetchMarketsForMatch(match);
-            loadedCount++;
-            
-            // Report progress every 10 matches or on last match
-            if (this.onMarketProgress && (loadedCount % 10 === 0 || loadedCount === totalMatches)) {
-              const percentage = Math.round((loadedCount/totalMatches)*100);
-              this.onMarketProgress(date, loadedCount, totalMatches);
+        // Filter out matches that already have markets
+        const needFetching = batch.filter(m => !m.allMarkets || m.allMarkets.length === 0);
+        
+        if (needFetching.length > 0) {
+          // Fetch all matches in this batch IN PARALLEL
+          const fetchPromises = needFetching.map(async (match) => {
+            try {
+              await this.fetchMarketsForMatch(match);
+            } catch (error) {
+              // Ignore individual match errors
             }
-          } catch (error) {
-            loadedCount++; // Still count as processed (even if failed)
-            
-            // Report progress
-            if (this.onMarketProgress && (loadedCount % 10 === 0 || loadedCount === totalMatches)) {
-              this.onMarketProgress(date, loadedCount, totalMatches);
-            }
+          });
+          
+          // Wait for all in this batch to complete
+          await Promise.all(fetchPromises);
+          loadedCount += needFetching.length;
+          
+          // Report progress
+          if (this.onMarketProgress) {
+            this.onMarketProgress(date, loadedCount, totalMatches);
           }
         }
         
-        // Update this chunk in IndexedDB with markets
+        // Update this batch in IndexedDB with markets
         const { updateMatchesInCache } = await import('../utils/matchCache');
-        await updateMatchesInCache(chunk, cacheKey, totalMatches);
+        await updateMatchesInCache(batch, cacheKey, totalMatches);
         
-        // Delay between chunks
-        if (i + chunkSize < totalMatches) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+        // Small delay between batches (50ms instead of 100ms)
+        if (i + batchSize < totalMatches) {
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
       }
       // Final progress update (ensure complete)
       if (this.onMarketProgress) {
-
         this.onMarketProgress(date, totalMatches, totalMatches);
       }
       
