@@ -2721,11 +2721,16 @@ class TotelepepExtractor {
     });
   }
 
-  // Clear cache for fresh extraction
+  // Clear ALL state for fresh extraction (used when switching sources)
   clearCache(): void {
     this.cache.clear();
-    // Clear calendarList too - it will be re-fetched for the new source
     this.calendarList = [];
+    this.categoryList = [];
+    this.competitionList = [];
+    this.competitionToCategoryMap.clear();
+    this.dynamicCompetitionMap = {};
+    this.teamBasedCompetitionMap = {};
+    this.currentProxyIndex = 0; // Reset proxy preference
   }
 
   // Sort matches by date and time
