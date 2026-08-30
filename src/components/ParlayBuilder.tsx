@@ -173,38 +173,15 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
       // Use the actual marketBookNo and marketCode values when available
       // Simplified logic to ensure we send the correct values
       // Enhanced validation to ensure we always send valid string values
-      let safeMarketBookNo = '76713'; // Default fallback
+      // CRITICAL: marketBookNo in the bet form must ALWAYS be the match ID
+      // The API uses marketCode + optionCode to identify the specific market
+      // For 1X2, the market's marketBookNo happens to equal the match ID (that's why it works)
+      // For other markets (CS, OU, BTTS etc.), the market's marketBookNo is DIFFERENT from the match ID
+      // Sending the wrong marketBookNo causes "invalid market" errors
+      let safeMarketBookNo = selection.matchId || '76713'; // Always use match ID
+      
       let safeMarketCode = 'CP'; // Default fallback
       
-      // Priority 1: Use selection.marketBookNo if it's valid
-      if (selection.marketBookNo && 
-          typeof selection.marketBookNo === 'string' && 
-          selection.marketBookNo !== 'null' && 
-          selection.marketBookNo !== 'undefined' && 
-          selection.marketBookNo.trim() !== '' && 
-          selection.marketBookNo.trim() !== '0') {
-        safeMarketBookNo = selection.marketBookNo;
-      }
-      // Priority 2: Use finalMarketBookNo if it's valid
-      else if (finalMarketBookNo && 
-               typeof finalMarketBookNo === 'string' && 
-               finalMarketBookNo !== 'null' && 
-               finalMarketBookNo !== 'undefined' && 
-               finalMarketBookNo.trim() !== '' && 
-               finalMarketBookNo.trim() !== '0') {
-        safeMarketBookNo = finalMarketBookNo;
-      }
-      // Priority 3: Use selection.matchId as fallback
-      else if (selection.matchId && 
-               typeof selection.matchId === 'string' && 
-               selection.matchId !== 'null' && 
-               selection.matchId !== 'undefined' && 
-               selection.matchId.trim() !== '' && 
-               selection.matchId.trim() !== '0') {
-        safeMarketBookNo = selection.matchId;
-      }
-      
-      // Same priority logic for marketCode
       if (selection.marketCode && 
           typeof selection.marketCode === 'string' && 
           selection.marketCode !== 'null' && 
