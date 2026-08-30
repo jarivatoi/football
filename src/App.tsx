@@ -150,14 +150,21 @@ function App() {
     if (totalDatesInCalendar > 0) {
       const allDatesComplete = completedDatesCount === totalDatesInCalendar && totalDatesInCalendar > 0;
       
+      // When all dates are complete, use actual loaded match count (excludes past matches)
+      // This ensures the displayed count matches what's shown in the list
+      const actualTotal = allDatesComplete
+        ? Object.values(allLoadedMatches).reduce((sum: number, dateMatches: any) => 
+            sum + (Array.isArray(dateMatches) ? dateMatches.length : 0), 0)
+        : 0;
+      
       setAllMatchesProgress({
-        loaded: totalLoaded,
-        total: allDatesComplete ? totalMatches : 0, // 0 means unknown (?)
+        loaded: allDatesComplete ? actualTotal : totalLoaded,
+        total: allDatesComplete ? actualTotal : 0, // 0 means unknown (?)
         isComplete: allDatesComplete,
         percentage: 0 // No progress bar for ALL MATCHES
       });
     }
-  }, [dateProgress, calendarList]);
+  }, [dateProgress, calendarList, allLoadedMatches]);
   
   // Auto-refresh ALL MATCHES list when a date completes (dateProgress changes)
   useEffect(() => {
