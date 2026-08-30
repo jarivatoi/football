@@ -350,7 +350,7 @@ class TotelepepExtractor {
   // Track active background loading tasks for cancellation
   private activeBackgroundTasks: Set<string> = new Set();
   
-  // Fetch markets for all matches in background (non-blocking)
+  // Fetch markets for all matches in background (non-blocking) - ALL AT ONCE
   private async fetchMarketsInBackground(
     matches: TotelepepMatch[],
     cacheKey: string,
@@ -362,7 +362,6 @@ class TotelepepExtractor {
     
     // Cancel any existing background task for this date
     if (this.activeBackgroundTasks.has(cacheKey)) {
-
       this.activeBackgroundTasks.delete(cacheKey);
     }
     
@@ -371,12 +370,9 @@ class TotelepepExtractor {
     
     // Count how many matches already have markets loaded (from cache)
     const alreadyLoaded = matches.filter(m => m.allMarkets && m.allMarkets.length > 0).length;
-    const needLoading = totalMatches - alreadyLoaded;
 
     // Run in background - don't await this
     (async () => {
-      
-      // Start progress from already loaded count (not from 0!)
       let loadedCount = alreadyLoaded;
       
       // Report initial progress
@@ -384,63 +380,47 @@ class TotelepepExtractor {
         this.onMarketProgress(date, loadedCount, totalMatches);
       }
       
-      for (let i = 0; i < totalMatches; i += chunkSize) {
-        const chunk = matches.slice(i, i + chunkSize);
-        const chunkStart = i;
-        const chunkEnd = i + chunk.length;
+      // Get matches that need loading
+      const matchesToLoad = matches.filter(m => !m.allMarkets || m.allMarkets.length === 0);
+      
+      // Fetch ALL markets at once (parallel)
+      const fetchPromises = matchesToLoad.map(async (match) => {
+        // Check if this task has been cancelled
+        if (!this.activeBackgroundTasks.has(cacheKey)) return;
         
-        
-        // Fetch markets with rate limiting
-        for (const match of chunk) {
-          // Check if this task has been cancelled
-          if (!this.activeBackgroundTasks.has(cacheKey)) {
-
-            return; // Exit early
-          }
+        try {
+          await this.fetchMarketsForMatch(match);
+          loadedCount++;
           
-          // Skip if already has markets (from cache)
-          if (match.allMarkets && match.allMarkets.length > 0) {
-            continue;
+          // Report progress every 10 matches
+          if (this.onMarketProgress && (loadedCount % 10 === 0 || loadedCount === totalMatches)) {
+            this.onMarketProgress(date, loadedCount, totalMatches);
           }
-          
-          try {
-            await this.enforceRateLimit();
-            await this.fetchMarketsForMatch(match);
-            loadedCount++;
-            
-            // Report progress every 10 matches or on last match
-            if (this.onMarketProgress && (loadedCount % 10 === 0 || loadedCount === totalMatches)) {
-              const percentage = Math.round((loadedCount/totalMatches)*100);
-              this.onMarketProgress(date, loadedCount, totalMatches);
-            }
-          } catch (error) {
-            loadedCount++; // Still count as processed (even if failed)
-            
-            // Report progress
-            if (this.onMarketProgress && (loadedCount % 10 === 0 || loadedCount === totalMatches)) {
-              this.onMarketProgress(date, loadedCount, totalMatches);
-            }
+        } catch (error) {
+          loadedCount++;
+          if (this.onMarketProgress && (loadedCount % 10 === 0 || loadedCount === totalMatches)) {
+            this.onMarketProgress(date, loadedCount, totalMatches);
           }
         }
-        
-        // Update this chunk in IndexedDB with markets
+      });
+      
+      // Wait for all fetches to complete
+      await Promise.all(fetchPromises);
+      
+      // Save all matches to IndexedDB at once
+      if (this.activeBackgroundTasks.has(cacheKey)) {
         const { updateMatchesInCache } = await import('../utils/matchCache');
-        await updateMatchesInCache(chunk, cacheKey, totalMatches);
-        
-        // Delay between chunks
-        if (i + chunkSize < totalMatches) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
+        await updateMatchesInCache(matches, cacheKey, totalMatches);
       }
-      // Final progress update (ensure complete)
+      
+      // Final progress update
       if (this.onMarketProgress) {
-
         this.onMarketProgress(date, totalMatches, totalMatches);
       }
       
-      // Clean up: remove from active tasks
+      // Clean up
       this.activeBackgroundTasks.delete(cacheKey);
-    })(); // Self-executing async function
+    })();
   }
   
   // Cancel background loading for a specific date/cache
