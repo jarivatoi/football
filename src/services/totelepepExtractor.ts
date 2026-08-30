@@ -2751,8 +2751,8 @@ class TotelepepExtractor {
   // Clear cache for fresh extraction
   clearCache(): void {
     this.cache.clear();
-    // Don't clear calendarList - it's needed for date selection
-    
+    // Clear calendarList too - it will be re-fetched for the new source
+    this.calendarList = [];
   }
 
   // Sort matches by date and time
