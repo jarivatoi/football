@@ -679,93 +679,66 @@ class TotelepepExtractor {
     
     try {
 
-      // Store calendar list data for date selector
+      // Store calendar list data for date selector (only if not already set for this source)
       if (jsonData && jsonData.calendarList && Array.isArray(jsonData.calendarList)) {
+        // Only update calendarList if it's empty (prevent overwriting with partial data from subsequent API calls)
+        if (!this.calendarList || this.calendarList.length === 0) {
+          // Validate and normalize calendarList entries
+          const normalizedCalendarList = jsonData.calendarList.map((entry: any) => {
+            if (entry && typeof entry === 'object') {
+              let entryDate = entry.entryDate || entry.date || entry.matchDate || entry.gameDate;
+              let matchCount = entry.matchCount || entry.count || entry.matches || entry.totalMatches || 0;
+              let displayDate = entry.displayDate || entry.displayName || entry.name || '';
 
-        // Log each entry's keys and values to see what fields exist
-        jsonData.calendarList.forEach((entry: any, index: number) => {
-          
-        });
-        
-        // Validate and normalize calendarList entries
-        const normalizedCalendarList = jsonData.calendarList.map((entry: any) => {
-          // Handle different possible structures
-          if (entry && typeof entry === 'object') {
-            // Check if it has date/matchCount properties with different names
-            let entryDate = entry.entryDate || entry.date || entry.matchDate || entry.gameDate;
-            let matchCount = entry.matchCount || entry.count || entry.matches || entry.totalMatches || 0;
-            let displayDate = entry.displayDate || entry.displayName || entry.name || '';
-
-            // If we don't have entryDate, try to find it in other properties
-            if (!entryDate) {
-              // Look for any property that looks like a date
-              for (const key in entry) {
-                if (key.toLowerCase().includes('date') && typeof entry[key] === 'string') {
-                  entryDate = entry[key];
-                  break;
-                }
-              }
-            }
-            
-            // If we don't have matchCount, try to find it in other properties
-            if (!matchCount) {
-              // Look for any property that looks like a count
-              for (const key in entry) {
-                if ((key.toLowerCase().includes('count') || key.toLowerCase().includes('match')) && 
-                    typeof entry[key] === 'number') {
-                  matchCount = entry[key];
-                  break;
-                }
-              }
-            }
-            
-            // Convert date to YYYY-MM-DD format if it's not already
-            if (entryDate && typeof entryDate === 'string') {
-              // Try to parse the date
-              const dateObj = new Date(entryDate);
-              if (!isNaN(dateObj.getTime())) {
-                // Format as YYYY-MM-DD
-                const year = dateObj.getFullYear();
-                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                const day = String(dateObj.getDate()).padStart(2, '0');
-                entryDate = `${year}-${month}-${day}`;
-              } else {
-                // Try parsing with different formats
-                const formats = [
-                  entryDate, // Original
-                  entryDate.replace(/\//g, '-'), // Replace / with -
-                  entryDate.replace(/\./g, '-')  // Replace . with -
-                ];
-                
-                for (const format of formats) {
-                  const parsedDate = new Date(format);
-                  if (!isNaN(parsedDate.getTime())) {
-                    const year = parsedDate.getFullYear();
-                    const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
-                    const day = String(parsedDate.getDate()).padStart(2, '0');
-                    entryDate = `${year}-${month}-${day}`;
+              if (!entryDate) {
+                for (const key in entry) {
+                  if (key.toLowerCase().includes('date') && typeof entry[key] === 'string') {
+                    entryDate = entry[key];
                     break;
                   }
                 }
               }
+              
+              if (!matchCount) {
+                for (const key in entry) {
+                  if ((key.toLowerCase().includes('count') || key.toLowerCase().includes('match')) && 
+                      typeof entry[key] === 'number') {
+                    matchCount = entry[key];
+                    break;
+                  }
+                }
+              }
+              
+              // Convert date to YYYY-MM-DD format - parse manually to avoid iOS Safari timezone issues
+              if (entryDate && typeof entryDate === 'string') {
+                // Extract just the date part (before 'T') and parse manually
+                const datePart = entryDate.split('T')[0]; // "2026-09-01" from "2026-09-01T00:00:00+04:00"
+                const parts = datePart.split('-');
+                if (parts.length === 3) {
+                  entryDate = `${parts[0]}-${parts[1]}-${parts[2]}`; // Already in YYYY-MM-DD
+                } else {
+                  // Fallback: try parsing with Date object
+                  const dateObj = new Date(entryDate);
+                  if (!isNaN(dateObj.getTime())) {
+                    const year = dateObj.getUTCFullYear();
+                    const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+                    const day = String(dateObj.getUTCDate()).padStart(2, '0');
+                    entryDate = `${year}-${month}-${day}`;
+                  }
+                }
+              }
+              
+              return {
+                entryDate: entryDate || new Date().toISOString().split('T')[0],
+                matchCount: matchCount || 0,
+                displayDate: displayDate || ''
+              };
             }
-            
-            return {
-              entryDate: entryDate || new Date().toISOString().split('T')[0],
-              matchCount: matchCount || 0,
-              displayDate: displayDate || ''
-            };
-          }
-          return null;
-        }).filter((entry: any) => entry !== null);
-        
-        // Store this for use in the DateSelector
-        (this as any).calendarList = normalizedCalendarList;
-        
-      } else {
-        
-        if (jsonData) {
+            return null;
+          }).filter((entry: any) => entry !== null);
           
+          // Store this for use in the DateSelector
+          (this as any).calendarList = normalizedCalendarList;
         }
       }
       

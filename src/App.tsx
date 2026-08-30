@@ -1145,6 +1145,12 @@ function App() {
   // Auto-load next date in sequence (sequential loading)
   const autoLoadNextDate = async (completedDate: string, sourceId: string, categoryId: string, competitionId: string) => {
     try {
+      // CRITICAL: Stop auto-load if source has changed (prevents cross-source loading)
+      const currentSourceId = selectedSource?.id || 'totelepep';
+      if (currentSourceId !== sourceId) {
+        return; // Source has changed, stop auto-load for old source
+      }
+      
       // Get calendar list based on source
       let calendarEntries: {entryDate: string}[] = [];
       if (sourceId === 'smspariaz') {
