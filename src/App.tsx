@@ -266,6 +266,21 @@ function App() {
     // Reload calendar without any filters - pass source ID to avoid state timing issues
     await loadCalendarList('', '', source.id);
     
+    // CRITICAL: Get the correct first date for the NEW source synchronously
+    // React's setSelectedDate is async, so `selectedDate` state is still the OLD source's date
+    let newFirstDate: string | undefined;
+    if (source.id === 'smspariaz') {
+      const smsDates = await smspariazExtractor.getAvailableDates();
+      newFirstDate = smsDates && smsDates.length > 0 ? smsDates[0].date : undefined;
+    } else {
+      newFirstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
+    }
+    
+    // Sync __currentSelectedDate immediately so loadData uses the correct date
+    if (newFirstDate) {
+      (window as any).__currentSelectedDate = newFirstDate;
+    }
+    
     // Try to restore progress from IndexedDB cache for the new source
     try {
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
@@ -332,9 +347,11 @@ function App() {
         return;
       }
       
-      // Check if selected date has valid cache (don't force reload if cache is valid)
-      if (selectedDate) {
-        const selectedDateCacheKey = `date_${selectedDate}_all_all_${newSourceId}`;
+      // Check if the NEW source's first date has valid cache (don't force reload if cache is valid)
+      // CRITICAL: Use newFirstDate (from new source's calendar), not stale `selectedDate` state
+      const dateToCheck = newFirstDate || selectedDate;
+      if (dateToCheck) {
+        const selectedDateCacheKey = `date_${dateToCheck}_all_all_${newSourceId}`;
         const { matches: selectedDateMatches, metadata: selectedDateMetadata } = await getCachedMatches(selectedDateCacheKey);
         const selectedDateExpired = await isCacheExpired(selectedDateCacheKey);
         
@@ -358,7 +375,7 @@ function App() {
           
           // Update progress for this date
           const matchesWithMarkets = sortedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
-          progress[selectedDate] = {
+          progress[dateToCheck] = {
             loaded: matchesWithMarkets,
             total: sortedMatches.length,
             isComplete: matchesWithMarkets === sortedMatches.length
@@ -376,10 +393,10 @@ function App() {
     }
     
     // If no cache found or error, reload data with new source
-    // Don't call loadAllMatches here - allLoadedMatches state is stale (React async)
-    // The cache restoration above or auto-load will handle loading data for the new source
-    if (!showAllMatches && selectedDate) {
-      loadData(selectedDate, '', '', true); // forceFresh=true to ensure API fetch
+    // CRITICAL: Use newFirstDate (from new source's calendar), not stale `selectedDate` state
+    const dateToLoad = newFirstDate || selectedDate;
+    if (!showAllMatches && dateToLoad) {
+      loadData(dateToLoad, '', '', true); // forceFresh=true to ensure API fetch
     }
   };
   
