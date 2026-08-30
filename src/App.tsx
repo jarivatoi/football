@@ -691,7 +691,8 @@ function App() {
       // STEP 2: Fetch fresh data from API (in background if we have cache)
 
       // Capture source ID and filters at load START to prevent stale values during auto-merge
-      const loadSourceId = selectedSource?.id || 'totelepep';
+      // CRITICAL: Use currentSourceId (set synchronously) NOT selectedSource (async React state)
+      const loadSourceId = (totelepepExtractor as any).currentSourceId || selectedSource?.id || 'totelepep';
       const loadCategory = catId || 'all';
       const loadCompetition = compId || 'all';
       
