@@ -207,8 +207,6 @@ function App() {
   
   // Handle API source change
   const handleSourceChange = async (source: ApiSource) => {
-    console.log(`[SOURCE] handleSourceChange: switching to ${source.id}, baseUrl=${source.baseUrl}`);
-    
     setSelectedSource(source);
     
     // Set source ID on extractor IMMEDIATELY so all subsequent operations use correct source
@@ -278,7 +276,6 @@ function App() {
     
     // Reload calendar without any filters - pass source ID to avoid state timing issues
     await loadCalendarList('', '', source.id);
-    console.log(`[SOURCE] loadCalendarList done. calendarList=${(totelepepExtractor as any).calendarList?.length || 0} entries`);
     
     // CRITICAL: Get the correct first date AND calendar list for the NEW source
     // React's setSelectedDate is async, so `selectedDate` state is still the OLD source's date
@@ -292,7 +289,6 @@ function App() {
       newFirstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
       newCalendarDates = ((totelepepExtractor as any).calendarList || []).map((e: any) => e.entryDate);
     }
-    console.log(`[SOURCE] newFirstDate=${newFirstDate}, newCalendarDates=${newCalendarDates.length}:`, newCalendarDates);
     
     // Sync __currentSelectedDate immediately so loadData uses the correct date
     if (newFirstDate) {
@@ -404,10 +400,7 @@ function App() {
     // Even if we restored from cache, loadData will detect complete cache and return early
     // BUT it will also trigger autoLoadNextDate for subsequent dates
     if (newFirstDate) {
-      console.log(`[SOURCE] Calling loadData: newFirstDate=${newFirstDate}, hasAnyCompleteCache=${hasAnyCompleteCache}`);
       loadData(newFirstDate, '', '', !hasAnyCompleteCache);
-    } else {
-      console.log(`[SOURCE] STOPPED: newFirstDate is undefined (calendarList empty?)`);
     }
   };
   
@@ -600,7 +593,6 @@ function App() {
   };
 
   const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string, forceFresh: boolean = false) => {
-    console.log(`[LOAD] loadData called: targetDate=${targetDate}, categoryId=${categoryId}, competitionId=${competitionId}, forceFresh=${forceFresh}`);
     // CRITICAL: Use __currentSelectedDate (set synchronously in handleDateChange) 
     // instead of stale `selectedDate` from closure
     const currentViewDate = (window as any).__currentSelectedDate || selectedDate;
@@ -820,11 +812,6 @@ function App() {
       // Set up market progress callback before fetching (same for both sources)
       const marketProgressHandler = async (date: string, loaded: number, total: number) => {
         const percentage = Math.round((loaded / total) * 100);
-        
-        // Log key progress milestones
-        if (loaded >= total || loaded % 20 === 0) {
-          console.log(`[PROGRESS] date=${date}, loaded=${loaded}, total=${total}, loadSourceId=${loadSourceId}`);
-        }
 
         setDateProgress(prev => ({
           ...prev,
@@ -839,11 +826,9 @@ function App() {
         if (loaded >= total && !completedDates.has(date)) {
           // Mark as completed to prevent duplicate refreshes
           completedDates.add(date);
-          console.log(`[PROGRESS] DATE COMPLETE: ${date}, source=${loadSourceId}, total=${total}`);
 
           // Use captured values from load start, not current state
           await mergeDateIntoAllMatches(date, loadSourceId, loadCategory, loadCompetition);
-          console.log(`[PROGRESS] mergeDateIntoAllMatches completed for ${date}`);
           
           // Check if ALL dates are now complete
           const allDatesComplete = calendarList.every(calEntry => {
@@ -909,13 +894,11 @@ function App() {
       // onDateComplete: fires AFTER IndexedDB save — triggers auto-load next date
       // This replaces the autoLoadNextDate call from mergeDateIntoAllMatches (which had a race condition)
       totelepepExtractor.onDateComplete = async (date: string) => {
-        console.log(`[DATE-COMPLETE] Data saved to IndexedDB for ${date}, triggering autoLoadNextDate`);
         try {
           await mergeDateIntoAllMatches(date, loadSourceId, loadCategory, loadCompetition);
-          console.log(`[DATE-COMPLETE] mergeDateIntoAllMatches done for ${date}, calling autoLoadNextDate`);
           autoLoadNextDate(date, loadSourceId, loadCategory, loadCompetition);
         } catch (error) {
-          console.log(`[DATE-COMPLETE] ERROR:`, error);
+          console.error('onDateComplete error:', error);
         }
       };
 
@@ -926,9 +909,7 @@ function App() {
         fetchedMatches = await smspariazExtractor.extractMatches(dateToFetch, catId, compId);
       } else {
         // Totelepep-compatible sources
-        console.log(`[LOAD] Calling extractMatches: date=${dateToFetch}, catId=${catId}, compId=${compId}, forceFresh=${forceFresh}, baseUrl=${(totelepepExtractor as any).baseUrl}`);
         fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId, undefined, forceFresh);
-        console.log(`[LOAD] extractMatches returned: ${fetchedMatches.length} matches for date=${dateToFetch}`);
       }
 
       // If API returns 0 matches, mark date as complete immediately (nothing to load)
@@ -1174,23 +1155,19 @@ function App() {
       // AUTO-LOAD NEXT DATE is now handled by onDateComplete callback
       // (fires AFTER IndexedDB save, preventing the race condition where merge read empty data)
     } catch (error) {
-      console.log(`[MERGE] ERROR:`, error);
+      console.error('mergeDateIntoAllMatches error:', error);
     }
   };
   
   // Auto-load next date in sequence (sequential loading)
   const autoLoadNextDate = async (completedDate: string, sourceId: string, categoryId: string, competitionId: string) => {
     try {
-      console.log(`[AUTO-LOAD] autoLoadNextDate called: completedDate=${completedDate}, sourceId=${sourceId}`);
-      
       // CRITICAL: Stop auto-load if source has changed (prevents cross-source loading)
       // Use extractor's currentSourceId (not React state which may be stale)
       const extractorSourceId = (totelepepExtractor as any).baseUrl?.includes('stevenhills') ? 'stevenhills' :
                                 (totelepepExtractor as any).baseUrl?.includes('superscore') ? 'superscore' :
                                 (totelepepExtractor as any).baseUrl?.includes('valueplus') ? 'valueplus' : 'totelepep';
-      console.log(`[AUTO-LOAD] extractorSourceId=${extractorSourceId}, sourceId=${sourceId}, match=${extractorSourceId === sourceId}`);
       if (extractorSourceId !== sourceId) {
-        console.log(`[AUTO-LOAD] STOPPED: source mismatch`);
         return; // Source has changed, stop auto-load for old source
       }
       
@@ -1202,14 +1179,11 @@ function App() {
       } else {
         calendarEntries = (totelepepExtractor as any).calendarList || [];
       }
-      console.log(`[AUTO-LOAD] calendarEntries (${calendarEntries.length}):`, calendarEntries.map((e: any) => e.entryDate));
       
       // Find the index of the completed date
       const completedIndex = calendarEntries.findIndex((d: any) => d.entryDate === completedDate);
-      console.log(`[AUTO-LOAD] completedIndex=${completedIndex} for date=${completedDate}`);
       
       if (completedIndex === -1) {
-        console.log(`[AUTO-LOAD] STOPPED: completedDate ${completedDate} not found in calendarEntries`);
         return;
       }
       
@@ -1217,12 +1191,10 @@ function App() {
       const nextDateEntry = calendarEntries[completedIndex + 1];
       
       if (!nextDateEntry) {
-        console.log(`[AUTO-LOAD] STOPPED: no more dates after index ${completedIndex}`);
         return;
       }
       
       const nextDate = nextDateEntry.entryDate;
-      console.log(`[AUTO-LOAD] nextDate=${nextDate}`);
 
       // Check if next date is already complete
       const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
@@ -1234,10 +1206,8 @@ function App() {
                             nextMetadata?.isComplete && 
                             !nextExpired &&
                             nextCache.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
-      console.log(`[AUTO-LOAD] nextDate cache: key=${nextCacheKey}, cacheLen=${nextCache?.length || 0}, isComplete=${nextMetadata?.isComplete}, expired=${nextExpired}, allMarketsLoaded=${isNextComplete}`);
       
       if (isNextComplete) {
-        console.log(`[AUTO-LOAD] nextDate ${nextDate} already complete, skipping to next`);
         // Recursively try the next date
         autoLoadNextDate(nextDate, sourceId, categoryId, competitionId);
         return;
@@ -1246,12 +1216,11 @@ function App() {
       // Set currentSourceId dynamically so loadData routes correctly for any source
       (totelepepExtractor as any).currentSourceId = sourceId;
       
-      console.log(`[AUTO-LOAD] CALLING loadData for nextDate=${nextDate}, sourceId=${sourceId}`);
       // Load the next date in background
       loadData(nextDate, categoryId === 'all' ? undefined : categoryId, 
                competitionId === 'all' ? undefined : competitionId, false);
     } catch (error) {
-      console.log(`[AUTO-LOAD] ERROR:`, error);
+      console.error('autoLoadNextDate error:', error);
     }
   };
   
