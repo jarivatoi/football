@@ -892,7 +892,10 @@ function App() {
         fetchedMatches = await smspariazExtractor.extractMatches(dateToFetch, catId, compId);
       } else {
         // Totelepep-compatible sources
-        fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId, undefined, forceFresh);
+        // forceBackgroundFetch=true: if loadCalendarList already fetched API data,
+        // reuse those same match objects and start background market fetch on them
+        // This prevents duplicate API calls and duplicate background tasks
+        fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId, undefined, forceFresh, false, true);
       }
 
       // If API returns 0 matches, mark date as complete immediately (nothing to load)
@@ -1421,12 +1424,12 @@ function App() {
         competitionId || '',
         undefined, // onProgress callback
         true, // forceFresh = true (bypass cache for calendar)
-        true  // skipBackgroundFetch = true (prevent duplicate market fetch)
+        true  // skipBackgroundFetch = true (loadData will handle background fetch via forceBackgroundFetch)
       );
       
-      // Clear in-memory cache AFTER calendar fetch (extractMatches populates it via setCachedData)
-      // This ensures loadData's extractMatches call doesn't find stale data and skip the background market fetch
-      (totelepepExtractor as any).cache = new Map();
+      // NOTE: Do NOT clear in-memory cache here!
+      // loadData's extractMatches uses forceBackgroundFetch=true to reuse these same match objects
+      // and start the background market fetch on them (prevents duplicate API calls and tasks)
       
       // Small delay to ensure calendarList is set
       await new Promise(resolve => setTimeout(resolve, 100));

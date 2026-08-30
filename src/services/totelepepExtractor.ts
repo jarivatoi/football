@@ -136,7 +136,8 @@ class TotelepepExtractor {
     competitionId?: string,
     onProgress?: (loaded: number, total: number) => void,
     forceFresh: boolean = false, // Bypass cache (for calendar loading)
-    skipBackgroundFetch: boolean = false // Skip background market fetch (for calendar-only loads)
+    skipBackgroundFetch: boolean = false, // Skip background market fetch (for calendar-only loads)
+    forceBackgroundFetch: boolean = false // Skip API call, use cached data, start background market fetch
   ): Promise<TotelepepMatch[]> {
     try {
       // Check cache first
@@ -203,6 +204,42 @@ class TotelepepExtractor {
       
       // Check in-memory cache
       const cached = this.getCachedData(cacheKey);
+      
+      // forceBackgroundFetch: skip API call, use cached data, start background market fetch
+      // This is used by loadData after loadCalendarList already fetched the API data
+      if (forceBackgroundFetch && cached && cached.length > 0) {
+        const matches = cached;
+        
+        // Ensure all matches have the correct date
+        const dateToUse = targetDate || this.getTodayDate();
+        matches.forEach(match => {
+          if (!match.date) {
+            match.date = dateToUse;
+          }
+          if (!match.marketCount) {
+            match.marketCount = 1;
+            match.availableMarkets = ['1X2'];
+          }
+        });
+        
+        this.setCachedData(matches, cacheKey);
+        
+        // Save to IndexedDB
+        const chunkSize = getChunkSize();
+        const totalMatches = matches.length;
+        for (let i = 0; i < totalMatches; i += chunkSize) {
+          const chunk = matches.slice(i, i + chunkSize);
+          const loadedCount = Math.min(i + chunkSize, totalMatches);
+          const isComplete = loadedCount >= totalMatches;
+          await saveMatchesChunk(chunk, cacheKey, loadedCount, totalMatches, isComplete);
+        }
+        
+        // Start background market fetch on the SAME match objects from loadCalendarList
+        this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
+        
+        return matches;
+      }
+      
       if (cached) {
 
         return cached;
@@ -283,7 +320,7 @@ class TotelepepExtractor {
         
         // ALWAYS fetch markets in background (even with forceFresh)
         // This ensures markets load automatically on first load
-        // SKIP when only loading calendar data (caller will trigger the real fetch)
+        // SKIP when only loading calendar data (loadData will handle it via forceBackgroundFetch)
         if (!skipBackgroundFetch) {
           this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
         }
