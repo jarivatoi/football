@@ -7,17 +7,13 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 serve(async (req) => {
-  // Get the request origin for CORS (iOS Safari requires specific origin, not *)
-  const requestOrigin = req.headers.get('origin') || '*'
-
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
       headers: {
-        'Access-Control-Allow-Origin': requestOrigin,
+        'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control, Pragma, X-Requested-With, Cookie',
-        'Access-Control-Allow-Credentials': 'true',
       },
     })
   }
@@ -33,7 +29,7 @@ serve(async (req) => {
           status: 400,
           headers: { 
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': requestOrigin
+            'Access-Control-Allow-Origin': '*'
           }
         }
       )
@@ -42,7 +38,6 @@ serve(async (req) => {
     // Extract cookies from the request to forward to target API
     const cookies = req.headers.get('cookie') || ''
     const referer = req.headers.get('referer') || ''
-    const origin = req.headers.get('origin') || ''
 
     // Build headers to forward - only include necessary ones
     const forwardHeaders: Record<string, string> = {
@@ -72,25 +67,13 @@ serve(async (req) => {
     // Get response data
     const data = await response.text()
 
-    // Extract Set-Cookie headers from response to forward back to client
-    const responseHeaders: Record<string, string> = {
-      'Access-Control-Allow-Origin': requestOrigin,
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control, Pragma, X-Requested-With, Cookie',
-      'Access-Control-Allow-Credentials': 'true',
-      'Content-Type': response.headers.get('Content-Type') || 'application/json',
-    }
-
-    // Forward Set-Cookie headers back to client
-    const setCookie = response.headers.get('set-cookie')
-    if (setCookie) {
-      responseHeaders['Set-Cookie'] = setCookie
-    }
-
-    // Return with CORS headers
+    // Return with simple CORS headers (no credentials - compatible with all browsers)
     return new Response(data, {
       status: response.status,
-      headers: responseHeaders,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': response.headers.get('Content-Type') || 'application/json',
+      },
     })
 
   } catch (error) {
@@ -100,7 +83,7 @@ serve(async (req) => {
         status: 500,
         headers: { 
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': requestOrigin
+          'Access-Control-Allow-Origin': '*'
         }
       }
     )
