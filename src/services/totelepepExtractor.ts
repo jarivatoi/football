@@ -1579,14 +1579,14 @@ class TotelepepExtractor {
         const month = parts[1];
         const time = parts[2];
         
-        // Convert month name to number
+        // Convert month name to number - support both short (Sep) and long (Sept) abbreviations
         const monthMap: Record<string, string> = {
           'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
           'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
-          'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
+          'Sep': '09', 'Sept': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
         };
         
-        const monthNum = monthMap[month] || '01';
+        const monthNum = monthMap[month] || monthMap[month.substring(0, 3)] || '01';
         
         // Determine year - use current year for current and future months
         const currentDate = new Date();
