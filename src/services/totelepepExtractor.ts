@@ -130,14 +130,105 @@ class TotelepepExtractor {
     return this.teamBasedCompetitionMap[teamKey] || null;
   }
   
+  // Lightweight calendar fetch — ONLY populates calendarList, categories, competitions
+  // Does NOT parse matches, does NOT touch cache, does NOT start background tasks
+  // Used by loadCalendarList during source switching
+  async fetchCalendarOnly(date: string): Promise<void> {
+    try {
+      const jsonData = await this.fetchTotelepepAPI(date, '', '');
+      
+      // Extract calendarList (reuse same normalization as parseJSONForMatches)
+      if (jsonData && jsonData.calendarList && Array.isArray(jsonData.calendarList)) {
+        const normalizedCalendarList = jsonData.calendarList.map((entry: any) => {
+          if (entry && typeof entry === 'object') {
+            let entryDate = entry.entryDate || entry.date || entry.matchDate || entry.gameDate;
+            let matchCount = entry.matchCount || entry.count || entry.matches || entry.totalMatches || 0;
+            let displayDate = entry.displayDate || entry.displayName || entry.name || '';
+
+            if (!entryDate) {
+              for (const key in entry) {
+                if (key.toLowerCase().includes('date') && typeof entry[key] === 'string') {
+                  entryDate = entry[key];
+                  break;
+                }
+              }
+            }
+            
+            if (!matchCount) {
+              for (const key in entry) {
+                if ((key.toLowerCase().includes('count') || key.toLowerCase().includes('match')) && 
+                    typeof entry[key] === 'number') {
+                  matchCount = entry[key];
+                  break;
+                }
+              }
+            }
+            
+            // Convert date to YYYY-MM-DD format - parse manually to avoid iOS Safari timezone issues
+            if (entryDate && typeof entryDate === 'string') {
+              const datePart = entryDate.split('T')[0];
+              const parts = datePart.split('-');
+              if (parts.length === 3) {
+                entryDate = `${parts[0]}-${parts[1]}-${parts[2]}`;
+              } else {
+                const dateObj = new Date(entryDate);
+                if (!isNaN(dateObj.getTime())) {
+                  const year = dateObj.getUTCFullYear();
+                  const month = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+                  const day = String(dateObj.getUTCDate()).padStart(2, '0');
+                  entryDate = `${year}-${month}-${day}`;
+                }
+              }
+            }
+            
+            return {
+              entryDate: entryDate || new Date().toISOString().split('T')[0],
+              matchCount: matchCount || 0,
+              displayDate: displayDate || ''
+            };
+          }
+          return null;
+        }).filter((entry: any) => entry !== null);
+        
+        (this as any).calendarList = normalizedCalendarList;
+      }
+      
+      // Extract categories
+      if (jsonData && jsonData.categoryList && Array.isArray(jsonData.categoryList)) {
+        this.categoryList = jsonData.categoryList.map((cat: any) => ({
+          id: cat.id || cat.categoryId || '',
+          name: cat.name || cat.categoryName || cat.displayName || ''
+        }));
+      }
+      
+      // Extract competitions from competitionData string
+      if (jsonData && jsonData.competitionData && typeof jsonData.competitionData === 'string') {
+        const competitions = jsonData.competitionData.split('|').filter((c: string) => c.trim());
+        this.competitionList = competitions.map((comp: string) => {
+          const parts = comp.split(';');
+          if (parts.length >= 5) {
+            this.competitionToCategoryMap.set(parts[0], parts[2]);
+            return {
+              id: parts[0],
+              name: parts[1],
+              categoryId: parts[2],
+              matchCount: 0
+            };
+          }
+          return null;
+        }).filter((c: any) => c !== null);
+      }
+    } catch (error) {
+      // Calendar fetch failed - calendarList stays empty
+    }
+  }
+
   async extractMatches(
     targetDate?: string, 
     categoryId?: string, 
     competitionId?: string,
     onProgress?: (loaded: number, total: number) => void,
-    forceFresh: boolean = false, // Bypass cache (for calendar loading)
-    skipBackgroundFetch: boolean = false, // Skip background market fetch (for calendar-only loads)
-    forceBackgroundFetch: boolean = false // Skip API call, use cached data, start background market fetch
+    forceFresh: boolean = false
   ): Promise<TotelepepMatch[]> {
     try {
       // Check cache first
@@ -204,42 +295,6 @@ class TotelepepExtractor {
       
       // Check in-memory cache
       const cached = this.getCachedData(cacheKey);
-      
-      // forceBackgroundFetch: skip API call, use cached data, start background market fetch
-      // This is used by loadData after loadCalendarList already fetched the API data
-      if (forceBackgroundFetch && cached && cached.length > 0) {
-        const matches = cached;
-        
-        // Ensure all matches have the correct date
-        const dateToUse = targetDate || this.getTodayDate();
-        matches.forEach(match => {
-          if (!match.date) {
-            match.date = dateToUse;
-          }
-          if (!match.marketCount) {
-            match.marketCount = 1;
-            match.availableMarkets = ['1X2'];
-          }
-        });
-        
-        this.setCachedData(matches, cacheKey);
-        
-        // Save to IndexedDB
-        const chunkSize = getChunkSize();
-        const totalMatches = matches.length;
-        for (let i = 0; i < totalMatches; i += chunkSize) {
-          const chunk = matches.slice(i, i + chunkSize);
-          const loadedCount = Math.min(i + chunkSize, totalMatches);
-          const isComplete = loadedCount >= totalMatches;
-          await saveMatchesChunk(chunk, cacheKey, loadedCount, totalMatches, isComplete);
-        }
-        
-        // Start background market fetch on the SAME match objects from loadCalendarList
-        this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
-        
-        return matches;
-      }
-      
       if (cached) {
 
         return cached;
@@ -320,10 +375,7 @@ class TotelepepExtractor {
         
         // ALWAYS fetch markets in background (even with forceFresh)
         // This ensures markets load automatically on first load
-        // SKIP when only loading calendar data (loadData will handle it via forceBackgroundFetch)
-        if (!skipBackgroundFetch) {
-          this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
-        }
+        this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
         
         return matches;
       }

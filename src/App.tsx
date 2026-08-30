@@ -892,10 +892,7 @@ function App() {
         fetchedMatches = await smspariazExtractor.extractMatches(dateToFetch, catId, compId);
       } else {
         // Totelepep-compatible sources
-        // forceBackgroundFetch=true: if loadCalendarList already fetched API data,
-        // reuse those same match objects and start background market fetch on them
-        // This prevents duplicate API calls and duplicate background tasks
-        fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId, undefined, forceFresh, false, true);
+        fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId, undefined, forceFresh);
       }
 
       // If API returns 0 matches, mark date as complete immediately (nothing to load)
@@ -1407,32 +1404,15 @@ function App() {
         return;
       }
 
-      // Clear in-memory cache ONLY (keep IndexedDB for matches)
-      (totelepepExtractor as any).cache = new Map();
-      
       // We need to fetch with a date to get the calendar list
-      // Use TODAY (not yesterday) to ensure we get the full calendar with matches
+      // Use TODAY to ensure we get the full calendar with matches
       const today = new Date();
       const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-      // IMPORTANT: Pass a callback to force fresh API fetch (bypass IndexedDB for calendar)
-      // This ensures we get the FULL calendar list, not just cached date
-      // skipBackgroundFetch=true prevents duplicate market fetch (handleSourceChange's loadData will do it)
-      const matches = await totelepepExtractor.extractMatches(
-        dateStr, 
-        categoryId || '', 
-        competitionId || '',
-        undefined, // onProgress callback
-        true, // forceFresh = true (bypass cache for calendar)
-        true  // skipBackgroundFetch = true (loadData will handle background fetch via forceBackgroundFetch)
-      );
-      
-      // NOTE: Do NOT clear in-memory cache here!
-      // loadData's extractMatches uses forceBackgroundFetch=true to reuse these same match objects
-      // and start the background market fetch on them (prevents duplicate API calls and tasks)
-      
-      // Small delay to ensure calendarList is set
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Lightweight calendar fetch — ONLY populates calendarList, categories, competitions
+      // Does NOT parse matches, does NOT touch cache, does NOT start background tasks
+      // loadData (called by handleSourceChange) handles match loading separately
+      await totelepepExtractor.fetchCalendarOnly(dateStr);
       
       // Get calendar list from extractor
       const calendarData = (totelepepExtractor as any).calendarList || [];
