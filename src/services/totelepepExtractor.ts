@@ -282,7 +282,15 @@ class TotelepepExtractor {
         
         // ALWAYS fetch markets in background (even with forceFresh)
         // This ensures markets load automatically on first load
-        this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
+        // On mobile, add a delay to ensure calendar loads first
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+          setTimeout(() => {
+            this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
+          }, 500); // 500ms delay on mobile
+        } else {
+          this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
+        }
         
         return matches;
       }
