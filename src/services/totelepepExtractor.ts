@@ -639,11 +639,13 @@ class TotelepepExtractor {
     let apiUrl;
     if (targetDate) {
       // Has a date: use it with inclusive=0 to get only that date's matches
-      const dateObj = new Date(targetDate);
+      // Parse date manually to avoid iOS Safari timezone issues with new Date("YYYY-MM-DD")
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const day = String(dateObj.getDate()).padStart(2, '0');
-      const month = months[dateObj.getMonth()];
-      const year = dateObj.getFullYear();
+      const dateParts = targetDate.split('-');
+      const year = parseInt(dateParts[0]);
+      const monthIndex = parseInt(dateParts[1]) - 1; // 0-indexed
+      const day = dateParts[2]; // Keep as string to preserve original day
+      const month = months[monthIndex];
       const formattedDate = `${day} ${month} ${year}`;
       apiUrl = `${this.baseUrl}?sportId=soccer&date=${encodeURIComponent(formattedDate)}&category=${encodeURIComponent(categoryParam)}&competitionId=${compId}&pageNo=${page}&inclusive=0&matchid=0&periodCode=all`;
       
