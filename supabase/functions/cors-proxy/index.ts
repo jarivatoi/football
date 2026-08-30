@@ -7,13 +7,17 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 serve(async (req) => {
+  // Get the request origin for CORS (iOS Safari requires specific origin, not *)
+  const requestOrigin = req.headers.get('origin') || '*'
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
       headers: {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': requestOrigin,
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control, Pragma, X-Requested-With, Cookie',
+        'Access-Control-Allow-Credentials': 'true',
       },
     })
   }
@@ -29,7 +33,7 @@ serve(async (req) => {
           status: 400,
           headers: { 
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
+            'Access-Control-Allow-Origin': requestOrigin
           }
         }
       )
@@ -70,7 +74,7 @@ serve(async (req) => {
 
     // Extract Set-Cookie headers from response to forward back to client
     const responseHeaders: Record<string, string> = {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': requestOrigin,
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control, Pragma, X-Requested-With, Cookie',
       'Access-Control-Allow-Credentials': 'true',
@@ -96,7 +100,7 @@ serve(async (req) => {
         status: 500,
         headers: { 
           'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
+          'Access-Control-Allow-Origin': requestOrigin
         }
       }
     )
