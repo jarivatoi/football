@@ -1424,6 +1424,10 @@ function App() {
         true  // skipBackgroundFetch = true (prevent duplicate market fetch)
       );
       
+      // Clear in-memory cache AFTER calendar fetch (extractMatches populates it via setCachedData)
+      // This ensures loadData's extractMatches call doesn't find stale data and skip the background market fetch
+      (totelepepExtractor as any).cache = new Map();
+      
       // Small delay to ensure calendarList is set
       await new Promise(resolve => setTimeout(resolve, 100));
       
