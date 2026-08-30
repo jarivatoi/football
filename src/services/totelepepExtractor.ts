@@ -76,14 +76,7 @@ class TotelepepExtractor {
       
       try {
         const fetchUrl = `${proxy}${encodedUrl}`;
-        
-        // Use Promise.race for timeout (iOS Safari compatible)
-        const fetchPromise = fetch(fetchUrl, options);
-        const timeoutPromise = new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout')), 15000)
-        );
-        
-        const response = await Promise.race([fetchPromise, timeoutPromise]);
+        const response = await fetch(fetchUrl, options);
         
         if (response.ok) {
           // Update current proxy to the working one
@@ -289,15 +282,8 @@ class TotelepepExtractor {
         
         // ALWAYS fetch markets in background (even with forceFresh)
         // This ensures markets load automatically on first load
-        // On mobile, delay market fetching to let calendar/UI render first
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (isMobile) {
-          setTimeout(() => {
-            this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
-          }, 2000); // 2 second delay on mobile to let UI render
-        } else {
-          this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
-        }
+        // Uses batched approach (10 at a time) - works on both desktop and mobile
+        this.fetchMarketsInBackground(matches, cacheKey, totalMatches, chunkSize);
         
         return matches;
       }
@@ -398,30 +384,42 @@ class TotelepepExtractor {
         this.onMarketProgress(date, loadedCount, totalMatches);
       }
       
-      // Fetch ALL matches IN PARALLEL at once (same speed as SMS Pariaz)
-      // Filter out matches that already have markets
+      // Fetch in parallel batches (fast but mobile-safe)
+      const batchSize = 10;
       const needFetching = matches.filter(m => !m.allMarkets || m.allMarkets.length === 0);
       
-      if (needFetching.length > 0) {
-        const fetchPromises = needFetching.map(async (match) => {
+      for (let i = 0; i < needFetching.length; i += batchSize) {
+        const batch = needFetching.slice(i, i + batchSize);
+        
+        // Check if cancelled
+        if (!this.activeBackgroundTasks.has(cacheKey)) {
+          return;
+        }
+        
+        // Fetch batch in parallel
+        const fetchPromises = batch.map(async (match) => {
           try {
             await this.fetchMarketsForMatch(match);
           } catch (error) {
-            // Ignore individual match errors
+            // Ignore individual errors
           }
         });
         
-        // Wait for all to complete
         await Promise.all(fetchPromises);
-        loadedCount += needFetching.length;
+        loadedCount += batch.length;
         
         // Report progress
         if (this.onMarketProgress) {
           this.onMarketProgress(date, loadedCount, totalMatches);
         }
+        
+        // Small delay between batches
+        if (i + batchSize < needFetching.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
       
-      // Update ALL matches in IndexedDB at once
+      // Update all matches in IndexedDB
       const { updateMatchesInCache } = await import('../utils/matchCache');
       await updateMatchesInCache(matches, cacheKey, totalMatches);
       // Final progress update (ensure complete)
