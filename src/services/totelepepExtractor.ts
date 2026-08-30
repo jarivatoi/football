@@ -383,46 +383,33 @@ class TotelepepExtractor {
         this.onMarketProgress(date, loadedCount, totalMatches);
       }
       
-      // MAX SPEED: Fetch in parallel batches of 25 (using our own Supabase proxy)
-      const batchSize = 25;
+      // BLAZING FAST: Fetch ALL matches at once (no batching, no delays)
+      // Filter out matches that already have markets
+      const needFetching = matches.filter(m => !m.allMarkets || m.allMarkets.length === 0);
       
-      for (let i = 0; i < totalMatches; i += batchSize) {
-        const batch = matches.slice(i, i + batchSize);
-        
-        // Check if this task has been cancelled
-        if (!this.activeBackgroundTasks.has(cacheKey)) {
-          return; // Exit early
-        }
-        
-        // Filter out matches that already have markets
-        const needFetching = batch.filter(m => !m.allMarkets || m.allMarkets.length === 0);
-        
-        if (needFetching.length > 0) {
-          // Fetch all matches in this batch IN PARALLEL (no rate limit - our proxy)
-          const fetchPromises = needFetching.map(async (match) => {
-            try {
-              await this.fetchMarketsForMatch(match);
-            } catch (error) {
-              // Ignore individual match errors
-            }
-          });
-          
-          // Wait for all in this batch to complete
-          await Promise.all(fetchPromises);
-          loadedCount += needFetching.length;
-          
-          // Report progress
-          if (this.onMarketProgress) {
-            this.onMarketProgress(date, loadedCount, totalMatches);
+      if (needFetching.length > 0) {
+        // Fetch ALL matches IN PARALLEL at once
+        const fetchPromises = needFetching.map(async (match) => {
+          try {
+            await this.fetchMarketsForMatch(match);
+          } catch (error) {
+            // Ignore individual match errors
           }
+        });
+        
+        // Wait for all to complete
+        await Promise.all(fetchPromises);
+        loadedCount += needFetching.length;
+        
+        // Report progress
+        if (this.onMarketProgress) {
+          this.onMarketProgress(date, loadedCount, totalMatches);
         }
-        
-        // Update this batch in IndexedDB with markets
-        const { updateMatchesInCache } = await import('../utils/matchCache');
-        await updateMatchesInCache(batch, cacheKey, totalMatches);
-        
-        // No delay - using our own Supabase proxy, can handle rapid requests
       }
+      
+      // Update ALL matches in IndexedDB at once
+      const { updateMatchesInCache } = await import('../utils/matchCache');
+      await updateMatchesInCache(matches, cacheKey, totalMatches);
       // Final progress update (ensure complete)
       if (this.onMarketProgress) {
         this.onMarketProgress(date, totalMatches, totalMatches);
