@@ -383,8 +383,8 @@ class TotelepepExtractor {
         this.onMarketProgress(date, loadedCount, totalMatches);
       }
       
-      // OPTIMIZED: Fetch in parallel batches of 10 (like SMS Pariaz)
-      const batchSize = 10;
+      // MAX SPEED: Fetch in parallel batches of 25 (using our own Supabase proxy)
+      const batchSize = 25;
       
       for (let i = 0; i < totalMatches; i += batchSize) {
         const batch = matches.slice(i, i + batchSize);
@@ -398,7 +398,7 @@ class TotelepepExtractor {
         const needFetching = batch.filter(m => !m.allMarkets || m.allMarkets.length === 0);
         
         if (needFetching.length > 0) {
-          // Fetch all matches in this batch IN PARALLEL
+          // Fetch all matches in this batch IN PARALLEL (no rate limit - our proxy)
           const fetchPromises = needFetching.map(async (match) => {
             try {
               await this.fetchMarketsForMatch(match);
@@ -421,10 +421,7 @@ class TotelepepExtractor {
         const { updateMatchesInCache } = await import('../utils/matchCache');
         await updateMatchesInCache(batch, cacheKey, totalMatches);
         
-        // Small delay between batches (50ms instead of 100ms)
-        if (i + batchSize < totalMatches) {
-          await new Promise(resolve => setTimeout(resolve, 50));
-        }
+        // No delay - using our own Supabase proxy, can handle rapid requests
       }
       // Final progress update (ensure complete)
       if (this.onMarketProgress) {
