@@ -138,6 +138,7 @@ class SmspariazExtractor {
   
   async fetchWithFallback(url: string): Promise<any> {
     const encodedUrl = encodeURIComponent(url);
+    let lastError: Error | null = null;
     
     for (let i = 0; i < this.corsProxies.length; i++) {
       const proxyIndex = (this.currentProxyIndex + i) % this.corsProxies.length;
@@ -155,19 +156,18 @@ class SmspariazExtractor {
           } catch {
             return text;
           }
-        } else if (response.status === 404) {
-          // File doesn't exist - don't try other proxies, fail immediately
-          throw new Error(`404 Not Found: ${url}`);
+        } else {
+          // Any error (including 404) - try next proxy
+          lastError = new Error(`HTTP ${response.status} from ${proxy}`);
+          continue;
         }
       } catch (e) {
-        // If it's a 404 error, re-throw immediately (don't try other proxies)
-        if (e instanceof Error && e.message.includes('404')) {
-          throw e;
-        }
+        lastError = e instanceof Error ? e : new Error(String(e));
         continue;
       }
     }
-    throw new Error('All CORS proxies failed for SMS Pariaz');
+    // All proxies failed
+    throw lastError || new Error('All CORS proxies failed for SMS Pariaz');
   }
 
   /**
