@@ -52,9 +52,9 @@ interface TotelepepMatch {
 class TotelepepExtractor {
   // CORS Proxy fallback list (tries each one in order)
   private corsProxies = [
-    'https://api.allorigins.win/raw?url=',       // Primary for Totelepep
+    'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=',  // Primary (deployed)
     'https://corsproxy.io/?',                    // Fallback 1
-    'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=',  // Fallback 2
+    'https://api.allorigins.win/raw?url=',       // Fallback 2
     'https://api.codetabs.com/v1/proxy?quest=',  // Fallback 3
   ];
   private currentProxyIndex = 0;
