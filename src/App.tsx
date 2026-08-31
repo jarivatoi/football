@@ -1760,13 +1760,26 @@ function App() {
         // Detect if this is an advanced filter (has period code like ALL, H1, H2, FT)
         const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
         
-        if (upperSearch.endsWith('H') && !hasAdvancedFilter) {
+        if (hasAdvancedFilter) {
+          // Advanced filter: extract position (H, D, A) from the last character
+          // e.g., '160FTA' → position=away, odds=160→1.60
+          const lastChar = upperSearch.slice(-1);
+          if (lastChar === 'H') positionFilter = 'home';
+          else if (lastChar === 'D') positionFilter = 'draw';
+          else if (lastChar === 'A') positionFilter = 'away';
+          
+          // Extract odds from the leading number
+          const oddsMatch = upperSearch.match(/^(\d{2,3})/);
+          if (oddsMatch) {
+            targetOdds = parseFloat(oddsMatch[1]);
+          }
+        } else if (upperSearch.endsWith('H')) {
           positionFilter = 'home';
           targetOdds = parseFloat(upperSearch.slice(0, -1));
-        } else if (upperSearch.endsWith('D') && !hasAdvancedFilter) {
+        } else if (upperSearch.endsWith('D')) {
           positionFilter = 'draw';
           targetOdds = parseFloat(upperSearch.slice(0, -1));
-        } else if (upperSearch.endsWith('A') && !hasAdvancedFilter) {
+        } else if (upperSearch.endsWith('A')) {
           positionFilter = 'away';
           targetOdds = parseFloat(upperSearch.slice(0, -1));
         }
@@ -2268,13 +2281,25 @@ function App() {
         const upperSearch = cleanSearchTerm.toUpperCase().trim();
         const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
         
-        if (upperSearch.endsWith('H') && !hasAdvancedFilter) {
+        if (hasAdvancedFilter) {
+          // Advanced filter: extract position (H, D, A) from the last character
+          const lastChar = upperSearch.slice(-1);
+          if (lastChar === 'H') positionFilter = 'home';
+          else if (lastChar === 'D') positionFilter = 'draw';
+          else if (lastChar === 'A') positionFilter = 'away';
+          
+          // Extract odds from the leading number
+          const oddsMatch = upperSearch.match(/^(\d{2,3})/);
+          if (oddsMatch) {
+            targetOdds = parseFloat(oddsMatch[1]);
+          }
+        } else if (upperSearch.endsWith('H')) {
           positionFilter = 'home';
           targetOdds = parseFloat(upperSearch.slice(0, -1));
-        } else if (upperSearch.endsWith('D') && !hasAdvancedFilter) {
+        } else if (upperSearch.endsWith('D')) {
           positionFilter = 'draw';
           targetOdds = parseFloat(upperSearch.slice(0, -1));
-        } else if (upperSearch.endsWith('A') && !hasAdvancedFilter) {
+        } else if (upperSearch.endsWith('A')) {
           positionFilter = 'away';
           targetOdds = parseFloat(upperSearch.slice(0, -1));
         }
@@ -2356,13 +2381,26 @@ function App() {
       const upperSearch = cleanSearchTerm.toUpperCase().trim();
       const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
       
-      if (upperSearch.endsWith('H') && !hasAdvancedFilter) {
+      if (hasAdvancedFilter) {
+        // Advanced filter: extract position (H, D, A) from the last character
+        // e.g., '160FTA' → position=away, odds=160→1.60
+        const lastChar = upperSearch.slice(-1);
+        if (lastChar === 'H') positionFilter = 'home';
+        else if (lastChar === 'D') positionFilter = 'draw';
+        else if (lastChar === 'A') positionFilter = 'away';
+        
+        // Extract odds from the leading number
+        const oddsMatch = upperSearch.match(/^(\d{2,3})/);
+        if (oddsMatch) {
+          targetOdds = parseFloat(oddsMatch[1]);
+        }
+      } else if (upperSearch.endsWith('H')) {
         positionFilter = 'home';
         targetOdds = parseFloat(upperSearch.slice(0, -1));
-      } else if (upperSearch.endsWith('D') && !hasAdvancedFilter) {
+      } else if (upperSearch.endsWith('D')) {
         positionFilter = 'draw';
         targetOdds = parseFloat(upperSearch.slice(0, -1));
-      } else if (upperSearch.endsWith('A') && !hasAdvancedFilter) {
+      } else if (upperSearch.endsWith('A')) {
         positionFilter = 'away';
         targetOdds = parseFloat(upperSearch.slice(0, -1));
       }
@@ -2543,13 +2581,27 @@ function App() {
       const upperSearch = cleanSearchTerm.toUpperCase().trim();
       const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
       
-      if (upperSearch.endsWith('H') && !hasAdvancedFilter) {
+      if (hasAdvancedFilter) {
+        // Advanced filter: extract position (H, D, A) from the last character
+        // e.g., '160FTA' → position=away, odds=160→1.60
+        // e.g., '150H1H' → position=home, odds=150→1.50
+        const lastChar = upperSearch.slice(-1);
+        if (lastChar === 'H') positionFilter = 'home';
+        else if (lastChar === 'D') positionFilter = 'draw';
+        else if (lastChar === 'A') positionFilter = 'away';
+        
+        // Extract odds from the leading number
+        const oddsMatch = upperSearch.match(/^(\d{2,3})/);
+        if (oddsMatch) {
+          targetOdds = parseFloat(oddsMatch[1]);
+        }
+      } else if (upperSearch.endsWith('H')) {
         positionFilter = 'home';
         targetOdds = parseFloat(upperSearch.slice(0, -1));
-      } else if (upperSearch.endsWith('D') && !hasAdvancedFilter) {
+      } else if (upperSearch.endsWith('D')) {
         positionFilter = 'draw';
         targetOdds = parseFloat(upperSearch.slice(0, -1));
-      } else if (upperSearch.endsWith('A') && !hasAdvancedFilter) {
+      } else if (upperSearch.endsWith('A')) {
         positionFilter = 'away';
         targetOdds = parseFloat(upperSearch.slice(0, -1));
       }
