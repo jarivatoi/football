@@ -2663,23 +2663,15 @@ function App() {
   
   // Accumulate all loaded dates' matches into allLoadedMatches
   useEffect(() => {
-
-
-
     // Merge new groupedMatches into allLoadedMatches
     setAllLoadedMatches(prev => {
       const updated = { ...prev };
       
-      // Add/update each date from groupedMatches
+      // Always replace with fresh data from groupedMatches
+      // groupedMatches is always the most up-to-date (fresh from API/cache with past matches filtered)
+      // The old "max wins" logic kept stale data when groupedMatches had fewer matches (e.g., after past matches filtered)
       Object.entries(groupedMatches).forEach(([date, dateMatches]) => {
-        // Only update if the new data has MORE matches (more complete)
-        const existingMatches = updated[date];
-        if (!existingMatches || dateMatches.length > existingMatches.length) {
-
-          updated[date] = dateMatches;
-        } else {
-
-        }
+        updated[date] = dateMatches;
       });
 
       return updated;
