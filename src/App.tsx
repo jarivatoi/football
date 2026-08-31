@@ -3665,8 +3665,8 @@ function App() {
           allMatchesProgress={allMatchesProgress || undefined}
           onClearCache={handleClearCache}
           onClearAllCache={handleClearAllCache}
-          filteredMatchCount={searchMode !== 'matches' && searchTerm ? cumulativeFilteredCount?.filtered : undefined}
-          totalAllMatchesCount={cumulativeFilteredCount?.total || Object.values(groupedMatches).flat().length}
+          filteredMatchCount={searchMode !== 'matches' && searchTerm ? (showAllMatches ? cumulativeFilteredCount?.filtered : totalFilteredMatches) : undefined}
+          totalAllMatchesCount={showAllMatches ? (cumulativeFilteredCount?.total || Object.values(groupedMatches).flat().length) : (totalAllMatchesCount || Object.values(groupedMatches).flat().length)}
           originalDateCounts={availableDatesWithCounts.reduce((acc, entry) => { acc[entry.date] = entry.matchCount; return acc; }, {} as Record<string, number>)}
         />
         
