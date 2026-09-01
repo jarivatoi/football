@@ -119,7 +119,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                 /* Competition filter active AND we have filtered data for this date */
                 competitionFilteredDateCounts[dateInfo.date] > 0
                   ? <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />
-                  : <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
+                  : <span className="absolute top-0 right-0.5 text-red-500 font-bold text-[10px] leading-none">✕</span>
               ) : competitionFilteredDateCounts ? (
                 /* Competition filter active but date not yet in filtered counts - still loading */
                 <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
