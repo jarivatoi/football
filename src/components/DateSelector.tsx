@@ -121,9 +121,11 @@ const DateSelector: React.FC<DateSelectorProps> = ({
               ) : progress && !isComplete && percentage > 0 ? (
                 <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
               ) : null}
-              {/* Green dot: Fully loaded with all markets (persists even when not selected) */}
+              {/* Green dot: Fully loaded with matches | Red dot: Fully loaded but 0 filtered matches */}
               {progress && isComplete && (
-                <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />
+                competitionFilteredDateCounts && !(competitionFilteredDateCounts[dateInfo.date] > 0)
+                  ? <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 shadow-sm" />
+                  : <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />
               )}
               
               <div className="text-center">
