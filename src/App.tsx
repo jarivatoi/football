@@ -2528,7 +2528,8 @@ function App() {
         
         return calendarList.map(entry => ({
           ...entry,
-          matchCount: actualCounts[entry.date] !== undefined ? actualCounts[entry.date] : entry.matchCount
+          // When competition filter is active, unloaded dates show 0 (not the calendar's total)
+          matchCount: actualCounts[entry.date] !== undefined ? actualCounts[entry.date] : 0
         }));
       }
       
