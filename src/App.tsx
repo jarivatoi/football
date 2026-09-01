@@ -2586,9 +2586,14 @@ function App() {
   // This is separate from availableDatesWithCounts so we always have both filtered and total counts
   const competitionFilteredDateCounts = React.useMemo(() => {
     if (!selectedCategory && !selectedCompetition) return undefined;
-    if (Object.keys(allLoadedMatches).length === 0) return undefined;
+    if (calendarList.length === 0) return undefined;
     
     const filtered: Record<string, number> = {};
+    // Initialize ALL calendar dates with 0 (ensures red ✕ for dates not yet loaded)
+    calendarList.forEach(entry => {
+      filtered[entry.date] = 0;
+    });
+    // Override with actual filtered counts for loaded dates
     Object.entries(allLoadedMatches).forEach(([date, dateMatches]) => {
       const count = (dateMatches as any[]).filter(match => {
         if (selectedCompetition) return String(match.competitionId) === String(selectedCompetition);
@@ -2598,7 +2603,7 @@ function App() {
       filtered[date] = count;
     });
     return filtered;
-  }, [allLoadedMatches, selectedCategory, selectedCompetition]);
+  }, [allLoadedMatches, selectedCategory, selectedCompetition, calendarList]);
 
   // Create filtered date counts based on active search filters
   const filteredAvailableDates = React.useMemo(() => {
