@@ -2502,10 +2502,29 @@ function App() {
   // Get available dates with match counts from API calendarList data
   const availableDatesWithCounts = React.useMemo ? React.useMemo(() => {
     const sourceName = selectedSource?.displayName || 'Totelepep';
+    
+    // When a category or competition filter is active, use actual match counts
+    // instead of calendar counts (which show totals for ALL competitions)
+    const hasCompetitionFilter = !!(selectedCategory || selectedCompetition);
 
     // Use the calendarList data directly - this is the source of truth
     if (calendarList && calendarList.length > 0) {
       const sourceName = selectedSource?.displayName || 'Totelepep';
+      
+      // If competition filter is active, override match counts with actual loaded matches
+      if (hasCompetitionFilter && matches.length > 0) {
+        // Build per-date counts from actual loaded matches
+        const actualCounts: Record<string, number> = {};
+        matches.forEach(m => {
+          const d = m.date || '';
+          if (d) actualCounts[d] = (actualCounts[d] || 0) + 1;
+        });
+        
+        return calendarList.map(entry => ({
+          ...entry,
+          matchCount: actualCounts[entry.date] !== undefined ? actualCounts[entry.date] : entry.matchCount
+        }));
+      }
       
       return calendarList;
     }
@@ -2554,7 +2573,7 @@ function App() {
     });
 
     return result;
-  }, [calendarList, matches]) : [];
+  }, [calendarList, matches, selectedCategory, selectedCompetition]) : [];
 
   // Create filtered date counts based on active search filters
   const filteredAvailableDates = React.useMemo(() => {
