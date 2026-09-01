@@ -138,10 +138,13 @@ function App() {
         if (entryProgress.isComplete) {
           totalMatches += entryProgress.total || 0;
           completedDatesCount++;
-        } else if (entryProgress.total > 0) {
+        } else {
           // Date has started but not complete
           hasIncompleteDate = true;
         }
+      } else {
+        // Date has no progress entry yet - not started loading, counts as incomplete
+        hasIncompleteDate = true;
       }
     });
     
@@ -424,6 +427,11 @@ function App() {
     setSelectedCategory(categoryId);
     setSelectedCompetition('');
     
+    // Reset progress state - old entries are from different filter and cause stale isComplete
+    setDateProgress({});
+    setAllMatchesProgress(null);
+    setAllLoadedMatches({});
+    
     // Reload calendar with the category filter and get the first date
     const firstDate = await reloadCalendarWithFilters(categoryId, '');
 
@@ -448,6 +456,10 @@ function App() {
     // Don't reload calendar if competition is being reset (empty string)
     // This happens when category changes and resets competition
     if (!competitionId) {
+      // Reset progress state - old entries are from different filter
+      setDateProgress({});
+      setAllMatchesProgress(null);
+      setAllLoadedMatches({});
       
       // If All Matches is active, reload with reset competition
       if (showAllMatches) {
@@ -456,6 +468,11 @@ function App() {
       }
       return;
     }
+    
+    // Reset progress state - old entries are from different filter and cause stale isComplete
+    setDateProgress({});
+    setAllMatchesProgress(null);
+    setAllLoadedMatches({});
     
     // Reload calendar with the competition filter to get filtered counts
     // The API DOES return competition-specific calendar counts
