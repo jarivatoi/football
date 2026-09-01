@@ -201,9 +201,9 @@ const DateSelector: React.FC<DateSelectorProps> = ({
             {/* No progress bar for ALL MATCHES - it's not fetching in background */}
             
             {/* Dot indicator for All Matches button */}
-            {/* When competition filter active: only green when ALL dates are in filteredCounts */}
+            {/* When competition filter active: green only when all dates loaded AND all in filteredCounts */}
             {competitionFilteredDateCounts
-              ? (Object.keys(competitionFilteredDateCounts).length >= (availableDates?.length || 0) && availableDates && availableDates.length > 0 && Object.keys(competitionFilteredDateCounts).length > 0
+              ? (allMatchesProgress?.isComplete && Object.keys(competitionFilteredDateCounts).length > 0
                   ? <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />
                   : <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
                 )
