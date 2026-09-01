@@ -23,6 +23,7 @@ interface DateSelectorProps {
   filteredMatchCount?: number; // Filtered match count for display (e.g., 16/160)
   totalAllMatchesCount?: number; // Total matches across all dates (for filtered count denominator)
   originalDateCounts?: Record<string, number>; // Original match counts per date (for filtered display)
+  competitionFilteredDateCounts?: Record<string, number>; // Per-date competition-filtered counts (for X/Y display)
 }
 
 const DateSelector: React.FC<DateSelectorProps> = ({ 
@@ -38,7 +39,8 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   onClearAllCache,
   filteredMatchCount,
   totalAllMatchesCount,
-  originalDateCounts
+  originalDateCounts,
+  competitionFilteredDateCounts
 }) => {
   // Long-press state
   const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null);
@@ -46,6 +48,11 @@ const DateSelector: React.FC<DateSelectorProps> = ({
   
   // Use API data directly - show exact names from totelepep
   const datesToShow = availableDates.length > 0 ? availableDates.slice(0, 8) : [];
+  
+  // Compute calendar total for All Matches button (sum of original date counts)
+  const calendarListTotal = originalDateCounts
+    ? Object.values(originalDateCounts).reduce((s, c) => s + c, 0)
+    : totalMatches;
   
   // Long-press handlers
   const handlePressStart = (date: string) => {
@@ -126,10 +133,12 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                 <div className={`text-[10px] ${
                   isSelected && isComplete ? 'text-green-100' : isSelected ? 'text-blue-100' : 'text-gray-500'
                 }`}>
-                  {dateStr && `${dateStr} `}(
-                    {originalDateCounts && originalDateCounts[dateInfo.date] && dateInfo.matchCount !== originalDateCounts[dateInfo.date]
-                      ? `${dateInfo.matchCount}/${originalDateCounts[dateInfo.date]}`
-                      : dateInfo.matchCount}
+                  {dateStr && `${dateStr } `}(
+                    {competitionFilteredDateCounts
+                      ? `${competitionFilteredDateCounts[dateInfo.date] ?? 0}/${originalDateCounts?.[dateInfo.date] ?? dateInfo.matchCount}`
+                      : originalDateCounts && originalDateCounts[dateInfo.date] && dateInfo.matchCount !== originalDateCounts[dateInfo.date]
+                        ? `${dateInfo.matchCount}/${originalDateCounts[dateInfo.date]}`
+                        : dateInfo.matchCount}
                   )
                 </div>
               </div>
@@ -201,7 +210,13 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                 All Matches
               </div>
               {/* Show filtered count when filter is active, otherwise show progress */}
-              {filteredMatchCount !== undefined ? (
+              {competitionFilteredDateCounts ? (
+                <div className={`text-[10px] ${
+                  showAllMatches ? 'text-blue-100' : 'text-gray-600'
+                }`}>
+                  ({Object.values(competitionFilteredDateCounts).reduce((s, c) => s + c, 0)}/{calendarListTotal})
+                </div>
+              ) : filteredMatchCount !== undefined ? (
                 <div className={`text-[10px] ${
                   showAllMatches ? 'text-blue-100' : 'text-gray-600'
                 }`}>

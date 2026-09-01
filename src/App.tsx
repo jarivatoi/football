@@ -2582,6 +2582,24 @@ function App() {
     return result;
   }, [calendarList, matches, selectedCategory, selectedCompetition, allLoadedMatches]) : [];
 
+  // Compute per-date competition-filtered counts (for X/Y display in DateSelector)
+  // This is separate from availableDatesWithCounts so we always have both filtered and total counts
+  const competitionFilteredDateCounts = React.useMemo(() => {
+    if (!selectedCategory && !selectedCompetition) return undefined;
+    if (Object.keys(allLoadedMatches).length === 0) return undefined;
+    
+    const filtered: Record<string, number> = {};
+    Object.entries(allLoadedMatches).forEach(([date, dateMatches]) => {
+      const count = (dateMatches as any[]).filter(match => {
+        if (selectedCompetition) return String(match.competitionId) === String(selectedCompetition);
+        if (selectedCategory) return match.categoryId === selectedCategory;
+        return true;
+      }).length;
+      filtered[date] = count;
+    });
+    return filtered;
+  }, [allLoadedMatches, selectedCategory, selectedCompetition]);
+
   // Create filtered date counts based on active search filters
   const filteredAvailableDates = React.useMemo(() => {
     // If no active filter, return original counts
@@ -3745,7 +3763,8 @@ function App() {
           onClearAllCache={handleClearAllCache}
           filteredMatchCount={searchMode !== 'matches' && searchTerm ? totalFilteredMatches : undefined}
           totalAllMatchesCount={showAllMatches ? totalAllMatchesCount : (totalAllMatchesCount || Object.values(groupedMatches).flat().length)}
-          originalDateCounts={availableDatesWithCounts.reduce((acc, entry) => { acc[entry.date] = entry.matchCount; return acc; }, {} as Record<string, number>)}
+          originalDateCounts={calendarList.reduce((acc, entry) => { acc[entry.date] = entry.matchCount; return acc; }, {} as Record<string, number>)}
+          competitionFilteredDateCounts={competitionFilteredDateCounts}
         />
         
         {/* Search Bar */}
