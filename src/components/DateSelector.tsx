@@ -119,7 +119,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                 /* Competition filter active AND we have filtered data for this date */
                 competitionFilteredDateCounts[dateInfo.date] > 0
                   ? <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />
-                  : <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 shadow-sm" />
+                  : <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
               ) : competitionFilteredDateCounts ? (
                 /* Competition filter active but date not yet in filtered counts - still loading */
                 <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
@@ -200,14 +200,24 @@ const DateSelector: React.FC<DateSelectorProps> = ({
           >
             {/* No progress bar for ALL MATCHES - it's not fetching in background */}
             
-            {/* Orange dot: Show if ALL MATCHES is not complete (some dates still need to load) */}
-            {allMatchesProgress && !allMatchesProgress.isComplete && (
-              <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
-            )}
-            {/* Green dot: Fully loaded (all dates complete) */}
-            {allMatchesProgress && allMatchesProgress.isComplete && (
-              <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />
-            )}
+            {/* Dot indicator for All Matches button */}
+            {/* When competition filter active: only green when ALL dates are in filteredCounts */}
+            {competitionFilteredDateCounts
+              ? (Object.keys(competitionFilteredDateCounts).length >= (availableDates?.length || 0) && availableDates && availableDates.length > 0 && Object.keys(competitionFilteredDateCounts).length > 0
+                  ? <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />
+                  : <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
+                )
+              : (<>
+                  {/* No competition filter - use normal progress */}
+                  {allMatchesProgress && !allMatchesProgress.isComplete && (
+                    <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
+                  )}
+                  {allMatchesProgress && allMatchesProgress.isComplete && (
+                    <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />
+                  )}
+                </>
+              )
+            }
             
             <div className="text-center" style={{ minHeight: '28px' }}>
               <div className={`font-semibold ${
