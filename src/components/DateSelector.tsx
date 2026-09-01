@@ -115,20 +115,21 @@ const DateSelector: React.FC<DateSelectorProps> = ({
               } ${longPressDate === dateInfo.date ? 'animate-pulse' : ''}`}
             >
               {/* Colored dot indicator - top right */}
-              {/* When competition filter is active and date not yet loaded, show orange */}
-              {competitionFilteredDateCounts && !progress ? (
+              {competitionFilteredDateCounts && dateInfo.date in competitionFilteredDateCounts ? (
+                /* Competition filter active AND we have filtered data for this date */
+                competitionFilteredDateCounts[dateInfo.date] > 0
+                  ? <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />
+                  : <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 shadow-sm" />
+              ) : competitionFilteredDateCounts ? (
+                /* Competition filter active but date not yet in filtered counts - still loading */
                 <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
               ) : progress && !isComplete && percentage > 0 ? (
+                /* No competition filter - normal loading orange */
                 <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
+              ) : progress && isComplete ? (
+                /* No competition filter - complete green */
+                <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />
               ) : null}
-              {/* Green/Red/Orange dot when date is complete */}
-              {progress && isComplete && (
-                competitionFilteredDateCounts && (!(dateInfo.date in competitionFilteredDateCounts) || !(competitionFilteredDateCounts[dateInfo.date] > 0))
-                  ? !(dateInfo.date in competitionFilteredDateCounts)
-                    ? <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />  /* Still computing - show orange */
-                    : <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 shadow-sm" />     /* Loaded, 0 filtered matches - red */
-                  : <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />     /* Loaded with matches - green */
-              )}
               
               <div className="text-center">
                 <div className={`font-semibold ${
