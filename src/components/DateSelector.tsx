@@ -121,11 +121,13 @@ const DateSelector: React.FC<DateSelectorProps> = ({
               ) : progress && !isComplete && percentage > 0 ? (
                 <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
               ) : null}
-              {/* Green dot: Fully loaded with matches | Red dot: Fully loaded but 0 filtered matches */}
+              {/* Green/Red/Orange dot when date is complete */}
               {progress && isComplete && (
-                competitionFilteredDateCounts && !(competitionFilteredDateCounts[dateInfo.date] > 0)
-                  ? <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 shadow-sm" />
-                  : <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />
+                competitionFilteredDateCounts && (!(dateInfo.date in competitionFilteredDateCounts) || !(competitionFilteredDateCounts[dateInfo.date] > 0))
+                  ? !(dateInfo.date in competitionFilteredDateCounts)
+                    ? <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />  /* Still computing - show orange */
+                    : <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 shadow-sm" />     /* Loaded, 0 filtered matches - red */
+                  : <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />     /* Loaded with matches - green */
               )}
               
               <div className="text-center">
