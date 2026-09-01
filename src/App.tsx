@@ -430,7 +430,7 @@ function App() {
     // Reset progress state - old entries are from different filter and cause stale isComplete
     setDateProgress({});
     setAllMatchesProgress(null);
-    setAllLoadedMatches({});
+    // NOTE: Don't reset allLoadedMatches - it breaks the auto-load chain
     
     // Reload calendar with the category filter and get the first date
     const firstDate = await reloadCalendarWithFilters(categoryId, '');
@@ -459,7 +459,6 @@ function App() {
       // Reset progress state - old entries are from different filter
       setDateProgress({});
       setAllMatchesProgress(null);
-      setAllLoadedMatches({});
       
       // If All Matches is active, reload with reset competition
       if (showAllMatches) {
@@ -472,7 +471,7 @@ function App() {
     // Reset progress state - old entries are from different filter and cause stale isComplete
     setDateProgress({});
     setAllMatchesProgress(null);
-    setAllLoadedMatches({});
+    // NOTE: Don't reset allLoadedMatches - it breaks the auto-load chain
     
     // Reload calendar with the competition filter to get filtered counts
     // The API DOES return competition-specific calendar counts
@@ -1251,14 +1250,21 @@ function App() {
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
 
     try {
-      // If allLoadedMatches already has data AND no filter is active, use it directly
-      // When a filter IS active, always rebuild from per-date caches to ensure correct filtering
+      // If allLoadedMatches already has data, use it directly
+      // Apply category/competition filter here since allLoadedMatches contains ALL matches (unfiltered)
       const loadedDates = Object.keys(allLoadedMatches);
-      const hasActiveFilter = !!(catId || compId);
-      if (loadedDates.length > 0 && !hasActiveFilter) {
+      if (loadedDates.length > 0) {
 
         // Combine all matches from allLoadedMatches
-        const allMatches = Object.values(allLoadedMatches).flat();
+        let allMatches = Object.values(allLoadedMatches).flat();
+        
+        // Apply category/competition filter to allLoadedMatches data
+        // (The API returns all matches regardless of filter, so we must filter here)
+        if (compId) {
+          allMatches = allMatches.filter(m => String(m.competitionId) === String(compId));
+        } else if (catId) {
+          allMatches = allMatches.filter(m => m.categoryId === catId);
+        }
         
         // Filter out kickoff-passed matches
         const now = new Date();
