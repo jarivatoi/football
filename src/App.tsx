@@ -1758,7 +1758,7 @@ function App() {
         const upperSearch = cleanSearchTerm.toUpperCase().trim();
         
         // Detect if this is an advanced filter (has period code like ALL, H1, H2, FT)
-        const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
+        const hasAdvancedFilter = /\d{2,4}(H1|H2|2H|FT|ALL)/.test(upperSearch);
         
         if (hasAdvancedFilter) {
           // Advanced filter: extract position (H, D, A) from the last character
@@ -1769,7 +1769,7 @@ function App() {
           else if (lastChar === 'A') positionFilter = 'away';
           
           // Extract odds from the leading number
-          const oddsMatch = upperSearch.match(/^(\d{2,3})/);
+          const oddsMatch = upperSearch.match(/^(\d{2,4})/);
           if (oddsMatch) {
             targetOdds = parseFloat(oddsMatch[1]);
           }
@@ -1902,7 +1902,7 @@ function App() {
             if (searchMode === 'between' && searchTerm.includes('-')) {
               // Match range like "150-180" - extract just the first two numbers
               // The dash must be between two numbers, not part of UO line like "+1.5" or "-1.5"
-              const rangeMatch = searchTerm.match(/^(\d{2,3})-(\d{2,3})/);
+              const rangeMatch = searchTerm.match(/^(\d{2,4})-(\d{2,4})/);
               if (rangeMatch) {
                 targetOddsMin = parseFloat(rangeMatch[1]);
                 targetOddsMax = parseFloat(rangeMatch[2]);
@@ -1914,7 +1914,7 @@ function App() {
                 return true; // Can't parse range, let through
               }
             } else {
-              const oddsMatch = upperSearch.match(/^(\d{2,3})/);
+              const oddsMatch = upperSearch.match(/^(\d{2,4})/);
               if (!oddsMatch) return true; // Can't parse, let through
               targetOdds = parseFloat(oddsMatch[1]);
               if (targetOdds > 10) targetOdds = targetOdds / 100;
@@ -2279,7 +2279,7 @@ function App() {
         let targetOdds = parseFloat(cleanSearchTerm);
         let positionFilter: 'home' | 'draw' | 'away' | null = null;
         const upperSearch = cleanSearchTerm.toUpperCase().trim();
-        const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
+        const hasAdvancedFilter = /\d{2,4}(H1|H2|2H|FT|ALL)/.test(upperSearch);
         
         if (hasAdvancedFilter) {
           // Advanced filter: extract position (H, D, A) from the last character
@@ -2289,7 +2289,7 @@ function App() {
           else if (lastChar === 'A') positionFilter = 'away';
           
           // Extract odds from the leading number
-          const oddsMatch = upperSearch.match(/^(\d{2,3})/);
+          const oddsMatch = upperSearch.match(/^(\d{2,4})/);
           if (oddsMatch) {
             targetOdds = parseFloat(oddsMatch[1]);
           }
@@ -2379,7 +2379,7 @@ function App() {
       let targetOdds = parseFloat(cleanSearchTerm);
       let positionFilter: 'home' | 'draw' | 'away' | null = null;
       const upperSearch = cleanSearchTerm.toUpperCase().trim();
-      const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
+      const hasAdvancedFilter = /\d{2,4}(H1|H2|2H|FT|ALL)/.test(upperSearch);
       
       if (hasAdvancedFilter) {
         // Advanced filter: extract position (H, D, A) from the last character
@@ -2390,7 +2390,7 @@ function App() {
         else if (lastChar === 'A') positionFilter = 'away';
         
         // Extract odds from the leading number
-        const oddsMatch = upperSearch.match(/^(\d{2,3})/);
+        const oddsMatch = upperSearch.match(/^(\d{2,4})/);
         if (oddsMatch) {
           targetOdds = parseFloat(oddsMatch[1]);
         }
@@ -2579,7 +2579,7 @@ function App() {
       let targetOdds = parseFloat(cleanSearchTerm);
       let positionFilter: 'home' | 'draw' | 'away' | null = null;
       const upperSearch = cleanSearchTerm.toUpperCase().trim();
-      const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
+      const hasAdvancedFilter = /\d{2,4}(H1|H2|2H|FT|ALL)/.test(upperSearch);
       
       if (hasAdvancedFilter) {
         // Advanced filter: extract position (H, D, A) from the last character
@@ -2591,7 +2591,7 @@ function App() {
         else if (lastChar === 'A') positionFilter = 'away';
         
         // Extract odds from the leading number
-        const oddsMatch = upperSearch.match(/^(\d{2,3})/);
+        const oddsMatch = upperSearch.match(/^(\d{2,4})/);
         if (oddsMatch) {
           targetOdds = parseFloat(oddsMatch[1]);
         }
@@ -3782,7 +3782,7 @@ function App() {
                 // But NOT if it's ONLY a market line prefix (e.g., UO-2.5, AH-0.5)
                 // Allow ranges WITH market lines: 130-155FTUO-2.5
                 const rangeMatch = searchTerm.match(/^(\d{3,})-(\d{3,})/);
-                const isOnlyMarketLineWithDash = /^(\d{2,3})(FT|H1|H2|2H|ALL)(UO|AH)-/i.test(searchTerm);
+                const isOnlyMarketLineWithDash = /^(\d{2,4})(FT|H1|H2|2H|ALL)(UO|AH)-/i.test(searchTerm);
                 const isValidRange = rangeMatch !== null;
                 
                 // Auto-switch searchMode based on pattern
