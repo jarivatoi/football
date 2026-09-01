@@ -430,8 +430,7 @@ function App() {
     // Reset progress state - old entries are from different filter and cause stale isComplete
     setDateProgress({});
     setAllMatchesProgress(null);
-    // NOTE: Don't reset allLoadedMatches - it breaks the auto-load chain
-    // (mergeDateIntoAllMatches and competitionFilteredDateCounts depend on it)
+    setAllLoadedMatches({});
     
     // Reload calendar with the category filter and get the first date
     const firstDate = await reloadCalendarWithFilters(categoryId, '');
@@ -460,6 +459,7 @@ function App() {
       // Reset progress state - old entries are from different filter
       setDateProgress({});
       setAllMatchesProgress(null);
+      setAllLoadedMatches({});
       
       // If All Matches is active, reload with reset competition
       if (showAllMatches) {
@@ -472,7 +472,7 @@ function App() {
     // Reset progress state - old entries are from different filter and cause stale isComplete
     setDateProgress({});
     setAllMatchesProgress(null);
-    // NOTE: Don't reset allLoadedMatches - it breaks the auto-load chain
+    setAllLoadedMatches({});
     
     // Reload calendar with the competition filter to get filtered counts
     // The API DOES return competition-specific calendar counts
@@ -1251,9 +1251,11 @@ function App() {
     const compId = competitionId !== undefined ? competitionId : selectedCompetition;
 
     try {
-      // If allLoadedMatches already has data, use it directly instead of reloading from cache
+      // If allLoadedMatches already has data AND no filter is active, use it directly
+      // When a filter IS active, always rebuild from per-date caches to ensure correct filtering
       const loadedDates = Object.keys(allLoadedMatches);
-      if (loadedDates.length > 0) {
+      const hasActiveFilter = !!(catId || compId);
+      if (loadedDates.length > 0 && !hasActiveFilter) {
 
         // Combine all matches from allLoadedMatches
         const allMatches = Object.values(allLoadedMatches).flat();
