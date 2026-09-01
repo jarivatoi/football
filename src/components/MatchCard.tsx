@@ -40,7 +40,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
     
     if (isRange) {
       // Parse range: 150-180H1BTTS
-      const rangeMatch = upper.match(/^(\d{2,3})-(\d{2,3})/);
+      const rangeMatch = upper.match(/^(\d{2,4})-(\d{2,4})/);
       if (!rangeMatch) {
         return null;
       }
@@ -53,7 +53,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       afterOdds = upper.slice(rangeMatch[0].length);
     } else {
       // Single odds: 120FT
-      const oddsMatch = upper.match(/^(\d{2,3})/);
+      const oddsMatch = upper.match(/^(\d{2,4})/);
       if (!oddsMatch) {
         return null;
       }
@@ -536,7 +536,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
       const upperSearch = searchTerm.toUpperCase().trim();
       
       // Check for advanced filter patterns (e.g., 160H1, 125H1DC, 150H1BTTS, 120FTUO2.5, 140ALL)
-      const hasAdvancedFilter = /\d{2,3}(H1|H2|2H|FT|ALL)/.test(upperSearch);
+      const hasAdvancedFilter = /\d{2,4}(H1|H2|2H|FT|ALL)/.test(upperSearch);
       
       // Also check for old patterns (H1H, H1D, H1A, etc.)
       const hasPeriodFilter = upperSearch.endsWith('H1') || upperSearch.endsWith('H2') || 
@@ -545,7 +545,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                               upperSearch.endsWith('FT') || upperSearch.endsWith('ALL') ||
                               hasAdvancedFilter;
       // Auto-load markets if market-type filter detected
-      const hasMarketTypeFilter = /\d{2,3}(H1|H2|2H|FT|ALL)?(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)/i.test(searchTerm);
+      const hasMarketTypeFilter = /\d{2,4}(H1|H2|2H|FT|ALL)?(DC|UO|BTTS|GM|CS|WM|OE|FTTS|LTTS|AH|HTFT|HSH)/i.test(searchTerm);
       if (hasMarketTypeFilter && (!match.allMarkets || match.allMarkets.length === 0) && !isLoadingMarkets) {
         const loadMarkets = async () => {
           setIsLoadingMarkets(true);
@@ -1126,7 +1126,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                                           undefined;
                                   }
                                   
-                                  if (searchTerm && /\d{2,3}(H1|H2|2H|FT)/.test(searchTerm.toUpperCase())) {
+                                  if (searchTerm && /\d{2,4}(H1|H2|2H|FT)/.test(searchTerm.toUpperCase())) {
                                     const selIndex = market.selections.findIndex((s: any) => s === selection);
                                   }
                                   const matches = oddsMatchFilter(selection.odds, pos, market.periodCode, selection.name);
