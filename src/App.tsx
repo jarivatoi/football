@@ -2253,9 +2253,15 @@ function App() {
       // Use filteredGroupedMatches to get the filtered count
       return Object.values(filteredGroupedMatches).flat().length;
     }
+    // When a competition filter is active, sum all per-date counts from allLoadedMatches
+    // This gives the total across ALL dates, not just the currently selected date
+    if (selectedCategory || selectedCompetition) {
+      return Object.values(allLoadedMatches).reduce((sum, dateMatches) => 
+        sum + (Array.isArray(dateMatches) ? dateMatches.length : 0), 0);
+    }
     // For non-All Matches, use the loaded matches
     return matches.length > 0 ? matches.length : Object.values(groupedMatches).flat().length;
-  }, [matches, groupedMatches, filteredGroupedMatches, showAllMatches]);
+  }, [matches, groupedMatches, filteredGroupedMatches, showAllMatches, selectedCategory, selectedCompetition, allLoadedMatches]);
     
     const totalMatches = matches.length;
   
@@ -2512,12 +2518,12 @@ function App() {
       const sourceName = selectedSource?.displayName || 'Totelepep';
       
       // If competition filter is active, override match counts with actual loaded matches
-      if (hasCompetitionFilter && matches.length > 0) {
-        // Build per-date counts from actual loaded matches
+      // Use allLoadedMatches (all dates) instead of matches (current date only)
+      if (hasCompetitionFilter && Object.keys(allLoadedMatches).length > 0) {
+        // Build per-date counts from ALL loaded dates' matches
         const actualCounts: Record<string, number> = {};
-        matches.forEach(m => {
-          const d = m.date || '';
-          if (d) actualCounts[d] = (actualCounts[d] || 0) + 1;
+        Object.entries(allLoadedMatches).forEach(([date, dateMatches]) => {
+          actualCounts[date] = (dateMatches as any[]).length;
         });
         
         return calendarList.map(entry => ({
@@ -2573,7 +2579,7 @@ function App() {
     });
 
     return result;
-  }, [calendarList, matches, selectedCategory, selectedCompetition]) : [];
+  }, [calendarList, matches, selectedCategory, selectedCompetition, allLoadedMatches]) : [];
 
   // Create filtered date counts based on active search filters
   const filteredAvailableDates = React.useMemo(() => {
