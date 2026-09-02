@@ -2519,6 +2519,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                         <span>Base Stake:</span>
                         <span className="font-medium">Rs {Math.round(apiBreakdown.stake)}</span>
                       </div>
+                      <div className="flex justify-between">
+                        <span>Odds:</span>
+                        <span className="font-medium">{apiBreakdown.odds.toFixed(2)}</span>
+                      </div>
                       <div className="flex justify-between text-red-600">
                         <span>Tax:</span>
                         <span className="font-medium">-Rs {apiBreakdown.tax.toFixed(2)}</span>
