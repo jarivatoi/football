@@ -1239,8 +1239,16 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       bonusAmount = r.betList.reduce((sum: number, bet: any) => sum + (parse(bet.bonusAmount)), 0);
     }
 
+    // Get total odds from multiPrice or calculate from selections
+    const totalOddsFromApi = parse(r.multiPrice);
+    const calculatedOdds = selections.reduce((acc: number, sel: any) => {
+      const odds = typeof sel.odds === 'string' ? parseFloat(sel.odds) : sel.odds;
+      return acc * (odds || 1);
+    }, 1);
+
     return {
       stake,
+      odds: totalOddsFromApi > 0 ? parseFloat(totalOddsFromApi.toFixed(2)) : parseFloat(calculatedOdds.toFixed(2)),
       tax: parseFloat(taxAmount.toFixed(2)),
       bonus: parseFloat(bonusAmount.toFixed(2)),
       potentialPayout: parseFloat(apiPotentialPayout.toFixed(2)),
@@ -2361,8 +2369,12 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
             <>
               <div className="text-xs text-gray-600 space-y-1">
                 <div className="flex justify-between">
-                  <span>Stake:</span>
+                  <span>Base Stake:</span>
                   <span className="font-medium">Rs {Math.round(apiBreakdown.stake)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Odds:</span>
+                  <span className="font-medium">{apiBreakdown.odds.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-red-600">
                   <span>Tax:</span>
@@ -2570,6 +2582,32 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 <div className="p-2 bg-green-50 text-center">
                   <div className="text-sm font-bold text-green-700">MAIN BET</div>
                 </div>
+                {/* Match description for main bet */}
+                {mainBetSelection && (
+                  <div className="p-3 border-b bg-yellow-50 border-gray-200">
+                    <div className="text-sm font-semibold text-gray-800">
+                      {(() => {
+                        const sel = mainBetSelection;
+                        const odds = typeof sel.odds === 'string' ? parseFloat(sel.odds) : sel.odds;
+                        const selectionName = sel.priceType === 'home' ? sel.homeTeam :
+                          sel.priceType === 'draw' ? 'Draw' :
+                          sel.priceType === 'away' ? sel.awayTeam : sel.priceType;
+                        const mktName = sel.marketDisplayName || '1 X 2';
+                        const periodCode = sel.periodCode || 'FT';
+                        const periodLabel = periodCode === 'FT' ? 'Full Time' : periodCode === 'H1' ? 'Half Time' : periodCode === '2H' ? '2nd Half' : periodCode;
+                        return `${mktName} - ${periodLabel} - ${selectionName} @ ${odds}`;
+                      })()}
+                    </div>
+                    <div className="text-xs text-gray-600 font-medium mt-1">
+                      {mainBetSelection.homeTeam} v {mainBetSelection.awayTeam}
+                    </div>
+                    {(mainBetSelection as any).competitionName && (
+                      <div className="text-xs text-gray-500 font-medium mt-1">
+                        ⚽ {(mainBetSelection as any).competitionName}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {selectedSource && (
                   <div className="p-2 bg-blue-50 text-center border-b border-blue-200">
                     <div className="text-xl font-bold text-blue-700">{selectedSource.displayName}</div>
@@ -2605,6 +2643,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                       <div className="flex justify-between">
                         <span>Base Stake:</span>
                         <span className="font-medium">Rs {Math.round(lastResult.fullResponse.mainBet.stake || lastResult.fullResponse.mainStake)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Odds:</span>
+                        <span className="font-medium">{parseFloat(String(mainBetSelection?.odds || 0)).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-red-600">
                         <span>Tax:</span>
@@ -2651,6 +2693,32 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                 <div className="p-2 bg-green-50 text-center">
                   <div className="text-sm font-bold text-green-700">REFUND BET</div>
                 </div>
+                {/* Match description for refund bet */}
+                {refundSelections[selectedRefundIndex] && (
+                  <div className="p-3 border-b bg-yellow-50 border-gray-200">
+                    <div className="text-sm font-semibold text-gray-800">
+                      {(() => {
+                        const sel = refundSelections[selectedRefundIndex];
+                        const odds = typeof sel.odds === 'string' ? parseFloat(sel.odds) : sel.odds;
+                        const selectionName = sel.priceType === 'home' ? sel.homeTeam :
+                          sel.priceType === 'draw' ? 'Draw' :
+                          sel.priceType === 'away' ? sel.awayTeam : sel.priceType;
+                        const mktName = sel.marketDisplayName || '1 X 2';
+                        const periodCode = sel.periodCode || 'FT';
+                        const periodLabel = periodCode === 'FT' ? 'Full Time' : periodCode === 'H1' ? 'Half Time' : periodCode === '2H' ? '2nd Half' : periodCode;
+                        return `${mktName} - ${periodLabel} - ${selectionName} @ ${odds}`;
+                      })()}
+                    </div>
+                    <div className="text-xs text-gray-600 font-medium mt-1">
+                      {refundSelections[selectedRefundIndex].homeTeam} v {refundSelections[selectedRefundIndex].awayTeam}
+                    </div>
+                    {(refundSelections[selectedRefundIndex] as any).competitionName && (
+                      <div className="text-xs text-gray-500 font-medium mt-1">
+                        ⚽ {(refundSelections[selectedRefundIndex] as any).competitionName}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="p-2 bg-blue-50 text-center border-b border-blue-200">
                   <div className="text-xl font-bold text-blue-700">{selectedSource?.displayName}</div>
                 </div>
@@ -2684,6 +2752,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                       <div className="flex justify-between">
                         <span>Base Stake:</span>
                         <span className="font-medium">Rs {Math.round(lastResult.fullResponse.refundBet.stake || lastResult.fullResponse.refundStake)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Odds:</span>
+                        <span className="font-medium">{parseFloat(String(refundSelections[selectedRefundIndex]?.odds || 0)).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-red-600">
                         <span>Tax:</span>
