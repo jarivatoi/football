@@ -132,6 +132,8 @@ class SmspariazExtractor {
 
   // Progressive market loading (same pattern as Totelepep)
   public onMarketProgress: ((date: string, loaded: number, total: number) => void) | null = null;
+  // Fires AFTER all markets loaded AND saved to IndexedDB (triggers auto-load next date)
+  public onDateComplete: ((date: string) => void) | null = null;
   private _fullMatchesMap = new Map<string, SmspariazMatch>();
   private _progressiveTimerIds: number[] = [];
   private _progressiveCancelled = false;
@@ -527,6 +529,10 @@ class SmspariazExtractor {
           // Final progress update (ensure complete)
           if (this.onMarketProgress) {
             this.onMarketProgress(date, totalMatches, totalMatches);
+          }
+          // Fire onDateComplete AFTER final save — triggers autoLoadNextDate
+          if (this.onDateComplete) {
+            this.onDateComplete(date);
           }
         }
       }, 30); // 30ms delay between chunks

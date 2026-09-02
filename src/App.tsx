@@ -909,7 +909,7 @@ function App() {
       
       // onDateComplete: fires AFTER IndexedDB save — triggers auto-load next date
       // This replaces the autoLoadNextDate call from mergeDateIntoAllMatches (which had a race condition)
-      totelepepExtractor.onDateComplete = async (date: string) => {
+      const dateCompleteHandler = async (date: string) => {
         try {
           await mergeDateIntoAllMatches(date, loadSourceId, loadCategory, loadCompetition);
           autoLoadNextDate(date, loadSourceId, loadCategory, loadCompetition);
@@ -917,6 +917,8 @@ function App() {
           console.error('onDateComplete error:', error);
         }
       };
+      totelepepExtractor.onDateComplete = dateCompleteHandler;
+      smspariazExtractor.onDateComplete = dateCompleteHandler;
 
       // Fetch matches from the appropriate API source
       let fetchedMatches: any[];
@@ -1179,10 +1181,8 @@ function App() {
   const autoLoadNextDate = async (completedDate: string, sourceId: string, categoryId: string, competitionId: string) => {
     try {
       // CRITICAL: Stop auto-load if source has changed (prevents cross-source loading)
-      // Use extractor's currentSourceId (not React state which may be stale)
-      const extractorSourceId = (totelepepExtractor as any).baseUrl?.includes('stevenhills') ? 'stevenhills' :
-                                (totelepepExtractor as any).baseUrl?.includes('superscore') ? 'superscore' :
-                                (totelepepExtractor as any).baseUrl?.includes('valueplus') ? 'valueplus' : 'totelepep';
+      // Use extractor's currentSourceId (set dynamically, works for all sources including smspariaz)
+      const extractorSourceId = (totelepepExtractor as any).currentSourceId || 'totelepep';
       if (extractorSourceId !== sourceId) {
         return; // Source has changed, stop auto-load for old source
       }
