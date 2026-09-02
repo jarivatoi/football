@@ -334,6 +334,13 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                           const refundBonus = selectedBooking.betRefundRefundBonus || 0;
                           const refundNetPayout = selectedBooking.betRefundRefundNetPayout || 0;
                           
+                          // Get odds from selections (first selection = main bet)
+                          const mainBetSelection = selectedBooking.selections?.[0];
+                          const mainOdds = mainBetSelection ? (typeof mainBetSelection.odds === 'string' ? parseFloat(mainBetSelection.odds) : mainBetSelection.odds) : 0;
+                          // Refund bet is the second selection
+                          const refundBetSelection = selectedBooking.selections?.[1];
+                          const refundOdds = refundBetSelection ? (typeof refundBetSelection.odds === 'string' ? parseFloat(refundBetSelection.odds) : refundBetSelection.odds) : 0;
+                          
                           return (
                             <>
                               {/* Main Bet */}
@@ -349,8 +356,12 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                               <div className="p-3 bg-yellow-50 border-t border-gray-200">
                                 <div className="text-xs text-gray-600 space-y-1">
                                   <div className="flex justify-between">
-                                    <span>Stake:</span>
+                                    <span>Base Stake:</span>
                                     <span className="font-medium">Rs {Math.round(mainStake)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Odds:</span>
+                                    <span className="font-medium">{mainOdds.toFixed(2)}</span>
                                   </div>
                                   {mainTax > 0 && (
                                     <div className="flex justify-between text-red-600">
@@ -384,8 +395,12 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                               <div className="p-3 bg-yellow-50 border-t border-gray-200">
                                 <div className="text-xs text-gray-600 space-y-1">
                                   <div className="flex justify-between">
-                                    <span>Stake:</span>
+                                    <span>Base Stake:</span>
                                     <span className="font-medium">Rs {Math.round(refundStake)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Odds:</span>
+                                    <span className="font-medium">{refundOdds.toFixed(2)}</span>
                                   </div>
                                   {refundTax > 0 && (
                                     <div className="flex justify-between text-red-600">
@@ -494,8 +509,15 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                 <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="text-xs text-gray-600 space-y-1">
                     <div className="flex justify-between">
-                      <span>Stake:</span>
+                      <span>Base Stake:</span>
                       <span className="font-medium">Rs {Math.round(selectedBooking.stake)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Odds:</span>
+                      <span className="font-medium">{selectedBooking.selections.reduce((acc: number, sel: any) => {
+                        const odds = typeof sel.odds === 'string' ? parseFloat(sel.odds) : sel.odds;
+                        return acc * (odds || 1);
+                      }, 1).toFixed(2)}</span>
                     </div>
                     {selectedBooking.tax !== undefined && selectedBooking.tax > 0 && (
                       <div className="flex justify-between text-red-600">
