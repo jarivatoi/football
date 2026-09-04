@@ -253,6 +253,7 @@ function App() {
     
     // Reset progress state (will be restored from cache if available)
     setDateProgress({});
+    setAllMatchesProgress(null);
     
     // Reset both category and competition filters when switching sources
     // Each source has its own IDs, so start fresh
@@ -301,7 +302,11 @@ function App() {
     // Try to restore progress from IndexedDB cache for the new source
     let hasAnyCompleteCache = false;
     try {
-      const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
+      const { getCachedMatches, isCacheExpired, clearCacheMatches } = await import('./utils/matchCache');
+      
+      // Clear stale all_matches cache for the new source so it rebuilds fresh from individual dates
+      const staleAllMatchesKey = `all_matches_all_all_${newSourceId}`;
+      await clearCacheMatches(staleAllMatchesKey);
       
       // First, try to restore individual date progress (for date-by-date loading)
       const progress: Record<string, { loaded: number; total: number; isComplete: boolean }> = {};
