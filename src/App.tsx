@@ -125,9 +125,13 @@ function App() {
   } | null>(null);
   
   // Automatically update All Matches progress when any date progress changes
-  // Display format: X/? during loading, X/X when all complete (green)
+  // Total = sum of calendar matchCounts (same source as date buttons)
+  // Loaded = sum of loaded matches from completed dates
   useEffect(() => {
     if (calendarList.length === 0) return;
+    
+    // Total is ALWAYS the sum of calendar matchCounts (matches date button sum)
+    const calendarTotal = calendarList.reduce((sum, cal) => sum + (cal.matchCount || 0), 0);
     
     let totalLoaded = 0;
     let completedDatesCount = 0;
@@ -135,7 +139,6 @@ function App() {
     calendarList.forEach(calEntry => {
       const entryProgress = dateProgress[calEntry.date];
       if (entryProgress && entryProgress.isComplete) {
-        // Only count loaded matches from FULLY completed dates
         totalLoaded += entryProgress.loaded || 0;
         completedDatesCount++;
       }
@@ -145,7 +148,7 @@ function App() {
     
     setAllMatchesProgress({
       loaded: totalLoaded,
-      total: allDatesComplete ? totalLoaded : 0, // 0 = displays as "?" until all complete
+      total: calendarTotal,
       isComplete: allDatesComplete,
       percentage: 0
     });
