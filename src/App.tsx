@@ -810,6 +810,9 @@ function App() {
             if (matchesWithMarkets === cachedMatches.length && cachedMatches.length > 0) {
 
               mergeDateIntoAllMatches(dateToFetch!, loadSourceId, loadCategory, loadCompetition);
+              // CRITICAL: Also trigger auto-load next date from cache-hit path
+              // Without this, the sequential chain breaks when dates are served from cache
+              autoLoadNextDate(dateToFetch!, loadSourceId, loadCategory, loadCompetition);
             }
           } else {
 
