@@ -125,25 +125,19 @@ function App() {
   } | null>(null);
   
   // Automatically update All Matches progress when any date progress changes
+  // Display format: X/? during loading, X/X when all complete (green)
   useEffect(() => {
     if (calendarList.length === 0) return;
     
     let totalLoaded = 0;
-    let totalMatches = 0;
     let completedDatesCount = 0;
     
     calendarList.forEach(calEntry => {
       const entryProgress = dateProgress[calEntry.date];
-      if (entryProgress) {
+      if (entryProgress && entryProgress.isComplete) {
+        // Only count loaded matches from FULLY completed dates
         totalLoaded += entryProgress.loaded || 0;
-        totalMatches += entryProgress.total || 0;
-        if (entryProgress.isComplete) {
-          completedDatesCount++;
-        }
-      } else {
-        // Date hasn't started loading yet - use calendar count as placeholder
-        // so the total matches what the date button shows
-        totalMatches += calEntry.matchCount || 0;
+        completedDatesCount++;
       }
     });
     
@@ -151,7 +145,7 @@ function App() {
     
     setAllMatchesProgress({
       loaded: totalLoaded,
-      total: totalMatches,
+      total: allDatesComplete ? totalLoaded : 0, // 0 = displays as "?" until all complete
       isComplete: allDatesComplete,
       percentage: 0
     });
@@ -275,17 +269,11 @@ function App() {
     // CRITICAL: Get the correct first date AND calendar list for the NEW source
     // React's setSelectedDate is async, so `selectedDate` state is still the OLD source's date
     let newFirstDate: string | undefined;
-    let newCalendarDates: string[] = [];
-    let newCalendarCountMap: Record<string, number> = {}; // date → calendar match count
     if (source.id === 'smspariaz') {
       const smsDates = await smspariazExtractor.getAvailableDates();
       newFirstDate = smsDates && smsDates.length > 0 ? smsDates[0].date : undefined;
-      newCalendarDates = (smsDates || []).map((d: any) => d.date);
-      (smsDates || []).forEach((d: any) => { newCalendarCountMap[d.date] = d.matchCount || 0; });
     } else {
       newFirstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
-      newCalendarDates = ((totelepepExtractor as any).calendarList || []).map((e: any) => e.entryDate);
-      ((totelepepExtractor as any).calendarList || []).forEach((e: any) => { newCalendarCountMap[e.entryDate] = e.matchCount || 0; });
     }
     
     // Sync __currentSelectedDate immediately so loadData uses the correct date
@@ -293,117 +281,19 @@ function App() {
       (window as any).__currentSelectedDate = newFirstDate;
     }
     
-    // Try to restore progress from IndexedDB cache for the new source
-    let hasAnyCompleteCache = false;
+    // Always fetch fresh data on source switch (no cache restoration)
+    // Clear stale all_matches cache so it rebuilds fresh from individual dates
     try {
-      const { getCachedMatches, isCacheExpired, clearCacheMatches } = await import('./utils/matchCache');
-      
-      // Clear stale all_matches cache for the new source so it rebuilds fresh from individual dates
+      const { clearCacheMatches } = await import('./utils/matchCache');
       const staleAllMatchesKey = `all_matches_all_all_${newSourceId}`;
       await clearCacheMatches(staleAllMatchesKey);
-      
-      // First, try to restore individual date progress (for date-by-date loading)
-      const progress: Record<string, { loaded: number; total: number; isComplete: boolean }> = {};
-      
-      // CRITICAL: Use the NEW source's calendar dates, not stale extractor state
-      for (const date of newCalendarDates) {
-        const dateCacheKey = `date_${date}_all_all_${newSourceId}`;
-        // Read with includePast=true to get ALL matches (including past) for accurate count
-        const { matches: allDateMatches, metadata: dateMetadata } = await getCachedMatches(dateCacheKey, true);
-        const dateExpired = await isCacheExpired(dateCacheKey);
-        
-        if (allDateMatches && allDateMatches.length > 0 && !dateExpired) {
-          const matchesWithMarkets = allDateMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
-          progress[date] = {
-            loaded: matchesWithMarkets,
-            total: allDateMatches.length,
-            isComplete: matchesWithMarkets === allDateMatches.length
-          };
-        }
-      }
-      
-      // If we found any date progress, restore it
-      if (Object.keys(progress).length > 0) {
-        setDateProgress(progress);
-      }
-      
-      // Also check if there's a valid all_matches cache (for ALL MATCHES view)
-      const allMatchesCacheKey = `all_matches_all_all_${newSourceId}`;
-      const { matches: allMatchesCache, metadata: allMatchesMetadata } = await getCachedMatches(allMatchesCacheKey);
-      const allMatchesExpired = await isCacheExpired(allMatchesCacheKey);
-      
-      if (allMatchesCache && allMatchesCache.length > 0 && !allMatchesExpired && allMatchesMetadata?.isComplete) {
-        // Restore from cache
-        const sortedMatches = allMatchesCache.sort((a, b) => {
-          const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
-          if (dateComparison !== 0) return dateComparison;
-          return a.kickoff.localeCompare(b.kickoff);
-        });
-        
-        setMatches(sortedMatches);
-        const grouped = totelepepService.groupMatchesByDate(sortedMatches);
-        setGroupedMatches(grouped);
-        
-        // Update progress for 'all' key
-        const matchesWithMarkets = sortedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
-        progress['all'] = {
-          loaded: matchesWithMarkets,
-          total: sortedMatches.length,
-          isComplete: matchesWithMarkets === sortedMatches.length
-        };
-        setDateProgress(progress);
-        
-        setShowAllMatches(true);
-        setLastUpdated(new Date());
-        setLoading(false);
-        hasAnyCompleteCache = true;
-      }
-      
-      // Check if the NEW source's first date has valid complete cache
-      if (!hasAnyCompleteCache && newFirstDate) {
-        const dateToCheckCacheKey = `date_${newFirstDate}_all_all_${newSourceId}`;
-        const { matches: dateMatches, metadata: dateMetadata } = await getCachedMatches(dateToCheckCacheKey);
-        const dateExpired = await isCacheExpired(dateToCheckCacheKey);
-        
-        const isComplete = dateMatches && 
-                           dateMatches.length > 0 && 
-                           dateMetadata?.isComplete && 
-                           !dateExpired &&
-                           dateMatches.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
-        
-        if (isComplete) {
-          const sortedMatches = dateMatches.sort((a, b) => {
-            const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
-            if (dateComparison !== 0) return dateComparison;
-            return a.kickoff.localeCompare(b.kickoff);
-          });
-          
-          setMatches(sortedMatches);
-          const grouped = totelepepService.groupMatchesByDate(sortedMatches);
-          setGroupedMatches(grouped);
-          
-          const matchesWithMarkets = sortedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
-          progress[newFirstDate] = {
-            loaded: matchesWithMarkets,
-            total: sortedMatches.length,
-            isComplete: matchesWithMarkets === sortedMatches.length
-          };
-          setDateProgress(progress);
-          
-          setLastUpdated(new Date());
-          setLoading(false);
-          hasAnyCompleteCache = true;
-        }
-      }
-    } catch (error) {
-      // Cache restoration failed - will fetch fresh
+    } catch (e) {
+      // Ignore
     }
     
-    // CRITICAL: Always call loadData for the first date to start the auto-load chain
-    // Even if we restored from cache, loadData will detect complete cache and return early
-    // BUT it will also trigger autoLoadNextDate for subsequent dates
+    // Start fresh data load for the first date (forceFresh=true)
     if (newFirstDate) {
-      loadData(newFirstDate, '', '', !hasAnyCompleteCache);
+      loadData(newFirstDate, '', '', true);
     }
   };
   

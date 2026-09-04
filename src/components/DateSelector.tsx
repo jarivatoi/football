@@ -143,11 +143,9 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                   {dateStr && `${dateStr } `}(
                     {competitionFilteredDateCounts
                       ? `${competitionFilteredDateCounts[dateInfo.date] ?? 0}/${originalDateCounts?.[dateInfo.date] ?? dateInfo.matchCount}`
-                      : dateProgress[dateInfo.date]
-                        ? dateProgress[dateInfo.date].total
-                        : originalDateCounts && originalDateCounts[dateInfo.date] && dateInfo.matchCount !== originalDateCounts[dateInfo.date]
-                          ? `${dateInfo.matchCount}/${originalDateCounts[dateInfo.date]}`
-                          : dateInfo.matchCount}
+                      : originalDateCounts && originalDateCounts[dateInfo.date] && dateInfo.matchCount !== originalDateCounts[dateInfo.date]
+                        ? `${dateInfo.matchCount}/${originalDateCounts[dateInfo.date]}`
+                        : dateInfo.matchCount}
                   )
                 </div>
               </div>
