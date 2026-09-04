@@ -126,41 +126,31 @@ function App() {
   
   // Automatically update All Matches progress when any date progress changes
   useEffect(() => {
-    // Always use calendar matchCount sum as the authoritative total
-    // This matches what date buttons display (e.g., 44+369+271+12=696)
-    const calendarTotal = calendarList.reduce((sum, cal) => sum + (cal.matchCount || 0), 0);
-    
     if (calendarList.length === 0) return;
     
-    let completedLoaded = 0;
+    let totalLoaded = 0;
+    let totalMatches = 0;
     let completedDatesCount = 0;
-    let inProgressLoaded = 0;
-    let hasAnyInProgress = false;
     
     calendarList.forEach(calEntry => {
       const entryProgress = dateProgress[calEntry.date];
       if (entryProgress) {
+        totalLoaded += entryProgress.loaded || 0;
         if (entryProgress.isComplete) {
-          // Date is complete - use calendar count for this date
-          completedLoaded += calEntry.matchCount || 0;
+          // Date is complete - its total matches the date button count
+          totalMatches += entryProgress.total || 0;
           completedDatesCount++;
-        } else {
-          // Date is still loading - use its loaded count
-          inProgressLoaded += entryProgress.loaded || 0;
-          hasAnyInProgress = true;
         }
       }
-      // Dates without progress entry: not started yet, contribute 0
     });
     
     const allDatesComplete = completedDatesCount === calendarList.length;
-    const totalLoaded = completedLoaded + inProgressLoaded;
     
     setAllMatchesProgress({
       loaded: totalLoaded,
-      total: calendarTotal,
+      total: allDatesComplete ? totalMatches : 0, // 0 = unknown until all complete
       isComplete: allDatesComplete,
-      percentage: calendarTotal > 0 ? Math.round((totalLoaded / calendarTotal) * 100) : 0
+      percentage: 0
     });
   }, [dateProgress, calendarList]);
   
@@ -856,11 +846,16 @@ function App() {
       const marketProgressHandler = async (date: string, loaded: number, total: number) => {
         const percentage = Math.round((loaded / total) * 100);
 
+        // Use calendar match count as total (consistent with date button display)
+        // The extractor's total may differ from calendar count, but date buttons show calendar count
+        const calendarEntry = calendarListRef.current.find(c => c.date === date);
+        const progressTotal = calendarEntry?.matchCount || total;
+
         setDateProgress(prev => ({
           ...prev,
           [date]: {
             loaded,
-            total,
+            total: progressTotal,
             isComplete: loaded >= total
           }
         }));
