@@ -820,8 +820,11 @@ function App() {
               }
             }));
             
-            // If date is complete and loaded from cache (not background loading), trigger auto-merge
-            if (matchesWithMarkets === cachedMatches.length && cachedMatches.length > 0) {
+            // If date cache is complete, trigger auto-merge and auto-load next date
+            // This must fire even when all matches are past (validMatches empty) to keep
+            // the sequential loading chain alive — otherwise dates served from cache with
+            // only past matches break the chain (matchesWithMarkets=0 !== cachedMatches.length)
+            if (cachedMatches.length > 0 && (validMatches.length === 0 || matchesWithMarkets === cachedMatches.length)) {
 
               mergeDateIntoAllMatches(dateToFetch!, loadSourceId, loadCategory, loadCompetition);
               // CRITICAL: Also trigger auto-load next date from cache-hit path
