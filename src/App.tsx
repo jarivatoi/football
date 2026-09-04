@@ -136,11 +136,14 @@ function App() {
       const entryProgress = dateProgress[calEntry.date];
       if (entryProgress) {
         totalLoaded += entryProgress.loaded || 0;
-        // Always count total for any date that has started loading
         totalMatches += entryProgress.total || 0;
         if (entryProgress.isComplete) {
           completedDatesCount++;
         }
+      } else {
+        // Date hasn't started loading yet - use calendar count as placeholder
+        // so the total matches what the date button shows
+        totalMatches += calEntry.matchCount || 0;
       }
     });
     
