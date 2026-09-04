@@ -126,56 +126,42 @@ function App() {
   
   // Automatically update All Matches progress when any date progress changes
   useEffect(() => {
-    // Aggregate loaded count from all dates
-    let totalLoaded = 0;
-    let totalMatches = 0;
-    let hasIncompleteDate = false;
-    let totalDatesInCalendar = calendarList.length;
+    // Always use calendar matchCount sum as the authoritative total
+    // This matches what date buttons display (e.g., 44+369+271+12=696)
+    const calendarTotal = calendarList.reduce((sum, cal) => sum + (cal.matchCount || 0), 0);
+    
+    if (calendarList.length === 0) return;
+    
+    let completedLoaded = 0;
     let completedDatesCount = 0;
+    let inProgressLoaded = 0;
+    let hasAnyInProgress = false;
     
     calendarList.forEach(calEntry => {
       const entryProgress = dateProgress[calEntry.date];
       if (entryProgress) {
-        totalLoaded += entryProgress.loaded || 0;
-        // Count complete dates (including 0-match dates)
         if (entryProgress.isComplete) {
-          totalMatches += entryProgress.total || 0;
+          // Date is complete - use calendar count for this date
+          completedLoaded += calEntry.matchCount || 0;
           completedDatesCount++;
         } else {
-          // Date has started but not complete
-          hasIncompleteDate = true;
+          // Date is still loading - use its loaded count
+          inProgressLoaded += entryProgress.loaded || 0;
+          hasAnyInProgress = true;
         }
-      } else {
-        // Date has no progress entry yet - not started loading, counts as incomplete
-        hasIncompleteDate = true;
       }
+      // Dates without progress entry: not started yet, contribute 0
     });
     
-    // Always update allMatchesProgress if we have dates in calendar
-    // This ensures count is always visible, even before any loading starts
-    if (totalDatesInCalendar > 0) {
-      const allDatesComplete = completedDatesCount === totalDatesInCalendar && totalDatesInCalendar > 0;
-      
-      // When all dates are complete, use sum of calendar matchCount values
-      // This is the AUTHORITATIVE source that matches date button display exactly
-      // (dateProgress totals can differ because extractors report their own counts)
-      if (allDatesComplete) {
-        const calendarTotal = calendarList.reduce((sum, cal) => sum + (cal.matchCount || 0), 0);
-        setAllMatchesProgress({
-          loaded: calendarTotal,
-          total: calendarTotal,
-          isComplete: true,
-          percentage: 0
-        });
-      } else {
-        setAllMatchesProgress({
-          loaded: totalLoaded,
-          total: 0, // 0 means unknown until all dates complete
-          isComplete: false,
-          percentage: 0
-        });
-      }
-    }
+    const allDatesComplete = completedDatesCount === calendarList.length;
+    const totalLoaded = completedLoaded + inProgressLoaded;
+    
+    setAllMatchesProgress({
+      loaded: totalLoaded,
+      total: calendarTotal,
+      isComplete: allDatesComplete,
+      percentage: calendarTotal > 0 ? Math.round((totalLoaded / calendarTotal) * 100) : 0
+    });
   }, [dateProgress, calendarList]);
   
   // Auto-refresh ALL MATCHES list when a date completes (dateProgress changes)
