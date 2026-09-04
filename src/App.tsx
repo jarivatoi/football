@@ -136,9 +136,9 @@ function App() {
       const entryProgress = dateProgress[calEntry.date];
       if (entryProgress) {
         totalLoaded += entryProgress.loaded || 0;
+        // Always count total for any date that has started loading
+        totalMatches += entryProgress.total || 0;
         if (entryProgress.isComplete) {
-          // Date is complete - its total matches the date button count
-          totalMatches += entryProgress.total || 0;
           completedDatesCount++;
         }
       }
@@ -148,7 +148,7 @@ function App() {
     
     setAllMatchesProgress({
       loaded: totalLoaded,
-      total: allDatesComplete ? totalMatches : 0, // 0 = unknown until all complete
+      total: totalMatches,
       isComplete: allDatesComplete,
       percentage: 0
     });
