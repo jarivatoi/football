@@ -262,7 +262,7 @@ function App() {
     });
     
     setShowParlayBuilder(false);
-    setShowAllMatches(false);
+    setShowAllMatches(true); // Keep All Matches active to show loading progress
     
     // Reload calendar without any filters - pass source ID to avoid state timing issues
     await loadCalendarList('', '', source.id);
