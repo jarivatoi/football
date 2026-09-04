@@ -156,17 +156,25 @@ function App() {
     if (totalDatesInCalendar > 0) {
       const allDatesComplete = completedDatesCount === totalDatesInCalendar && totalDatesInCalendar > 0;
       
-      // When all dates are complete, use sum of dateProgress totals (includes past matches)
-      // This ensures consistency with date button counts which also include past matches
-      // Previously used allLoadedMatches which excluded past matches, causing count mismatch
-      // (e.g., date buttons: 44+369+271+12=696, All Matches: 157/157)
-      
-      setAllMatchesProgress({
-        loaded: allDatesComplete ? totalMatches : totalLoaded,
-        total: allDatesComplete ? totalMatches : 0, // 0 means unknown (?)
-        isComplete: allDatesComplete,
-        percentage: 0 // No progress bar for ALL MATCHES
-      });
+      // When all dates are complete, use sum of calendar matchCount values
+      // This is the AUTHORITATIVE source that matches date button display exactly
+      // (dateProgress totals can differ because extractors report their own counts)
+      if (allDatesComplete) {
+        const calendarTotal = calendarList.reduce((sum, cal) => sum + (cal.matchCount || 0), 0);
+        setAllMatchesProgress({
+          loaded: calendarTotal,
+          total: calendarTotal,
+          isComplete: true,
+          percentage: 0
+        });
+      } else {
+        setAllMatchesProgress({
+          loaded: totalLoaded,
+          total: 0, // 0 means unknown until all dates complete
+          isComplete: false,
+          percentage: 0
+        });
+      }
     }
   }, [dateProgress, calendarList]);
   
