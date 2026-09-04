@@ -103,6 +103,9 @@ function App() {
   const [isOnline, setIsOnline] = useState<boolean>(true);
   const [availableDates, setAvailableDates] = useState<Array<{date: string, matchCount: number, displayName: string}>>([]);
   const [calendarList, setCalendarList] = useState<Array<{date: string, matchCount: number, displayName: string}>>([]);
+  // Ref to keep latest calendarList for synchronous access in loadData (avoids stale closure issue)
+  const calendarListRef = useRef(calendarList);
+  useEffect(() => { calendarListRef.current = calendarList; }, [calendarList]);
   const [showParlayBuilder, setShowParlayBuilder] = useState(false);
   const [showClearAllModal, setShowClearAllModal] = useState(false); // Confirmation modal
   
@@ -817,7 +820,8 @@ function App() {
           if (!isBackgroundLoading) {
             // Use calendar match count as authoritative total (matches what date buttons display)
             // cachedMatches only has future matches (includePast=false), but calendar count includes ALL matches
-            const calendarEntry = calendarList.find(c => c.date === dateToFetch);
+            // Use calendarListRef.current (not calendarList) to avoid stale closure when called from handleSourceChange
+            const calendarEntry = calendarListRef.current.find(c => c.date === dateToFetch);
             const calendarMatchCount = calendarEntry?.matchCount || cachedMatches.length;
             
             setDateProgress(prev => ({
@@ -876,7 +880,7 @@ function App() {
           await mergeDateIntoAllMatches(date, loadSourceId, loadCategory, loadCompetition);
           
           // Check if ALL dates are now complete
-          const allDatesComplete = calendarList.every(calEntry => {
+          const allDatesComplete = calendarListRef.current.every(calEntry => {
             const entryProgress = dateProgress[calEntry.date];
             return entryProgress && entryProgress.isComplete;
           });
@@ -967,7 +971,7 @@ function App() {
 
         // Use calendar match count as total (consistent with date button display)
         // API returns 0 because all matches are past, but calendar still shows the count
-        const calendarEntry = calendarList.find(c => c.date === dateToFetch);
+        const calendarEntry = calendarListRef.current.find(c => c.date === dateToFetch);
         const calendarTotal = calendarEntry?.matchCount || 0;
         
         // Use state updater to avoid overwriting other dates' progress
@@ -1475,9 +1479,11 @@ function App() {
             displayName: d.displayName,
           }));
           setCalendarList(formattedCalendar);
+          calendarListRef.current = formattedCalendar; // Update ref synchronously for loadData
           setAvailableDates(formattedCalendar);
         } else {
           setCalendarList([]);
+          calendarListRef.current = [];
           setAvailableDates([]);
         }
         return;
@@ -1505,6 +1511,7 @@ function App() {
         }));
 
         setCalendarList(formattedCalendar);
+        calendarListRef.current = formattedCalendar; // Update ref synchronously for loadData
         
         // Set the selected date to the FIRST entry from the API (which is "Today" in API's timezone)
         const firstDate = formattedCalendar[0].date;
