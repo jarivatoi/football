@@ -224,9 +224,7 @@ function App() {
       smspariazExtractor.clearCache();
     }
     
-    // DON'T clear IndexedDB caches - they're source-specific and expire naturally
-    // Cache keys include source ID: date_2026-06-18_all_all_totelepep
-    // Each has 30-minute TTL, so expired caches are ignored automatically
+    // IndexedDB caches will be cleared below after calendar loads
 
     // Set loading state FIRST (prevents "No matches" flash)
     setLoading(true);
@@ -236,7 +234,7 @@ function App() {
     setGroupedMatches({});
     setAllLoadedMatches({});
     
-    // Reset progress state (will be restored from cache if available)
+    // Reset progress state - fresh start, no cache restoration
     setDateProgress({});
     setAllMatchesProgress(null);
     
@@ -281,12 +279,28 @@ function App() {
       (window as any).__currentSelectedDate = newFirstDate;
     }
     
-    // Always fetch fresh data on source switch (no cache restoration)
-    // Clear stale all_matches cache so it rebuilds fresh from individual dates
+    // Always fetch fresh data on source switch - clear ALL caches for the new source
     try {
       const { clearCacheMatches } = await import('./utils/matchCache');
+      
+      // Clear all_matches cache
       const staleAllMatchesKey = `all_matches_all_all_${newSourceId}`;
       await clearCacheMatches(staleAllMatchesKey);
+      
+      // Clear individual date caches for the new source
+      // Get calendar dates to know which date caches to clear
+      let datesToClear: string[] = [];
+      if (source.id === 'smspariaz') {
+        const smsDates = await smspariazExtractor.getAvailableDates();
+        datesToClear = (smsDates || []).map((d: any) => d.date);
+      } else {
+        datesToClear = ((totelepepExtractor as any).calendarList || []).map((e: any) => e.entryDate);
+      }
+      
+      for (const date of datesToClear) {
+        const dateCacheKey = `date_${date}_all_all_${newSourceId}`;
+        await clearCacheMatches(dateCacheKey);
+      }
     } catch (e) {
       // Ignore
     }
