@@ -120,7 +120,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                 competitionFilteredDateCounts[dateInfo.date] > 0
                   ? <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-green-600 shadow-sm" />
                   : <span className="absolute top-0 right-0 w-4 h-4 flex items-center justify-center text-red-500 font-bold text-[16px] leading-none">✕</span>
-              ) : competitionFilteredDateCounts ? (
+              ) : competitionFilteredDateCounts && Object.keys(competitionFilteredDateCounts).length > 0 ? (
                 /* Competition filter active but date not yet in filtered counts - still loading */
                 <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-orange-500 shadow-sm" />
               ) : progress && !isComplete && percentage > 0 ? (
@@ -141,7 +141,7 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                   isSelected && isComplete ? 'text-green-100' : isSelected ? 'text-blue-100' : 'text-gray-500'
                 }`}>
                   {dateStr && `${dateStr } `}(
-                    {competitionFilteredDateCounts
+                    {competitionFilteredDateCounts && Object.keys(competitionFilteredDateCounts).length > 0
                       ? `${competitionFilteredDateCounts[dateInfo.date] ?? 0}/${originalDateCounts?.[dateInfo.date] ?? dateInfo.matchCount}`
                       : originalDateCounts && originalDateCounts[dateInfo.date] && dateInfo.matchCount !== originalDateCounts[dateInfo.date]
                         ? `${dateInfo.matchCount}/${originalDateCounts[dateInfo.date]}`
@@ -230,29 +230,29 @@ const DateSelector: React.FC<DateSelectorProps> = ({
                 All Matches
               </div>
               {/* Show filtered count when filter is active, otherwise show progress */}
-              {competitionFilteredDateCounts ? (
+              {(competitionFilteredDateCounts && Object.keys(competitionFilteredDateCounts).length > 0 && calendarListTotal > 0) ? (
                 <div className={`text-[10px] ${
                   showAllMatches ? 'text-blue-100' : 'text-gray-600'
                 }`}>
                   ({Object.values(competitionFilteredDateCounts).reduce((s, c) => s + c, 0)}/{calendarListTotal})
                 </div>
-              ) : filteredMatchCount !== undefined ? (
+              ) : (filteredMatchCount !== undefined && (totalAllMatchesCount || totalMatches) > 0) ? (
                 <div className={`text-[10px] ${
                   showAllMatches ? 'text-blue-100' : 'text-gray-600'
                 }`}>
                   ({filteredMatchCount}/{totalAllMatchesCount || totalMatches})
                 </div>
-              ) : allMatchesProgress ? (
+              ) : (allMatchesProgress && allMatchesProgress.total > 0) ? (
                 <div className={`text-[10px] ${
                   showAllMatches ? (allMatchesProgress.isComplete ? 'text-green-100' : 'text-blue-100') : 'text-gray-600'
                 }`}>
-                  ({allMatchesProgress.loaded}/{allMatchesProgress.total > 0 ? allMatchesProgress.total : '?'})
+                  ({allMatchesProgress.loaded}/{allMatchesProgress.total})
                 </div>
-              ) : !allMatchesProgress && showAllMatches && (
+              ) : showAllMatches ? (
                 <div className="text-[10px] text-blue-100">
-                  (?/?) 
+                  (?/?)
                 </div>
-              )}
+              ) : null}
             </div>
           </button>
         )}

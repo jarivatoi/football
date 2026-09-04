@@ -8,6 +8,7 @@ import Header, { API_SOURCES, ApiSource } from './components/Header';
 import StatsCards from './components/StatsCards';
 import ParlayBuilder, { ParlaySelection } from './components/ParlayBuilder';
 import BookingHistory from './components/BookingHistory';
+import TicketVerifierModal from './components/TicketVerifierModal';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import DataExtractor from './components/DataExtractor';
 import EndpointDiscovery from './components/EndpointDiscovery';
@@ -53,6 +54,7 @@ function App() {
   } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showBookingHistory, setShowBookingHistory] = useState(false);
+  const [showTicketVerifier, setShowTicketVerifier] = useState(false);
   const [showRepeatBetModal, setShowRepeatBetModal] = useState(false);
   const [repeatBetBooking, setRepeatBetBooking] = useState<any>(null);
   const [savedBookingsCount, setSavedBookingsCount] = useState(0);
@@ -144,6 +146,9 @@ function App() {
       }
     });
     
+    // Don't overwrite progress if calendar has no matches (prevents 0/0)
+    if (totalMatches === 0) return;
+    
     const allDatesComplete = completedDatesCount === calendarList.length;
     
     setAllMatchesProgress({
@@ -172,6 +177,10 @@ function App() {
   const [categories, setCategories] = useState<Array<{id: string, name: string, competitions?: Array<{id: string, name: string, matchCount?: number}>}>>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedCompetition, setSelectedCompetition] = useState<string>('');
+  
+  // Refs for current filter values (accessible from async callbacks without stale closures)
+  const selectedCategoryRef = useRef<string>('');
+  const selectedCompetitionRef = useRef<string>('');
   
   // Initialize selected source from localStorage or default to Totelepep
   const [selectedSource, setSelectedSource] = useState<ApiSource>(() => {
@@ -240,12 +249,15 @@ function App() {
     // Reset progress state - fresh start, no cache restoration
     setDateProgress({});
     setAllMatchesProgress(null);
+    setCalendarList([]); // Clear old calendar so useEffect doesn't calculate with stale data
     
     // Reset both category and competition filters when switching sources
     // Each source has its own IDs, so start fresh
     
     setSelectedCategory('');
     setSelectedCompetition('');
+    selectedCategoryRef.current = '';
+    selectedCompetitionRef.current = '';
     
     // Clear parlay selections immediately since odds are source-specific
     setParlaySelections([]);
@@ -267,15 +279,21 @@ function App() {
     // Reload calendar without any filters - pass source ID to avoid state timing issues
     await loadCalendarList('', '', source.id);
     
-    // CRITICAL: Get the correct first date AND calendar list for the NEW source
-    // React's setSelectedDate is async, so `selectedDate` state is still the OLD source's date
-    let newFirstDate: string | undefined;
-    if (source.id === 'smspariaz') {
-      const smsDates = await smspariazExtractor.getAvailableDates();
-      newFirstDate = smsDates && smsDates.length > 0 ? smsDates[0].date : undefined;
-    } else {
-      newFirstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
+    // Immediately set All Matches progress to 0/total using the new calendar data
+    // Use calendarListRef.current which was set synchronously by loadCalendarList
+    {
+      const newCalList = calendarListRef.current || [];
+      const newCalendarTotal = newCalList.reduce((sum: number, e: any) => sum + (e.matchCount || 0), 0);
+      if (newCalendarTotal > 0) {
+        setAllMatchesProgress({ loaded: 0, total: newCalendarTotal, isComplete: false, percentage: 0 });
+      }
     }
+    
+    // CRITICAL: Get the correct first date from the already-loaded calendar
+    // Use calendarListRef.current (set by loadCalendarList) to avoid redundant API calls
+    let newFirstDate: string | undefined;
+    const newCalList = calendarListRef.current || [];
+    newFirstDate = newCalList.length > 0 ? newCalList[0].date : undefined;
     
     // Sync __currentSelectedDate immediately so loadData uses the correct date
     if (newFirstDate) {
@@ -291,14 +309,8 @@ function App() {
       await clearCacheMatches(staleAllMatchesKey);
       
       // Clear individual date caches for the new source
-      // Get calendar dates to know which date caches to clear
-      let datesToClear: string[] = [];
-      if (source.id === 'smspariaz') {
-        const smsDates = await smspariazExtractor.getAvailableDates();
-        datesToClear = (smsDates || []).map((d: any) => d.date);
-      } else {
-        datesToClear = ((totelepepExtractor as any).calendarList || []).map((e: any) => e.entryDate);
-      }
+      // Use calendarListRef.current (already populated) to avoid redundant API calls
+      const datesToClear = (calendarListRef.current || []).map((e: any) => e.date);
       
       for (const date of datesToClear) {
         const dateCacheKey = `date_${date}_all_all_${newSourceId}`;
@@ -333,6 +345,8 @@ function App() {
     
     setSelectedCategory(categoryId);
     setSelectedCompetition('');
+    selectedCategoryRef.current = categoryId;
+    selectedCompetitionRef.current = '';
     
     // Reset progress state - old entries are from different filter and cause stale isComplete
     setDateProgress({});
@@ -359,6 +373,7 @@ function App() {
   const handleCompetitionChange = async (competitionId: string) => {
     
     setSelectedCompetition(competitionId);
+    selectedCompetitionRef.current = competitionId;
     
     // Don't reload calendar if competition is being reset (empty string)
     // This happens when category changes and resets competition
@@ -729,7 +744,8 @@ function App() {
               mergeDateIntoAllMatches(dateToFetch!, loadSourceId, loadCategory, loadCompetition);
               // CRITICAL: Also trigger auto-load next date from cache-hit path
               // Without this, the sequential chain breaks when dates are served from cache
-              autoLoadNextDate(dateToFetch!, loadSourceId, loadCategory, loadCompetition);
+              // Use current filter refs so filter changes are picked up mid-load
+              autoLoadNextDate(dateToFetch!, loadSourceId, selectedCategoryRef.current || 'all', selectedCompetitionRef.current || 'all');
             }
           } else {
 
@@ -834,8 +850,12 @@ function App() {
           // Guard: skip if source has changed since this load started (prevents stale callbacks
           // from triggering loads for wrong source, e.g., totelepep Sept 7 loading SMS Pariaz data)
           if (loadGenerationRef.current !== currentLoadGeneration) return;
+          // mergeDateIntoAllMatches uses captured filters (this date was loaded with those)
           await mergeDateIntoAllMatches(date, loadSourceId, loadCategory, loadCompetition);
-          autoLoadNextDate(date, loadSourceId, loadCategory, loadCompetition);
+          // autoLoadNextDate uses CURRENT filters (refs) so filter changes are picked up mid-load
+          const currentCat = selectedCategoryRef.current || 'all';
+          const currentComp = selectedCompetitionRef.current || 'all';
+          autoLoadNextDate(date, loadSourceId, currentCat, currentComp);
         } catch (error) {
           console.error('onDateComplete error:', error);
         }
@@ -867,8 +887,8 @@ function App() {
         }));
         
         // Trigger auto-load for next date (since this date is complete with 0 matches)
-        // Use captured sourceId (not dynamic currentSourceId) to prevent race conditions
-        await autoLoadNextDate(dateToFetch, sourceId, catId || 'all', compId || 'all');
+        // Use current filter refs so filter changes are picked up mid-load
+        await autoLoadNextDate(dateToFetch, sourceId, selectedCategoryRef.current || 'all', selectedCompetitionRef.current || 'all');
         
         // If API returns 0 but we have partial cache, use the cache instead
         if (cachedMatches && cachedMatches.length > 0) {
@@ -1111,13 +1131,11 @@ function App() {
       }
       
       // Get calendar list based on source
+      // Use calendarListRef.current (already populated by loadCalendarList) to avoid
+      // redundant API calls that can fail and break the auto-load chain
       let calendarEntries: {entryDate: string}[] = [];
-      if (sourceId === 'smspariaz') {
-        const smsDates = await smspariazExtractor.getAvailableDates();
-        calendarEntries = (smsDates || []).map((d: any) => ({ entryDate: d.date }));
-      } else {
-        calendarEntries = (totelepepExtractor as any).calendarList || [];
-      }
+      const calList = calendarListRef.current || [];
+      calendarEntries = calList.map((d: any) => ({ entryDate: d.date }));
       
       // Find the index of the completed date
       const completedIndex = calendarEntries.findIndex((d: any) => d.entryDate === completedDate);
@@ -1255,12 +1273,7 @@ function App() {
           setMatches([]);
           setGroupedMatches({});
           setAllLoadedMatches({});
-          setAllMatchesProgress({
-            loaded: 0,
-            total: 0,
-            isComplete: false,
-            percentage: 0
-          });
+          // Don't set allMatchesProgress here - let the useEffect handle it based on calendarList/dateProgress
           setLoading(false);
           return;
         }
@@ -2953,11 +2966,20 @@ function App() {
       const currentSourceId = selectedSource?.id || 'totelepep';
       
       // Filter out past matches (kickoff already passed)
+      // NOTE: selections store date as 'matchDate' (not 'date'), and kickoff as 'kickoff' (HH:MM or ISO)
       const now = new Date();
       const validSelections = booking.selections.filter((sel: any) => {
-        if (!sel.date || !sel.kickoff) return true;
+        const selDate = sel.matchDate || sel.date;
+        if (!selDate || !sel.kickoff) return true;
         try {
-          const matchDateTime = new Date(`${sel.date}T${sel.kickoff}`);
+          let matchDateTime: Date;
+          if (sel.kickoff.includes('T')) {
+            // Full ISO datetime in kickoff
+            matchDateTime = new Date(sel.kickoff);
+          } else {
+            // Time only (e.g., "23:00") - combine with match date
+            matchDateTime = new Date(`${selDate}T${sel.kickoff}`);
+          }
           return matchDateTime > now;
         } catch {
           return true;
@@ -3703,6 +3725,7 @@ function App() {
           onSettingsClick={handleSettingsClick}
           onHistoryClick={handleHistoryClick}
           hasSavedBookings={savedBookingsCount > 0}
+          onTicketVerifyClick={() => setShowTicketVerifier(true)}
         />
         
         {/* Date Selector */}
@@ -3927,6 +3950,13 @@ function App() {
         onBookingsCountChange={setSavedBookingsCount}
         onRepeatBet={handleRepeatBet}
         currentSourceId={selectedSource?.id}
+      />
+      
+      {/* Ticket Verifier Modal */}
+      <TicketVerifierModal
+        isOpen={showTicketVerifier}
+        onClose={() => setShowTicketVerifier(false)}
+        apiBaseUrl={selectedSource?.baseUrl || 'https://www.totelepep.mu/webapi/GetSport'}
       />
       
       {/* Repeat Bet Confirmation Modal */}

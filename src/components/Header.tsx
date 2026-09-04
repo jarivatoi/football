@@ -60,9 +60,10 @@ interface HeaderProps {
   onSettingsClick?: () => void;
   onHistoryClick?: () => void;
   hasSavedBookings?: boolean;
+  onTicketVerifyClick?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = false, onSlipClick, selectedSource, onSourceChange, onSettingsClick, onHistoryClick, hasSavedBookings = false }) => {
+const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = false, onSlipClick, selectedSource, onSourceChange, onSettingsClick, onHistoryClick, hasSavedBookings = false, onTicketVerifyClick }) => {
   const [showSourceDropdown, setShowSourceDropdown] = useState(false);
   const textRef = useRef<HTMLSpanElement>(null);
   const settingsRef = useRef<HTMLButtonElement>(null);
@@ -70,6 +71,7 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
   const slipRef = useRef<HTMLButtonElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevSelectionCountRef = useRef<number>(0);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Elastic snap animation on mount and when source changes
   useEffect(() => {
@@ -162,6 +164,37 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
     setShowSourceDropdown(false);
   };
 
+  // Long press handlers for ticket verifier
+  const handleSourceButtonMouseDown = () => {
+    if (!onTicketVerifyClick) return;
+    longPressTimerRef.current = setTimeout(() => {
+      setShowSourceDropdown(false);
+      onTicketVerifyClick();
+    }, 800); // 800ms long press
+  };
+
+  const handleSourceButtonMouseUp = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handleSourceButtonTouchStart = () => {
+    if (!onTicketVerifyClick) return;
+    longPressTimerRef.current = setTimeout(() => {
+      setShowSourceDropdown(false);
+      onTicketVerifyClick();
+    }, 800);
+  };
+
+  const handleSourceButtonTouchEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
   // Close dropdown when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -186,6 +219,11 @@ const Header: React.FC<HeaderProps> = ({ selectionCount, hasInvalidSelections = 
             <div className="relative flex items-center gap-2" data-source-dropdown>
               <button
                 onClick={() => setShowSourceDropdown(!showSourceDropdown)}
+                onMouseDown={handleSourceButtonMouseDown}
+                onMouseUp={handleSourceButtonMouseUp}
+                onMouseLeave={handleSourceButtonMouseUp}
+                onTouchStart={handleSourceButtonTouchStart}
+                onTouchEnd={handleSourceButtonTouchEnd}
                 className="flex items-center gap-2 p-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors relative z-10"
               >
                 <TrendingUp className="w-6 h-6 text-white" />
