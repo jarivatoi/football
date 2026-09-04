@@ -286,13 +286,16 @@ function App() {
     // React's setSelectedDate is async, so `selectedDate` state is still the OLD source's date
     let newFirstDate: string | undefined;
     let newCalendarDates: string[] = [];
+    let newCalendarCountMap: Record<string, number> = {}; // date → calendar match count
     if (source.id === 'smspariaz') {
       const smsDates = await smspariazExtractor.getAvailableDates();
       newFirstDate = smsDates && smsDates.length > 0 ? smsDates[0].date : undefined;
       newCalendarDates = (smsDates || []).map((d: any) => d.date);
+      (smsDates || []).forEach((d: any) => { newCalendarCountMap[d.date] = d.matchCount || 0; });
     } else {
       newFirstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
       newCalendarDates = ((totelepepExtractor as any).calendarList || []).map((e: any) => e.entryDate);
+      ((totelepepExtractor as any).calendarList || []).forEach((e: any) => { newCalendarCountMap[e.entryDate] = e.matchCount || 0; });
     }
     
     // Sync __currentSelectedDate immediately so loadData uses the correct date
@@ -315,15 +318,18 @@ function App() {
       // CRITICAL: Use the NEW source's calendar dates, not stale extractor state
       for (const date of newCalendarDates) {
         const dateCacheKey = `date_${date}_all_all_${newSourceId}`;
-        const { matches: dateMatches, metadata: dateMetadata } = await getCachedMatches(dateCacheKey);
+        // Read with includePast=true to get ALL matches (including past) for accurate count
+        const { matches: allDateMatches, metadata: dateMetadata } = await getCachedMatches(dateCacheKey, true);
         const dateExpired = await isCacheExpired(dateCacheKey);
         
-        if (dateMatches && dateMatches.length > 0 && !dateExpired) {
-          const matchesWithMarkets = dateMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
+        if (allDateMatches && allDateMatches.length > 0 && !dateExpired) {
+          const matchesWithMarkets = allDateMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
+          // Use calendar match count as total (consistent with date button display)
+          const calendarTotal = newCalendarCountMap[date] || allDateMatches.length;
           progress[date] = {
-            loaded: matchesWithMarkets,
-            total: dateMatches.length,
-            isComplete: matchesWithMarkets === dateMatches.length
+            loaded: Math.min(matchesWithMarkets, calendarTotal),
+            total: calendarTotal,
+            isComplete: matchesWithMarkets === allDateMatches.length
           };
         }
       }
@@ -809,12 +815,17 @@ function App() {
           const isBackgroundLoading = currentProgress && currentProgress.total > 0 && !currentProgress.isComplete;
           
           if (!isBackgroundLoading) {
+            // Use calendar match count as authoritative total (matches what date buttons display)
+            // cachedMatches only has future matches (includePast=false), but calendar count includes ALL matches
+            const calendarEntry = calendarList.find(c => c.date === dateToFetch);
+            const calendarMatchCount = calendarEntry?.matchCount || cachedMatches.length;
+            
             setDateProgress(prev => ({
               ...prev,
               [dateToFetch!]: {
                 loaded: matchesWithMarkets,
-                total: cachedMatches.length, // Use ORIGINAL total (matches background loader expectation)
-                isComplete: matchesWithMarkets === cachedMatches.length
+                total: calendarMatchCount,
+                isComplete: validMatches.length === 0 || matchesWithMarkets === cachedMatches.length
               }
             }));
             
@@ -954,13 +965,18 @@ function App() {
       // If API returns 0 matches, mark date as complete immediately (nothing to load)
       if (fetchedMatches.length === 0 && dateToFetch) {
 
+        // Use calendar match count as total (consistent with date button display)
+        // API returns 0 because all matches are past, but calendar still shows the count
+        const calendarEntry = calendarList.find(c => c.date === dateToFetch);
+        const calendarTotal = calendarEntry?.matchCount || 0;
+        
         // Use state updater to avoid overwriting other dates' progress
         setDateProgress(prev => ({
           ...prev,
           [dateToFetch]: {
             loaded: 0,
-            total: 0,
-            isComplete: true  // No matches = complete, don't block ALL MATCHES
+            total: calendarTotal,
+            isComplete: true  // No future matches = complete, don't block ALL MATCHES
           }
         }));
         
