@@ -124,7 +124,7 @@ export const saveMatchesChunk = async (
 };
 
 // Get cached matches for a specific cache key
-export const getCachedMatches = async (cacheKey: string): Promise<{
+export const getCachedMatches = async (cacheKey: string, includePast: boolean = false): Promise<{
   matches: any[];
   metadata: CacheMetadata | null;
 }> => {
@@ -153,19 +153,22 @@ export const getCachedMatches = async (cacheKey: string): Promise<{
       matchesRequest.onerror = () => reject(matchesRequest.error);
     });
 
-    // Filter out past matches (kickoff time has passed)
-    const now = new Date();
-    const validMatches = matches.filter(match => {
-      if (!match.date || !match.kickoff) return true; // Keep if missing data
-      
-      try {
-        // Parse match datetime (e.g., "2026-06-18" + "13:59")
-        const matchDateTime = new Date(`${match.date}T${match.kickoff}`);
-        return matchDateTime > now; // Keep only future matches
-      } catch {
-        return true; // Keep if can't parse
-      }
-    });
+    // Filter out past matches (kickoff time has passed) unless includePast is true
+    let validMatches = matches;
+    if (!includePast) {
+      const now = new Date();
+      validMatches = matches.filter(match => {
+        if (!match.date || !match.kickoff) return true; // Keep if missing data
+        
+        try {
+          // Parse match datetime (e.g., "2026-06-18" + "13:59")
+          const matchDateTime = new Date(`${match.date}T${match.kickoff}`);
+          return matchDateTime > now; // Keep only future matches
+        } catch {
+          return true; // Keep if can't parse
+        }
+      });
+    }
 
     // If we filtered out matches, update the cache
     if (validMatches.length < matches.length) {

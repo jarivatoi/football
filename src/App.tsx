@@ -1114,9 +1114,9 @@ function App() {
       const mergeCategoryId = categoryId !== undefined ? categoryId : selectedCategory;
       const mergeCompetitionId = competitionId !== undefined ? competitionId : selectedCompetition;
       
-      // Get matches for this specific date
+      // Get matches for this specific date (include past matches for accurate count)
       const dateCacheKey = `date_${date}_${mergeCategoryId || 'all'}_${mergeCompetitionId || 'all'}_${mergeSourceId}`;
-      const { matches: dateMatches } = await getCachedMatches(dateCacheKey);
+      const { matches: dateMatches } = await getCachedMatches(dateCacheKey, true);
       
       if (!dateMatches || dateMatches.length === 0) {
 
@@ -1320,7 +1320,7 @@ function App() {
         
         for (const calEntry of calendarList) {
           const dateCacheKey = `date_${calEntry.date}_${catId || 'all'}_${compId || 'all'}_${sourceId}`;
-          const { matches: dateCache, metadata: dateMetadata } = await getCachedMatches(dateCacheKey);
+          const { matches: dateCache, metadata: dateMetadata } = await getCachedMatches(dateCacheKey, true);
           const dateExpired = await isCacheExpired(dateCacheKey);
           
           // Only include complete, non-expired date caches (green button dates)
