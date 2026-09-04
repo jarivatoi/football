@@ -311,11 +311,9 @@ function App() {
         
         if (allDateMatches && allDateMatches.length > 0 && !dateExpired) {
           const matchesWithMarkets = allDateMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
-          // Use calendar match count as total (consistent with date button display)
-          const calendarTotal = newCalendarCountMap[date] || allDateMatches.length;
           progress[date] = {
-            loaded: Math.min(matchesWithMarkets, calendarTotal),
-            total: calendarTotal,
+            loaded: matchesWithMarkets,
+            total: allDateMatches.length,
             isComplete: matchesWithMarkets === allDateMatches.length
           };
         }
@@ -802,17 +800,11 @@ function App() {
           const isBackgroundLoading = currentProgress && currentProgress.total > 0 && !currentProgress.isComplete;
           
           if (!isBackgroundLoading) {
-            // Use calendar match count as authoritative total (matches what date buttons display)
-            // cachedMatches only has future matches (includePast=false), but calendar count includes ALL matches
-            // Use calendarListRef.current (not calendarList) to avoid stale closure when called from handleSourceChange
-            const calendarEntry = calendarListRef.current.find(c => c.date === dateToFetch);
-            const calendarMatchCount = calendarEntry?.matchCount || cachedMatches.length;
-            
             setDateProgress(prev => ({
               ...prev,
               [dateToFetch!]: {
                 loaded: matchesWithMarkets,
-                total: calendarMatchCount,
+                total: cachedMatches.length,
                 isComplete: validMatches.length === 0 || matchesWithMarkets === cachedMatches.length
               }
             }));
@@ -844,18 +836,13 @@ function App() {
       
       // Set up market progress callback before fetching (same for both sources)
       const marketProgressHandler = async (date: string, loaded: number, total: number) => {
-        const percentage = Math.round((loaded / total) * 100);
-
-        // Use calendar match count as total (consistent with date button display)
-        // The extractor's total may differ from calendar count, but date buttons show calendar count
-        const calendarEntry = calendarListRef.current.find(c => c.date === date);
-        const progressTotal = calendarEntry?.matchCount || total;
+        const percentage = total > 0 ? Math.round((loaded / total) * 100) : 0;
 
         setDateProgress(prev => ({
           ...prev,
           [date]: {
             loaded,
-            total: progressTotal,
+            total,
             isComplete: loaded >= total
           }
         }));
@@ -958,17 +945,12 @@ function App() {
       // If API returns 0 matches, mark date as complete immediately (nothing to load)
       if (fetchedMatches.length === 0 && dateToFetch) {
 
-        // Use calendar match count as total (consistent with date button display)
-        // API returns 0 because all matches are past, but calendar still shows the count
-        const calendarEntry = calendarListRef.current.find(c => c.date === dateToFetch);
-        const calendarTotal = calendarEntry?.matchCount || 0;
-        
-        // Use state updater to avoid overwriting other dates' progress
+        // API returned 0 matches - mark as complete with 0 total
         setDateProgress(prev => ({
           ...prev,
           [dateToFetch]: {
             loaded: 0,
-            total: calendarTotal,
+            total: 0,
             isComplete: true  // No future matches = complete, don't block ALL MATCHES
           }
         }));
