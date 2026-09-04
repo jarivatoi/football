@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Search, Calendar, AlertCircle, Calculator, Database, Lightbulb, Trash2, Play, Pause, X, Ticket } from 'lucide-react';
 import { Target } from 'lucide-react';
 import DateGroupedMatches from './components/DateGroupedMatches';
@@ -227,6 +227,9 @@ function App() {
     // CRITICAL: Clear ALL global flags to ensure clean state for new source
     (window as any).__autoLoadCompleted = null;
     (window as any).__loadingDate = null;
+    
+    // Increment load generation to invalidate stale callbacks from old source
+    loadGenerationRef.current += 1;
     
     if (source.id !== 'smspariaz') {
       // Update the extractor base URL
@@ -613,7 +616,13 @@ function App() {
     return effectiveSourceId === 'smspariaz';
   };
 
+  // Load generation counter - incremented on source switch to invalidate stale callbacks
+  const loadGenerationRef = useRef(0);
+
   const loadData = async (targetDate?: string | null, categoryId?: string, competitionId?: string, forceFresh: boolean = false) => {
+    // Capture current load generation to detect stale callbacks
+    const currentLoadGeneration = loadGenerationRef.current;
+    
     // CRITICAL: Use __currentSelectedDate (set synchronously in handleDateChange) 
     // instead of stale `selectedDate` from closure
     const currentViewDate = (window as any).__currentSelectedDate || selectedDate;
@@ -919,6 +928,9 @@ function App() {
       // This replaces the autoLoadNextDate call from mergeDateIntoAllMatches (which had a race condition)
       const dateCompleteHandler = async (date: string) => {
         try {
+          // Guard: skip if source has changed since this load started (prevents stale callbacks
+          // from triggering loads for wrong source, e.g., totelepep Sept 7 loading SMS Pariaz data)
+          if (loadGenerationRef.current !== currentLoadGeneration) return;
           await mergeDateIntoAllMatches(date, loadSourceId, loadCategory, loadCompetition);
           autoLoadNextDate(date, loadSourceId, loadCategory, loadCompetition);
         } catch (error) {
