@@ -553,7 +553,8 @@ function App() {
     const { getCachedMatches: checkCached, isCacheExpired: checkExpired } = await import('./utils/matchCache');
     const { matches: existingCache, metadata: existingMetadata } = await checkCached(cacheKey);
     const isExpired = await checkExpired(cacheKey);
-    const isAlreadyComplete = existingCache && existingCache.length > 0 && 
+    // When forceFresh, always treat as not complete - start fresh loading state
+    const isAlreadyComplete = !forceFresh && existingCache && existingCache.length > 0 && 
                               existingMetadata?.isComplete && 
                               !isExpired &&
                               existingCache.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
