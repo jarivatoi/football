@@ -11,6 +11,9 @@ interface TicketBet {
   optionName: string;
   optionOdd: string;
   legStatus: string | null;
+  status?: string | null;
+  betStatus?: string | null;
+  result?: string | null;
 }
 
 interface TicketTransaction {
@@ -128,6 +131,9 @@ const TicketVerifierModal: React.FC<TicketVerifierModalProps> = ({ isOpen, onClo
       if (response.ok) {
         const data = await response.json();
         console.log('[TicketVerifier] Success:', data);
+        if (data.transaction?.bets?.length > 0) {
+          console.log('[TicketVerifier] First bet structure:', data.transaction.bets[0]);
+        }
         
         if (data.isSuccess && data.transaction) {
           setTransaction(data.transaction);
@@ -196,13 +202,25 @@ const TicketVerifierModal: React.FC<TicketVerifierModalProps> = ({ isOpen, onClo
   const parseCompetitionName = (name: string) => {
     // Format: " - England - Premier League - Team A v Team B - UND"
     const parts = name.split(' - ').filter(p => p.trim());
-    if (parts.length >= 3) {
-      const country = parts[0];
-      const league = parts[1];
-      const match = parts[2];
-      return { country, league, match };
+    let country = '';
+    let league = '';
+    let match = '';
+    let status = '';
+    
+    if (parts.length >= 4) {
+      country = parts[0];
+      league = parts[1];
+      match = parts[2];
+      status = parts[parts.length - 1]; // Last part is status (WIN, UND, LOST, etc.)
+    } else if (parts.length === 3) {
+      league = parts[0];
+      match = parts[1];
+      status = parts[2];
+    } else {
+      match = name;
     }
-    return { country: '', league: '', match: name };
+    
+    return { country, league, match, status };
   };
 
   const getStatusColor = (status: string) => {
@@ -307,8 +325,20 @@ const TicketVerifierModal: React.FC<TicketVerifierModalProps> = ({ isOpen, onClo
                   {transaction.bets.length} {transaction.bets.length === 1 ? 'Selection' : 'Selections'}
                 </div>
                 {transaction.bets.map((bet, index) => {
-                  const { country, league, match } = parseCompetitionName(bet.competitionName);
-                  const legStatus = bet.legStatus || 'PENDING';
+                  const { country, league, match, status: compStatus } = parseCompetitionName(bet.competitionName);
+                  // Map competition name status codes to display values
+                  const mapStatus = (s: string) => {
+                    switch (s?.toUpperCase()) {
+                      case 'WIN': return 'WON';
+                      case 'UND': return 'PENDING';
+                      case 'LOS': return 'LOST';
+                      case 'CAN': return 'CANCELLED';
+                      case 'VOID': return 'VOID';
+                      default: return s || 'PENDING';
+                    }
+                  };
+                  // Prefer legStatus if available, otherwise parse from competitionName
+                  const legStatus = bet.legStatus ? mapStatus(bet.legStatus) : mapStatus(compStatus);
                   const statusColor = getLegStatusColor(legStatus);
                   return (
                     <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
