@@ -2623,10 +2623,13 @@ function App() {
         targetOdds = targetOdds / 100;
       }
       
-      // Parse range for "between" mode
+      // Detect range pattern directly from search term (doesn't rely on searchMode state)
+      const isRangePattern = /^\d{2,4}-\d{2,4}/.test(cleanSearchTerm);
       let targetOddsMin = targetOdds;
       let targetOddsMax = targetOdds;
-      if (searchMode === 'between' && searchTerm.includes('-')) {
+      
+      if (isRangePattern) {
+        // Parse range: 210-250FTh -> min=2.10, max=2.50
         const rangeParts = cleanSearchTerm.split('-');
         if (rangeParts.length === 2) {
           let minStr = rangeParts[0].trim();
@@ -2662,7 +2665,11 @@ function App() {
         }
         
         if (positionFilter) {
-          if (searchMode === 'eq') {
+          if (isRangePattern || searchMode === 'between') {
+            if (positionFilter === 'home') return homeOdds >= targetOddsMin && homeOdds <= targetOddsMax;
+            if (positionFilter === 'draw') return drawOdds >= targetOddsMin && drawOdds <= targetOddsMax;
+            if (positionFilter === 'away') return awayOdds >= targetOddsMin && awayOdds <= targetOddsMax;
+          } else if (searchMode === 'eq') {
             if (positionFilter === 'home') return Math.abs(homeOdds - targetOdds) < 0.001;
             if (positionFilter === 'draw') return Math.abs(drawOdds - targetOdds) < 0.001;
             if (positionFilter === 'away') return Math.abs(awayOdds - targetOdds) < 0.001;
@@ -2674,13 +2681,13 @@ function App() {
             if (positionFilter === 'home') return homeOdds <= targetOdds;
             if (positionFilter === 'draw') return drawOdds <= targetOdds;
             if (positionFilter === 'away') return awayOdds <= targetOdds;
-          } else if (searchMode === 'between') {
-            if (positionFilter === 'home') return homeOdds >= targetOddsMin && homeOdds <= targetOddsMax;
-            if (positionFilter === 'draw') return drawOdds >= targetOddsMin && drawOdds <= targetOddsMax;
-            if (positionFilter === 'away') return awayOdds >= targetOddsMin && awayOdds <= targetOddsMax;
           }
         } else {
-          if (searchMode === 'eq') {
+          if (isRangePattern || searchMode === 'between') {
+            return (homeOdds >= targetOddsMin && homeOdds <= targetOddsMax) ||
+                   (drawOdds >= targetOddsMin && drawOdds <= targetOddsMax) ||
+                   (awayOdds >= targetOddsMin && awayOdds <= targetOddsMax);
+          } else if (searchMode === 'eq') {
             return Math.abs(homeOdds - targetOdds) < 0.001 || 
                    Math.abs(drawOdds - targetOdds) < 0.001 || 
                    Math.abs(awayOdds - targetOdds) < 0.001;
@@ -2688,10 +2695,6 @@ function App() {
             return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
           } else if (searchMode === 'lte') {
             return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
-          } else if (searchMode === 'between') {
-            return (homeOdds >= targetOddsMin && homeOdds <= targetOddsMax) ||
-                   (drawOdds >= targetOddsMin && drawOdds <= targetOddsMax) ||
-                   (awayOdds >= targetOddsMin && awayOdds <= targetOddsMax);
           }
         }
         return false;
@@ -3819,8 +3822,8 @@ function App() {
                     // No dash - switch to equal
                     setSearchMode('eq');
                   }
-                } else if (searchMode !== 'between' && searchMode !== 'matches' && isValidRange) {
-                  // Is single-value mode but now has valid range - switch to "In Between"
+                } else if (searchMode !== 'between' && isValidRange) {
+                  // Is single-value mode (or matches mode) but now has valid range - switch to "In Between"
                   setSearchMode('between');
                 }
                 
