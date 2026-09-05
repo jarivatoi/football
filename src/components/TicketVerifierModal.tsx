@@ -42,7 +42,23 @@ const TicketVerifierModal: React.FC<TicketVerifierModalProps> = ({ isOpen, onClo
 
   if (!isOpen) return null;
 
-  // Determine proxy prefix based on API source domain
+  // Supabase Edge Function CORS proxy URL (for production)
+  const SUPABASE_PROXY = 'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=';
+
+  // Check if running locally (dev server) or in production
+  const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+  // Get target domain from API source base URL
+  const getTargetDomain = () => {
+    try {
+      const url = new URL(apiBaseUrl);
+      return url.origin; // e.g., https://www.totelepep.mu
+    } catch {
+      return 'https://www.totelepep.mu';
+    }
+  };
+
+  // Determine Vite proxy prefix based on API source domain (for local dev)
   const getProxyPrefix = () => {
     try {
       const url = new URL(apiBaseUrl);
@@ -69,15 +85,18 @@ const TicketVerifierModal: React.FC<TicketVerifierModalProps> = ({ isOpen, onClo
 
     try {
       const ticketParam = encodeURIComponent(ticketNumber.trim());
-      const proxyPrefix = getProxyPrefix();
+      const domain = getTargetDomain();
+      const targetUrl = `${domain}/WebApi/GetTicketStatus`;
       
-      // Use Vite dev proxy (works in local development)
-      // Proxy prefix maps to correct domain via vite.config.ts
-      const devProxyUrl = `${proxyPrefix}/WebApi/GetTicketStatus`;
+      let response: Response;
       
-      console.log('[TicketVerifier] Trying dev proxy:', devProxyUrl);
-      try {
-        const response = await fetch(devProxyUrl, {
+      if (isLocalDev) {
+        // Local dev: Use Vite proxy
+        const proxyPrefix = getProxyPrefix();
+        const devProxyUrl = `${proxyPrefix}/WebApi/GetTicketStatus`;
+        
+        console.log('[TicketVerifier] Using Vite dev proxy:', devProxyUrl);
+        response = await fetch(devProxyUrl, {
           method: 'POST',
           cache: 'no-store',
           headers: {
@@ -87,35 +106,44 @@ const TicketVerifierModal: React.FC<TicketVerifierModalProps> = ({ isOpen, onClo
           },
           body: `TicketNumber=${ticketParam}`
         });
+      } else {
+        // Production: Use Supabase Edge Function CORS proxy
+        const proxyUrl = `${SUPABASE_PROXY}${encodeURIComponent(targetUrl)}`;
         
-        console.log('[TicketVerifier] Dev proxy response status:', response.status);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('[TicketVerifier] Dev proxy success:', data);
-          
-          if (data.isSuccess && data.transaction) {
-            setTransaction(data.transaction);
-            setLoading(false);
-            return;
-          } else if (data.isSuccess === false) {
-            setError('Ticket not found or invalid');
-            setLoading(false);
-            return;
-          }
-        } else {
-          // Try to read error response
-          const errorText = await response.text();
-          console.log('[TicketVerifier] Dev proxy error response:', errorText.substring(0, 500));
-        }
-      } catch (err) {
-        console.log('[TicketVerifier] Dev proxy failed:', err);
+        console.log('[TicketVerifier] Using Supabase CORS proxy:', proxyUrl);
+        response = await fetch(proxyUrl, {
+          method: 'POST',
+          cache: 'no-store',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': '*/*',
+          },
+          body: `TicketNumber=${ticketParam}`
+        });
       }
       
-      // All attempts failed
+      console.log('[TicketVerifier] Response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[TicketVerifier] Success:', data);
+        
+        if (data.isSuccess && data.transaction) {
+          setTransaction(data.transaction);
+          return;
+        } else if (data.isSuccess === false) {
+          setError('Ticket not found or invalid');
+          return;
+        }
+      }
+      
+      // Server returned error
+      const errorText = await response.text().catch(() => '');
+      console.log('[TicketVerifier] Error response:', errorText.substring(0, 500));
       throw new Error('Ticket verification failed. The server returned an error. Please try again or check the ticket number.');
     } catch (err) {
-      console.error('[TicketVerifier] Final error:', err);
+      console.error('[TicketVerifier] Error:', err);
       setError(err instanceof Error ? err.message : 'Failed to verify ticket');
     } finally {
       setLoading(false);
