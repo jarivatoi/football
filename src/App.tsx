@@ -661,10 +661,14 @@ function App() {
       // ALSO skip if cache is incomplete - wait for API to get full data
       if (cachedMatches && cachedMatches.length > 0 && !forceFresh && !expired && metadata?.isComplete) {
         
-        // Filter out matches that already started (kickoff passed)
+        // Filter out matches that already started (kickoff passed) AND ensure only requested date
         const now = new Date();
         
         const validMatches = cachedMatches.filter((m: any) => {
+          // Ensure match is for the requested date
+          const matchDate = m.date || dateToFetch;
+          if (matchDate !== dateToFetch) return false;
+          
           if (!m.kickoff) return true;
           
           // Handle different kickoff formats:
@@ -676,7 +680,6 @@ function App() {
             kickoffTime = new Date(m.kickoff);
           } else {
             // Time only (e.g., "23:00") - combine with match date
-            const matchDate = m.date || dateToFetch;
             kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
           }
           
@@ -702,6 +705,11 @@ function App() {
           setMatches(sortedMatches);
           const grouped = totelepepService.groupMatchesByDate(sortedMatches);
           setGroupedMatches(grouped);
+          // Also update allLoadedMatches directly to ensure accumulation
+          setAllLoadedMatches(prev => ({
+            ...prev,
+            ...grouped
+          }));
         } else {
           // Still add to allLoadedMatches so filtered counts work for background-loaded dates
           const grouped = totelepepService.groupMatchesByDate(sortedMatches);
@@ -804,15 +812,18 @@ function App() {
               const { matches: completeCache } = await getCachedMatches(cacheKey);
               
               if (completeCache && completeCache.length > 0) {
-                // Filter out past matches
+                // Filter out past matches AND ensure only requested date
                 const now = new Date();
                 const validMatches = completeCache.filter((m: any) => {
+                  // Ensure match is for the requested date
+                  const matchDate = m.date || date;
+                  if (matchDate !== date) return false;
+                  
                   if (!m.kickoff) return true;
                   let kickoffTime: Date;
                   if (m.kickoff.includes('T')) {
                     kickoffTime = new Date(m.kickoff);
                   } else {
-                    const matchDate = m.date || date;
                     kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
                   }
                   return kickoffTime > now;
@@ -828,6 +839,11 @@ function App() {
                 setMatches(sortedMatches);
                 const grouped = totelepepService.groupMatchesByDate(sortedMatches);
                 setGroupedMatches(grouped);
+                // Also update allLoadedMatches directly to ensure accumulation
+                setAllLoadedMatches(prev => ({
+                  ...prev,
+                  ...grouped
+                }));
 
               }
             } catch (error) {
@@ -922,10 +938,14 @@ function App() {
         mergedMatches = Array.from(existingMap.values());
       }
       
-      // Filter out matches that already started
+      // Filter out matches that already started AND ensure only requested date
       const now = new Date();
       
       const validMatches = mergedMatches.filter((m: any) => {
+        // Ensure match is for the requested date
+        const matchDate = m.date || dateToFetch;
+        if (matchDate !== dateToFetch) return false;
+        
         if (!m.kickoff) return true;
         
         // Handle different kickoff formats
@@ -933,7 +953,6 @@ function App() {
         if (m.kickoff.includes('T')) {
           kickoffTime = new Date(m.kickoff);
         } else {
-          const matchDate = m.date || dateToFetch;
           kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
         }
         
@@ -964,6 +983,11 @@ function App() {
         // Group matches by date
         const grouped = totelepepService.groupMatchesByDate(sortedMatches);
         setGroupedMatches(grouped);
+        // Also update allLoadedMatches directly to ensure accumulation
+        setAllLoadedMatches(prev => ({
+          ...prev,
+          ...grouped
+        }));
 
       } else if (!sourceChanged) {
         // Still add to allLoadedMatches so filtered counts work for background-loaded dates
@@ -991,15 +1015,18 @@ function App() {
           const expired = await isCacheExpired(cacheKey);
 
           if (cachedMatches && cachedMatches.length > 0 && metadata?.isComplete && !expired) {
-            // Filter out past matches
+            // Filter out past matches AND ensure only requested date
             const now = new Date();
             const validMatches = cachedMatches.filter((m: any) => {
+              // Ensure match is for the requested date
+              const matchDate = m.date || dateToFetch;
+              if (matchDate !== dateToFetch) return false;
+              
               if (!m.kickoff) return true;
               let kickoffTime: Date;
               if (m.kickoff.includes('T')) {
                 kickoffTime = new Date(m.kickoff);
               } else {
-                const matchDate = m.date || dateToFetch;
                 kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
               }
               return kickoffTime > now;
@@ -1015,6 +1042,11 @@ function App() {
             setMatches(sortedCachedMatches);
             const groupedCached = totelepepService.groupMatchesByDate(sortedCachedMatches);
             setGroupedMatches(groupedCached);
+            // Also update allLoadedMatches directly to ensure accumulation
+            setAllLoadedMatches(prev => ({
+              ...prev,
+              ...groupedCached
+            }));
 
           } else {
 
@@ -1231,6 +1263,11 @@ function App() {
         setMatches(sortedMatches);
         const grouped = totelepepService.groupMatchesByDate(sortedMatches);
         setGroupedMatches(grouped);
+        // Also update allLoadedMatches directly to ensure accumulation
+        setAllLoadedMatches(prev => ({
+          ...prev,
+          ...grouped
+        }));
         
         setLastUpdated(new Date());
         setLoading(false);
@@ -1304,6 +1341,11 @@ function App() {
         setMatches(sortedMatches);
         const grouped = totelepepService.groupMatchesByDate(sortedMatches);
         setGroupedMatches(grouped);
+        // Also update allLoadedMatches directly to ensure accumulation
+        setAllLoadedMatches(prev => ({
+          ...prev,
+          ...grouped
+        }));
         
         // Don't set allMatchesProgress here - let the useEffect handle it based on dateProgress
         
@@ -1340,6 +1382,11 @@ function App() {
       // Group matches by date
       const grouped = totelepepService.groupMatchesByDate(sortedMatches);
       setGroupedMatches(grouped);
+      // Also update allLoadedMatches directly to ensure accumulation
+      setAllLoadedMatches(prev => ({
+        ...prev,
+        ...grouped
+      }));
       
       // Check how many have markets loaded (for logging only)
       const matchesWithMarkets = sortedMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
@@ -1527,6 +1574,11 @@ function App() {
             setMatches(sortedMatches);
             const grouped = totelepepService.groupMatchesByDate(sortedMatches);
             setGroupedMatches(grouped);
+            // Also update allLoadedMatches directly to ensure accumulation
+            setAllLoadedMatches(prev => ({
+              ...prev,
+              ...grouped
+            }));
 
             // Still load the first date in background to ensure it's fresh
             if (firstDate) {
@@ -2728,23 +2780,6 @@ function App() {
     
   }, [groupedMatches]);
   
-  // Accumulate all loaded dates' matches into allLoadedMatches
-  useEffect(() => {
-    // Merge new groupedMatches into allLoadedMatches
-    setAllLoadedMatches(prev => {
-      const updated = { ...prev };
-      
-      // Always replace with fresh data from groupedMatches
-      // groupedMatches is always the most up-to-date (fresh from API/cache with past matches filtered)
-      // The old "max wins" logic kept stale data when groupedMatches had fewer matches (e.g., after past matches filtered)
-      Object.entries(groupedMatches).forEach(([date, dateMatches]) => {
-        updated[date] = dateMatches;
-      });
-
-      return updated;
-    });
-  }, [groupedMatches]);
-
   // ========================================
   // AUTHENTICATION HANDLERS (AFTER ALL HOOKS)
   // ========================================
@@ -3746,9 +3781,10 @@ function App() {
             if (!searchTerm) return undefined;
             const isOddsFilter = searchMode !== 'matches' || /^\d/.test(searchTerm);
             if (!isOddsFilter) return undefined;
-            return showAllMatches ? cumulativeFilteredCount?.filtered : totalFilteredMatches;
+            // Always use cumulative count across ALL dates for All Matches button
+            return cumulativeFilteredCount?.filtered;
           })()}
-          totalAllMatchesCount={showAllMatches ? totalAllMatchesCount : (totalAllMatchesCount || Object.values(groupedMatches).flat().length)}
+          totalAllMatchesCount={cumulativeFilteredCount?.total || totalAllMatchesCount}
           originalDateCounts={calendarList.reduce((acc, entry) => { acc[entry.date] = entry.matchCount; return acc; }, {} as Record<string, number>)}
           competitionFilteredDateCounts={competitionFilteredDateCounts}
         />
