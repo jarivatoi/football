@@ -2212,10 +2212,12 @@ function App() {
   }, [groupedMatches, searchTerm, searchMode, selectedDate, calendarList, selectedCategory, selectedCompetition, showAllMatches]) : groupedMatches;
 
   const totalAllMatchesCount = React.useMemo(() => {
-    // Calculate total from filtered matches (respects category/competition filters)
+    // Calculate TOTAL unfiltered count across all loaded dates
+    // This is the denominator for filtered display (e.g., 34/720)
     if (showAllMatches) {
-      // Use filteredGroupedMatches to get the filtered count
-      return Object.values(filteredGroupedMatches).flat().length;
+      // Use allLoadedMatches to get the TOTAL unfiltered count across all dates
+      return Object.values(allLoadedMatches).reduce((sum, dateMatches) => 
+        sum + (Array.isArray(dateMatches) ? dateMatches.length : 0), 0);
     }
     // When a competition filter is active, sum all per-date counts from allLoadedMatches
     // This gives the total across ALL dates, not just the currently selected date
@@ -2225,7 +2227,7 @@ function App() {
     }
     // For non-All Matches, use the loaded matches
     return matches.length > 0 ? matches.length : Object.values(groupedMatches).flat().length;
-  }, [matches, groupedMatches, filteredGroupedMatches, showAllMatches, selectedCategory, selectedCompetition, allLoadedMatches]);
+  }, [matches, groupedMatches, showAllMatches, selectedCategory, selectedCompetition, allLoadedMatches]);
     
     const totalMatches = matches.length;
   
@@ -2379,16 +2381,17 @@ function App() {
         targetOdds = targetOdds / 100;
       }
       
-      // Parse range for "between" mode
+      // Detect range pattern directly from search term (doesn't rely on searchMode state)
+      const isRangePattern = /^\d{2,4}-\d{2,4}/.test(cleanSearchTerm);
       let targetOddsMin = targetOdds;
       let targetOddsMax = targetOdds;
-      if (searchMode === 'between' && searchTerm.includes('-')) {
+      
+      if (isRangePattern) {
         const rangeParts = cleanSearchTerm.split('-');
         if (rangeParts.length === 2) {
           let minStr = rangeParts[0].trim();
           let maxStr = rangeParts[1].trim();
           
-          // Remove position/period suffix from max value
           const suffixMatch = maxStr.match(/^(\d+\.?\d*)(H1|H2|2H|FT|ALL|H|D|A)?$/i);
           if (suffixMatch) {
             maxStr = suffixMatch[1];
@@ -2397,12 +2400,8 @@ function App() {
           targetOddsMin = parseFloat(minStr);
           targetOddsMax = parseFloat(maxStr);
           
-          if (!isNaN(targetOddsMin) && targetOddsMin > 10) {
-            targetOddsMin = targetOddsMin / 100;
-          }
-          if (!isNaN(targetOddsMax) && targetOddsMax > 10) {
-            targetOddsMax = targetOddsMax / 100;
-          }
+          if (!isNaN(targetOddsMin) && targetOddsMin > 10) targetOddsMin = targetOddsMin / 100;
+          if (!isNaN(targetOddsMax) && targetOddsMax > 10) targetOddsMax = targetOddsMax / 100;
         }
       }
       
@@ -2418,7 +2417,11 @@ function App() {
         }
         
         if (positionFilter) {
-          if (searchMode === 'eq') {
+          if (isRangePattern || searchMode === 'between') {
+            if (positionFilter === 'home') return homeOdds >= targetOddsMin && homeOdds <= targetOddsMax;
+            if (positionFilter === 'draw') return drawOdds >= targetOddsMin && drawOdds <= targetOddsMax;
+            if (positionFilter === 'away') return awayOdds >= targetOddsMin && awayOdds <= targetOddsMax;
+          } else if (searchMode === 'eq') {
             if (positionFilter === 'home') return Math.abs(homeOdds - targetOdds) < 0.001;
             if (positionFilter === 'draw') return Math.abs(drawOdds - targetOdds) < 0.001;
             if (positionFilter === 'away') return Math.abs(awayOdds - targetOdds) < 0.001;
@@ -2430,13 +2433,13 @@ function App() {
             if (positionFilter === 'home') return homeOdds <= targetOdds;
             if (positionFilter === 'draw') return drawOdds <= targetOdds;
             if (positionFilter === 'away') return awayOdds <= targetOdds;
-          } else if (searchMode === 'between') {
-            if (positionFilter === 'home') return homeOdds >= targetOddsMin && homeOdds <= targetOddsMax;
-            if (positionFilter === 'draw') return drawOdds >= targetOddsMin && drawOdds <= targetOddsMax;
-            if (positionFilter === 'away') return awayOdds >= targetOddsMin && awayOdds <= targetOddsMax;
           }
         } else {
-          if (searchMode === 'eq') {
+          if (isRangePattern || searchMode === 'between') {
+            return (homeOdds >= targetOddsMin && homeOdds <= targetOddsMax) ||
+                   (drawOdds >= targetOddsMin && drawOdds <= targetOddsMax) ||
+                   (awayOdds >= targetOddsMin && awayOdds <= targetOddsMax);
+          } else if (searchMode === 'eq') {
             return Math.abs(homeOdds - targetOdds) < 0.001 || 
                    Math.abs(drawOdds - targetOdds) < 0.001 || 
                    Math.abs(awayOdds - targetOdds) < 0.001;
@@ -2444,10 +2447,6 @@ function App() {
             return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
           } else if (searchMode === 'lte') {
             return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
-          } else if (searchMode === 'between') {
-            return (homeOdds >= targetOddsMin && homeOdds <= targetOddsMax) ||
-                   (drawOdds >= targetOddsMin && drawOdds <= targetOddsMax) ||
-                   (awayOdds >= targetOddsMin && awayOdds <= targetOddsMax);
           }
         }
         return false;
@@ -3743,7 +3742,12 @@ function App() {
           allMatchesProgress={allMatchesProgress || undefined}
           onClearCache={handleClearCache}
           onClearAllCache={handleClearAllCache}
-          filteredMatchCount={searchMode !== 'matches' && searchTerm ? totalFilteredMatches : undefined}
+          filteredMatchCount={(() => {
+            if (!searchTerm) return undefined;
+            const isOddsFilter = searchMode !== 'matches' || /^\d/.test(searchTerm);
+            if (!isOddsFilter) return undefined;
+            return showAllMatches ? cumulativeFilteredCount?.filtered : totalFilteredMatches;
+          })()}
           totalAllMatchesCount={showAllMatches ? totalAllMatchesCount : (totalAllMatchesCount || Object.values(groupedMatches).flat().length)}
           originalDateCounts={calendarList.reduce((acc, entry) => { acc[entry.date] = entry.matchCount; return acc; }, {} as Record<string, number>)}
           competitionFilteredDateCounts={competitionFilteredDateCounts}
