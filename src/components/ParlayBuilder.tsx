@@ -1770,14 +1770,22 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                  {(() => {
                    // Determine selection name
                    let selectionName = '';
-                   if (selection.priceType === 'home') selectionName = selection.homeTeam;
-                   else if (selection.priceType === 'draw') selectionName = 'Draw';
-                   else if (selection.priceType === 'away') selectionName = selection.awayTeam;
-                   else if (selection.priceType === 'over') selectionName = 'Over';
+                   const priceTypeLower = selection.priceType?.toLowerCase() || '';
+                   // Check if priceType starts with home-, draw-, or away- (for half time/2nd half markets)
+                   if (priceTypeLower === 'home' || priceTypeLower.startsWith('home-') || priceTypeLower.startsWith('home_')) {
+                     selectionName = selection.homeTeam;
+                   } else if (priceTypeLower === 'draw' || priceTypeLower.startsWith('draw-') || priceTypeLower.startsWith('draw_')) {
+                     selectionName = 'Draw';
+                   } else if (priceTypeLower === 'away' || priceTypeLower.startsWith('away-') || priceTypeLower.startsWith('away_')) {
+                     selectionName = selection.awayTeam;
+                   } else if (selection.priceType === 'over') selectionName = 'Over';
                    else if (selection.priceType === 'under') selectionName = 'Under';
                    else if (selection.priceType === 'btts_yes') selectionName = 'Yes';
                    else if (selection.priceType === 'btts_no') selectionName = 'No';
-                   else {
+                   else if (selection.optionName) {
+                     // Use optionName from API if available (e.g., "Yes", "No", "Over", "Under")
+                     selectionName = selection.optionName;
+                   } else {
                      const parts = selection.priceType.split('-');
                      selectionName = parts.length > 1 ? parts.slice(1).join('-') : selection.priceType;
                    }
