@@ -267,7 +267,12 @@ class TotelepepService {
       return matchDateTime > now;
     });
 
-    return upcomingMatches.sort((a, b) => {
+    return this.sortMatchesByTime(upcomingMatches);
+  }
+  
+  // Method to sort matches by time only (without filtering past matches)
+  public sortMatchesByTime(matches: TotelepepMatch[]): TotelepepMatch[] {
+    return matches.sort((a, b) => {
       // Sort by date first
       const dateA = new Date(a.date || new Date().toISOString().split('T')[0]);
       const dateB = new Date(b.date || new Date().toISOString().split('T')[0]);
@@ -296,9 +301,9 @@ class TotelepepService {
       grouped[date].push(match);
     });
     
-    // Sort matches within each date group
+    // Sort matches within each date group by time (without filtering past matches)
     Object.keys(grouped).forEach(date => {
-      grouped[date] = this.sortMatchesByDate(grouped[date]);
+      grouped[date] = this.sortMatchesByTime(grouped[date]);
     });
     
     return grouped;
