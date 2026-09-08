@@ -395,7 +395,8 @@ class SmspariazExtractor {
       const fetchPromises: Promise<void>[] = [];
 
       for (let i = 1; i <= numFiles; i++) {
-        const cacheUrl = `${this.cacheBaseUrl}odds_${i}`;
+        // Cache files are date-specific: odds_d{date}{n} (e.g., odds_d2026-09-0920)
+        const cacheUrl = `${this.cacheBaseUrl}odds_d${forDate}${i}`;
         fetchPromises.push(
           this.fetchWithFallback(cacheUrl).then((cacheData) => {
             if (!cacheData || typeof cacheData !== 'object') return;
@@ -434,6 +435,8 @@ class SmspariazExtractor {
       await Promise.all(fetchPromises);
 
       // Step 4: Store full matches for progressive loading, return basic matches (1X2 only)
+      // Note: SMS Pariaz cache files may contain matches for multiple dates.
+      // Date filtering is handled by the app layer (App.tsx) using the match's date field.
       this._fullMatchesMap.clear();
       const basicMatches: SmspariazMatch[] = fullMatches.map(full => {
         this._fullMatchesMap.set(full.id, full);
