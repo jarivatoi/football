@@ -254,10 +254,20 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                               if (selection.selectionName) {
                                 selectionName = selection.selectionName;
                               } else if (selection) {
-                                if (selection.priceType === 'home') selectionName = selection.homeTeam;
-                                else if (selection.priceType === 'draw') selectionName = 'Draw';
-                                else if (selection.priceType === 'away') selectionName = selection.awayTeam;
-                                else selectionName = selection.priceType;
+                                // Check if priceType starts with home-, draw-, or away- (for half time/2nd half markets)
+                                const priceTypeLower = selection.priceType?.toLowerCase() || '';
+                                if (priceTypeLower === 'home' || priceTypeLower.startsWith('home-') || priceTypeLower.startsWith('home_')) {
+                                  selectionName = selection.homeTeam;
+                                } else if (priceTypeLower === 'draw' || priceTypeLower.startsWith('draw-') || priceTypeLower.startsWith('draw_')) {
+                                  selectionName = 'Draw';
+                                } else if (priceTypeLower === 'away' || priceTypeLower.startsWith('away-') || priceTypeLower.startsWith('away_')) {
+                                  selectionName = selection.awayTeam;
+                                } else if (selection.optionName) {
+                                  // Use optionName from API if available (e.g., "Yes", "No", "Over", "Under")
+                                  selectionName = selection.optionName;
+                                } else {
+                                  selectionName = selection.priceType;
+                                }
                               }
                               const odds = typeof selection?.odds === 'string' ? selection.odds : selection?.odds?.toFixed(2);
                               const mktDisplayName = selection?.marketDisplayName || '1 X 2';
