@@ -1954,21 +1954,20 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                     const periodCode = sel.periodCode || 'FT';
                     
                     let selectionName = '';
+                    const priceTypeLower = sel.priceType?.toLowerCase() || '';
                     
-                    // ALWAYS use optionName if available (contains the text shown above odds in expanded market)
-                    if (sel.optionName) {
+                    // For 1X2 markets (including half time/2nd half), check priceType prefix first
+                    if (priceTypeLower === 'home' || priceTypeLower.startsWith('home-') || priceTypeLower.startsWith('home_')) {
+                      selectionName = sel.homeTeam;
+                    } else if (priceTypeLower === 'draw' || priceTypeLower.startsWith('draw-') || priceTypeLower.startsWith('draw_')) {
+                      selectionName = 'Draw';
+                    } else if (priceTypeLower === 'away' || priceTypeLower.startsWith('away-') || priceTypeLower.startsWith('away_')) {
+                      selectionName = sel.awayTeam;
+                    }
+                    // Use optionName if available (contains the text shown above odds in expanded market)
+                    else if (sel.optionName) {
                       selectionName = sel.optionName;
                     }
-                    // For 1X2 markets without optionName, use team names
-                    else if (sel.marketDisplayName && sel.marketDisplayName.toLowerCase().includes('1 x 2')) {
-                      if (sel.priceType === 'home' || sel.priceType === '1') selectionName = sel.homeTeam;
-                      else if (sel.priceType === 'draw' || sel.priceType === 'X') selectionName = 'Draw';
-                      else if (sel.priceType === 'away' || sel.priceType === '2') selectionName = sel.awayTeam;
-                      else selectionName = sel.marketDisplayName;
-                    }
-                    else if (sel.priceType === 'home') selectionName = sel.homeTeam;
-                    else if (sel.priceType === 'draw') selectionName = 'Draw';
-                    else if (sel.priceType === 'away') selectionName = sel.awayTeam;
                     else if (sel.priceType === 'over') selectionName = 'Over';
                     else if (sel.priceType === 'under') selectionName = 'Under';
                     else if (sel.priceType === 'btts_yes') selectionName = 'Yes';
@@ -2034,21 +2033,20 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                       const periodCode = sel.periodCode || 'FT';
                       
                       let selectionName = '';
+                      const priceTypeLower = sel.priceType?.toLowerCase() || '';
                       
-                      // ALWAYS use optionName if available (contains the text shown above odds in expanded market)
-                      if (sel.optionName) {
+                      // For 1X2 markets (including half time/2nd half), check priceType prefix first
+                      if (priceTypeLower === 'home' || priceTypeLower.startsWith('home-') || priceTypeLower.startsWith('home_')) {
+                        selectionName = sel.homeTeam;
+                      } else if (priceTypeLower === 'draw' || priceTypeLower.startsWith('draw-') || priceTypeLower.startsWith('draw_')) {
+                        selectionName = 'Draw';
+                      } else if (priceTypeLower === 'away' || priceTypeLower.startsWith('away-') || priceTypeLower.startsWith('away_')) {
+                        selectionName = sel.awayTeam;
+                      }
+                      // Use optionName if available (contains the text shown above odds in expanded market)
+                      else if (sel.optionName) {
                         selectionName = sel.optionName;
                       }
-                      // For 1X2 markets without optionName, use team names
-                      else if (sel.marketDisplayName && sel.marketDisplayName.toLowerCase().includes('1 x 2')) {
-                        if (sel.priceType === 'home' || sel.priceType === '1') selectionName = sel.homeTeam;
-                        else if (sel.priceType === 'draw' || sel.priceType === 'X') selectionName = 'Draw';
-                        else if (sel.priceType === 'away' || sel.priceType === '2') selectionName = sel.awayTeam;
-                        else selectionName = sel.marketDisplayName;
-                      }
-                      else if (sel.priceType === 'home') selectionName = sel.homeTeam;
-                      else if (sel.priceType === 'draw') selectionName = 'Draw';
-                      else if (sel.priceType === 'away') selectionName = sel.awayTeam;
                       else if (sel.priceType === 'over') selectionName = 'Over';
                       else if (sel.priceType === 'under') selectionName = 'Under';
                       else if (sel.priceType === 'btts_yes') selectionName = 'Yes';
