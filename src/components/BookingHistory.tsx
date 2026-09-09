@@ -270,7 +270,9 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                                 }
                               }
                               const odds = typeof selection?.odds === 'string' ? selection.odds : selection?.odds?.toFixed(2);
-                              const mktDisplayName = selection?.marketDisplayName || '1 X 2';
+                              // Strip period info from marketDisplayName to avoid duplication (e.g., "1 X 2 - Half Time" -> "1 X 2")
+                              let mktDisplayName = selection?.marketDisplayName || '1 X 2';
+                              mktDisplayName = mktDisplayName.replace(/\s*[-–]\s*(Half Time|2nd Half|Full Time|1st Half).*$/i, '').trim();
                               const periodCode = selection?.periodCode || 'FT';
                               const periodLabel = periodCode === 'FT' ? 'Full Time' : periodCode === 'H1' ? 'Half Time' : periodCode === '2H' ? '2nd Half' : periodCode;
                               return `${mktDisplayName} - ${periodLabel} - ${selectionName} @ ${odds}`;
