@@ -3023,6 +3023,22 @@ function App() {
         }
       });
       
+      // Sort selections by date and time
+      validSelections.sort((a: any, b: any) => {
+        const dateA = new Date(a.matchDate || a.date || new Date().toISOString().split('T')[0]);
+        const dateB = new Date(b.matchDate || b.date || new Date().toISOString().split('T')[0]);
+        
+        // Sort by date first
+        if (dateA.getTime() !== dateB.getTime()) {
+          return dateA.getTime() - dateB.getTime();
+        }
+        
+        // Then sort by kickoff time
+        const timeA = a.kickoff || '00:00';
+        const timeB = b.kickoff || '00:00';
+        return timeA.localeCompare(timeB);
+      });
+      
       if (validSelections.length === 0) {
         showToast('All matches have already kicked off', 'error');
         return;
