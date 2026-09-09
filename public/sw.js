@@ -56,9 +56,17 @@ self.addEventListener('fetch', (event) => {
             }
             return response;
           })
-          .catch(() => {
+          .catch(async () => {
             // Return cached data if network fails
-            return cache.match(request);
+            const cached = await cache.match(request);
+            if (cached) {
+              return cached;
+            }
+            // Return a proper error response if nothing is cached
+            return new Response(JSON.stringify({ error: 'Network error and no cached data' }), {
+              status: 503,
+              headers: { 'Content-Type': 'application/json' }
+            });
           });
       })
     );
@@ -68,14 +76,23 @@ self.addEventListener('fetch', (event) => {
   // Handle static files
   event.respondWith(
     caches.match(request)
-      .then((response) => {
+      .then(async (response) => {
         // Return cached version or fetch from network
-        return response || fetch(request);
-      })
-      .catch(() => {
-        // Fallback for offline
-        if (request.destination === 'document') {
-          return caches.match('/index.html');
+        if (response) {
+          return response;
+        }
+        try {
+          return await fetch(request);
+        } catch (error) {
+          // Fallback for offline
+          if (request.destination === 'document') {
+            const fallback = await caches.match('/index.html');
+            if (fallback) {
+              return fallback;
+            }
+          }
+          // Return a proper error response instead of undefined
+          return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
         }
       })
   );
