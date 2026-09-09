@@ -842,6 +842,24 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
     return selections;
   }, [mainBetSelection, refundSelections, selections]);
   
+  // Sort selections by date and time for display
+  const sortedSelections = useMemo(() => {
+    return [...selections].sort((a, b) => {
+      const dateA = new Date(a.matchDate || a.date || new Date().toISOString().split('T')[0]);
+      const dateB = new Date(b.matchDate || b.date || new Date().toISOString().split('T')[0]);
+      
+      // Sort by date first
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA.getTime() - dateB.getTime();
+      }
+      
+      // Then sort by kickoff time
+      const timeA = a.kickoff || '00:00';
+      const timeB = b.kickoff || '00:00';
+      return timeA.localeCompare(timeB);
+    });
+  }, [selections]);
+  
   // Background bonus detection state
   const [isDetectingBonus, setIsDetectingBonus] = useState(false);
   const [detectedBonusPercentage, setDetectedBonusPercentage] = useState<number>(0);
@@ -1755,7 +1773,7 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       {!betRefundMode && !lastResult && (
         <div ref={bookingResultRef} className="flex-1 overflow-y-auto p-4">
           <div className="space-y-3">
-            {selections.map((selection, index) => (
+            {sortedSelections.map((selection, index) => (
             <div
               key={`${selection.matchId}-${selection.priceType}-${index}`}
               className={`flex items-center justify-between p-3 rounded-lg transition-all ${
