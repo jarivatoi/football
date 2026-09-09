@@ -2890,7 +2890,7 @@ function App() {
   const handleRepeatBetYes = async () => {
     if (!repeatBetBooking) return;
     
-    const { validSelections, existingBetslip, existingMatchIds, showToast } = repeatBetBooking;
+    const { validSelections, existingBetslip, showToast } = repeatBetBooking;
     const { saveBetslip } = await import('./utils/matchCache');
     const currentSourceId = selectedSource?.id || 'totelepep';
     
@@ -2923,18 +2923,25 @@ function App() {
 
       }
     } else {
-      // Normal mode: Replace duplicates
+      // Normal mode: Replace duplicates with fresh odds from booking
+      // Create set of matchIds from the BOOKING (matches to be added/updated)
+      const bookingMatchIds = new Set(validSelections.map((s: any) => s.matchId));
+      
+      // Keep existing matches that are NOT in the booking
       const nonDuplicateMatches = existingBetslip.filter(
-        (s: any) => !existingMatchIds.has(s.matchId)
+        (s: any) => !bookingMatchIds.has(s.matchId)
       );
+      
+      // Merge: existing non-duplicate matches + booking matches (with fresh odds)
       const mergedBetslip = [...nonDuplicateMatches, ...validSelections];
       
       await saveBetslip(mergedBetslip, currentSourceId);
       setParlaySelections(mergedBetslip);
     }
     
-    const replacedCount = validSelections.filter((s: any) => existingMatchIds.has(s.matchId)).length;
-    const newCount = validSelections.filter((s: any) => !existingMatchIds.has(s.matchId)).length;
+    const bookingMatchIdsForCount = new Set(validSelections.map((s: any) => s.matchId));
+    const replacedCount = existingBetslip.filter((s: any) => bookingMatchIdsForCount.has(s.matchId)).length;
+    const newCount = validSelections.filter((s: any) => !existingBetslip.some((e: any) => e.matchId === s.matchId)).length;
     
     if (replacedCount > 0 && newCount > 0) {
       showToast(`Replaced ${replacedCount} ${replacedCount === 1 ? 'match' : 'matches'}, added ${newCount} ${newCount === 1 ? 'match' : 'matches'}`, 'success');
@@ -4070,16 +4077,10 @@ function App() {
                 Cancel
               </button>
               <button
-                onClick={handleRepeatBetNo}
-                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors"
-              >
-                No
-              </button>
-              <button
                 onClick={handleRepeatBetYes}
                 className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
               >
-                Yes
+                Yes, Update Odds
               </button>
             </div>
           </div>
