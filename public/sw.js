@@ -1,4 +1,4 @@
-const CACHE_NAME = 'football-v1.0.2';
+const CACHE_NAME = 'football-v1.0.3';
 const STATIC_CACHE = 'football-static-v3';
 const DATA_CACHE = 'football-data-v3';
 
