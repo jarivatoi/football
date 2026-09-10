@@ -1907,7 +1907,12 @@ function App() {
           // This ensures matches without matching markets are filtered out
           filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
             // Parse the advanced filter code to extract criteria
-            const upperSearch = searchTerm.toUpperCase().trim();
+            // Strip operator prefix (=, >, <) before parsing
+            let cleanSearchTerm = searchTerm;
+            if (cleanSearchTerm.startsWith('=') || cleanSearchTerm.startsWith('>') || cleanSearchTerm.startsWith('<')) {
+              cleanSearchTerm = cleanSearchTerm.substring(1);
+            }
+            const upperSearch = cleanSearchTerm.toUpperCase().trim();
             
             // Parse range for "between" mode (e.g., "150-180H1", "150-180H1H")
             // Must be two numbers separated by dash, where second number is NOT followed by + or -
