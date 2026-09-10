@@ -2463,20 +2463,27 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
                           <div className="text-sm font-semibold text-gray-800">
                             {(() => {
                               let selectionName = '';
-                              if (bet.optionName) {
+                              // Check priceType prefix FIRST for half time/2nd half markets
+                              const priceTypeLower = selection?.priceType?.toLowerCase() || '';
+                              if (priceTypeLower === 'home' || priceTypeLower.startsWith('home-') || priceTypeLower.startsWith('home_')) {
+                                selectionName = selection.homeTeam;
+                              } else if (priceTypeLower === 'draw' || priceTypeLower.startsWith('draw-') || priceTypeLower.startsWith('draw_')) {
+                                selectionName = 'Draw';
+                              } else if (priceTypeLower === 'away' || priceTypeLower.startsWith('away-') || priceTypeLower.startsWith('away_')) {
+                                selectionName = selection.awayTeam;
+                              } else if (bet.optionName) {
                                 selectionName = bet.optionName;
-                              } else if (selection) {
-                                if (selection.priceType === 'home') selectionName = selection.homeTeam;
-                                else if (selection.priceType === 'draw') selectionName = 'Draw';
-                                else if (selection.priceType === 'away') selectionName = selection.awayTeam;
-                                else {
-                                  // For All Markets selections, strip marketBookNo prefix (e.g., "34920-Equal" → "Equal")
-                                  const parts = selection.priceType.split('-');
-                                  selectionName = parts.length > 1 ? parts.slice(1).join('-') : selection.priceType;
-                                }
+                              } else if (selection?.optionName) {
+                                selectionName = selection.optionName;
+                              } else {
+                                // For All Markets selections, strip marketBookNo prefix (e.g., "34920-Equal" → "Equal")
+                                const parts = (selection?.priceType || '').split('-');
+                                selectionName = parts.length > 1 ? parts.slice(1).join('-') : (selection?.priceType || '');
                               }
                               const odds = bet.optionOdd || (typeof selection?.odds === 'string' ? selection.odds : selection?.odds?.toFixed(2));
-                              const mktDisplayName = bet.marketDisplayName || selection?.marketDisplayName || '1 X 2';
+                              // Strip period info from marketDisplayName to avoid duplication
+                              let mktDisplayName = bet.marketDisplayName || selection?.marketDisplayName || '1 X 2';
+                              mktDisplayName = mktDisplayName.replace(/\s*[-–]\s*(Half Time|2nd Half|Full Time|1st Half).*$/i, '').trim();
                               const periodCode = selection?.periodCode || 'FT';
                               const periodLabel = periodCode === 'FT' ? 'Full Time' : periodCode === 'H1' ? 'Half Time' : periodCode === '2H' ? '2nd Half' : periodCode;
                               return `${mktDisplayName} - ${periodLabel} - ${selectionName} @ ${odds}`;
