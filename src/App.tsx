@@ -1927,11 +1927,11 @@ function App() {
                 targetOdds = targetOddsMin; // Use min for non-range checks
 
               } else {
-                return true; // Can't parse range, let through
+                return false; // Can't parse range, filter out
               }
             } else {
               const oddsMatch = upperSearch.match(/^(\d{2,4})/);
-              if (!oddsMatch) return true; // Can't parse, let through
+              if (!oddsMatch) return false; // Can't parse, filter out
               targetOdds = parseFloat(oddsMatch[1]);
               if (targetOdds > 10) targetOdds = targetOdds / 100;
               targetOddsMin = targetOdds;
