@@ -2462,49 +2462,26 @@ function App() {
     .reduce((sum, dateMatches) => sum + (dateMatches as TotelepepMatch[]).length, 0);
   
   // Calculate cumulative filtered count across ALL loaded dates (for All Matches button)
-  // This filters allLoadedMatches (all dates) using the same logic as filteredGroupedMatches
+  // Use filteredGroupedMatches which has markets loaded for accurate BTTS/UO filtering
   const cumulativeFilteredCount = React.useMemo(() => {
     // Only calculate when filter is active
     if (searchMode === 'matches' && !searchTerm) return undefined;
     
+    // Use filteredGroupedMatches which already has the correct filtering logic
+    // (including advanced filters like BTTS, UO, DC, etc. with markets loaded)
     let totalFiltered = 0;
-    let totalMatches = 0;
+    Object.entries(filteredGroupedMatches).forEach(([date, dateMatches]) => {
+      totalFiltered += (dateMatches as any[]).length;
+    });
     
-    // Filter ALL loaded dates (from allLoadedMatches) using the same logic as filteredGroupedMatches
+    // Get total unfiltered count from allLoadedMatches
+    let totalMatches = 0;
     Object.entries(allLoadedMatches).forEach(([date, dateMatches]) => {
-      let filteredDateMatches: TotelepepMatch[] = dateMatches as TotelepepMatch[];
-      
-      // Apply the same filter logic as filteredGroupedMatches
-      if (searchMode !== 'matches' && searchTerm) {
-        // Strip operator prefix
-        let cleanSearchTerm = searchTerm;
-        if (cleanSearchTerm.startsWith('=') || cleanSearchTerm.startsWith('>') || cleanSearchTerm.startsWith('<')) {
-          cleanSearchTerm = cleanSearchTerm.substring(1);
-        }
-        const upperSearch = cleanSearchTerm.toUpperCase().trim();
-        const hasAdvancedFilter = /\d{2,4}(H1|H2|2H|FT|ALL)/.test(upperSearch);
-        
-        if (hasAdvancedFilter) {
-          // Advanced filter - use the same logic as filteredGroupedMatches
-          filteredDateMatches = (dateMatches as TotelepepMatch[]).filter(match => {
-            // This is a simplified check - the full logic is in filteredGroupedMatches
-            // For accurate counts, we rely on the fact that filteredGroupedMatches uses the same logic
-            return true; // Let all matches through, the actual filtering happens in filteredGroupedMatches
-          });
-        }
-      }
-      
-      totalFiltered += filteredDateMatches.length;
       totalMatches += (dateMatches as any[]).length;
     });
     
-    // For accurate filtered count, use the actual filtered matches from filteredGroupedMatches
-    // but only when viewing All Matches. For specific dates, we need to recalculate.
-    // Since filteredGroupedMatches only includes the current date, we need a different approach.
-    // Let's use the totalFilteredMatchesAllDates memo which already calculates this correctly.
-    
-    return { filtered: totalFilteredMatchesAllDates, total: totalMatches };
-  }, [allLoadedMatches, searchMode, searchTerm, totalFilteredMatchesAllDates]);
+    return { filtered: totalFiltered, total: totalMatches };
+  }, [filteredGroupedMatches, allLoadedMatches, searchMode, searchTerm]);
   
   // Store upcoming match counts by date for debug display
   if (typeof window !== 'undefined') {
@@ -2616,20 +2593,26 @@ function App() {
   }, [allLoadedMatches, selectedCategory, selectedCompetition, calendarList]);
 
   // Create filtered date counts based on active search filters
+  // Use filteredGroupedMatches for accurate per-date counts (includes BTTS/UO/DC/AH/CS market filtering)
   const filteredAvailableDates = React.useMemo(() => {
     // If no active filter, return original counts
     if (searchMode === 'matches' && !searchTerm) {
       return availableDatesWithCounts;
     }
     
-    // When search filter is active, calculate filtered counts for ALL loaded dates
+    // Use filteredGroupedMatches for per-date counts (has correct advanced filter logic)
+    // For dates not in filteredGroupedMatches (markets not loaded), fall back to 1X2-only filtering
     const filteredCounts: Record<string, number> = {};
     
-    // Filter ALL loaded dates (from allLoadedMatches, not just groupedMatches)
+    // First, get accurate counts from filteredGroupedMatches (dates with markets loaded)
+    Object.entries(filteredGroupedMatches).forEach(([date, dateMatches]) => {
+      filteredCounts[date] = (dateMatches as any[]).length;
+    });
+    
+    // For other loaded dates (not in filteredGroupedMatches), apply 1X2-only fallback
     Object.entries(allLoadedMatches).forEach(([date, dateMatches]) => {
-      let filteredDateMatches = dateMatches as any[];
-
-      // Apply the same filter logic
+      if (date in filteredCounts) return; // Already have accurate count from filteredGroupedMatches
+      
       let cleanSearchTerm = searchTerm;
       if (cleanSearchTerm.startsWith('=') || cleanSearchTerm.startsWith('>') || cleanSearchTerm.startsWith('<')) {
         cleanSearchTerm = cleanSearchTerm.substring(1);
@@ -2641,15 +2624,11 @@ function App() {
       const hasAdvancedFilter = /\d{2,4}(H1|H2|2H|FT|ALL)/.test(upperSearch);
       
       if (hasAdvancedFilter) {
-        // Advanced filter: extract position (H, D, A) from the last character
-        // e.g., '160FTA' → position=away, odds=160→1.60
-        // e.g., '150H1H' → position=home, odds=150→1.50
         const lastChar = upperSearch.slice(-1);
         if (lastChar === 'H') positionFilter = 'home';
         else if (lastChar === 'D') positionFilter = 'draw';
         else if (lastChar === 'A') positionFilter = 'away';
         
-        // Extract odds from the leading number
         const oddsMatch = upperSearch.match(/^(\d{2,4})/);
         if (oddsMatch) {
           targetOdds = parseFloat(oddsMatch[1]);
@@ -2669,37 +2648,7 @@ function App() {
         targetOdds = targetOdds / 100;
       }
       
-      // Detect range pattern directly from search term (doesn't rely on searchMode state)
-      const isRangePattern = /^\d{2,4}-\d{2,4}/.test(cleanSearchTerm);
-      let targetOddsMin = targetOdds;
-      let targetOddsMax = targetOdds;
-      
-      if (isRangePattern) {
-        // Parse range: 210-250FTh -> min=2.10, max=2.50
-        const rangeParts = cleanSearchTerm.split('-');
-        if (rangeParts.length === 2) {
-          let minStr = rangeParts[0].trim();
-          let maxStr = rangeParts[1].trim();
-          
-          // Remove position/period suffix from max value
-          const suffixMatch = maxStr.match(/^(\d+\.?\d*)(H1|H2|2H|FT|ALL|H|D|A)?$/i);
-          if (suffixMatch) {
-            maxStr = suffixMatch[1];
-          }
-          
-          targetOddsMin = parseFloat(minStr);
-          targetOddsMax = parseFloat(maxStr);
-          
-          if (!isNaN(targetOddsMin) && targetOddsMin > 10) {
-            targetOddsMin = targetOddsMin / 100;
-          }
-          if (!isNaN(targetOddsMax) && targetOddsMax > 10) {
-            targetOddsMax = targetOddsMax / 100;
-          }
-        }
-      }
-      
-      filteredDateMatches = dateMatches.filter((match: any) => {
+      const filteredDateMatches = (dateMatches as any[]).filter((match: any) => {
         if (match.isOutright && !hasAdvancedFilter) return false;
         
         const homeOdds = parseFloat(String(match.homeOdds));
@@ -2711,11 +2660,7 @@ function App() {
         }
         
         if (positionFilter) {
-          if (isRangePattern || searchMode === 'between') {
-            if (positionFilter === 'home') return homeOdds >= targetOddsMin && homeOdds <= targetOddsMax;
-            if (positionFilter === 'draw') return drawOdds >= targetOddsMin && drawOdds <= targetOddsMax;
-            if (positionFilter === 'away') return awayOdds >= targetOddsMin && awayOdds <= targetOddsMax;
-          } else if (searchMode === 'eq') {
+          if (searchMode === 'eq') {
             if (positionFilter === 'home') return Math.abs(homeOdds - targetOdds) < 0.001;
             if (positionFilter === 'draw') return Math.abs(drawOdds - targetOdds) < 0.001;
             if (positionFilter === 'away') return Math.abs(awayOdds - targetOdds) < 0.001;
@@ -2729,11 +2674,7 @@ function App() {
             if (positionFilter === 'away') return awayOdds <= targetOdds;
           }
         } else {
-          if (isRangePattern || searchMode === 'between') {
-            return (homeOdds >= targetOddsMin && homeOdds <= targetOddsMax) ||
-                   (drawOdds >= targetOddsMin && drawOdds <= targetOddsMax) ||
-                   (awayOdds >= targetOddsMin && awayOdds <= targetOddsMax);
-          } else if (searchMode === 'eq') {
+          if (searchMode === 'eq') {
             return Math.abs(homeOdds - targetOdds) < 0.001 || 
                    Math.abs(drawOdds - targetOdds) < 0.001 || 
                    Math.abs(awayOdds - targetOdds) < 0.001;
@@ -2747,28 +2688,22 @@ function App() {
       });
       
       filteredCounts[date] = filteredDateMatches.length;
-
     });
     
     // Merge with availableDatesWithCounts
-    // Show filtered/original counts for all dates when filter is active
     return availableDatesWithCounts.map(dateEntry => {
       const filteredCount = filteredCounts[dateEntry.date];
-      const originalCount = dateEntry.matchCount;
       
-      // If we have filtered data for this date, show filtered count
-      // Otherwise show original count (date not loaded yet)
       if (filteredCount !== undefined) {
         return {
           ...dateEntry,
-          matchCount: filteredCount // Show filtered count
+          matchCount: filteredCount
         };
       } else {
-        // Date not loaded yet, show original count
         return dateEntry;
       }
     });
-  }, [allLoadedMatches, availableDatesWithCounts, searchMode, searchTerm]);
+  }, [filteredGroupedMatches, allLoadedMatches, availableDatesWithCounts, searchMode, searchTerm]);
 
   // Debug: Log grouped matches to see what dates we have
   useEffect(() => {
