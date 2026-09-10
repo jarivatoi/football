@@ -2118,8 +2118,8 @@ function App() {
               if (targetPeriod !== 'ALL') {
                 if (targetPeriod === 'H1' && market.periodCode !== 'H1' && market.periodCode !== 'HT') return false;
                 if (targetPeriod === 'H2' && market.periodCode !== 'H2' && market.periodCode !== '2H') return false;
-                if (targetPeriod === 'FT' && market.periodCode && market.periodCode !== 'FT' && 
-                    market.periodCode !== 'H1' && market.periodCode !== 'H2') return false;
+                // For FT: only include markets with periodCode 'FT' or no periodCode
+                if (targetPeriod === 'FT' && market.periodCode && market.periodCode !== 'FT') return false;
               }
               
               // Check market type - use marketCode, marketDisplayName, AND name
