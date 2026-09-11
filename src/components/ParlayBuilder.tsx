@@ -1027,10 +1027,11 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       // Open SMS app
       // Use specific ticket number if provided (for refund mode), otherwise fall back to lastResult
       const ticketNo = specificTicketNo || lastResult?.ticketNo || '';
-      const message = `BET${ticketNo}`;
       
-      // Determine phone number based on selected source
+      // Determine phone number and message format based on selected source
       let phoneNumber = '+23058638683'; // Default Totelepep
+      let message = `BET${ticketNo}`; // Default format for Totelepep-style sources
+      
       if (selectedSource?.id === 'valueplus') {
         phoneNumber = '+23055098899';
       } else if (selectedSource?.id === 'superscore') {
@@ -1039,8 +1040,10 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         phoneNumber = '+23059590182';
       } else if (selectedSource?.id === 'smspariaz') {
         phoneNumber = '8685';
+        message = `N${ticketNo}`;
       } else if (selectedSource?.id === 'booksystem') {
         phoneNumber = '8601';
+        message = `N${ticketNo}`;
       }
       
       // iOS uses &body=, Android uses ?body=
