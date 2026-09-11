@@ -71,21 +71,33 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
     const flat: Array<{ match: TotelepepMatch; date: string; globalIndex: number }> = [];
     let index = 0;
     
-    sortedDates.forEach(date => {
-      const dateMatches = [...groupedMatches[date]];
-      
-      if (sortMode === 'chronological') {
-        // Sort by kickoff time
+    if (sortMode === 'chronological') {
+      // Grouped by date, sorted by kickoff time within each date
+      sortedDates.forEach(date => {
+        const dateMatches = [...groupedMatches[date]];
         dateMatches.sort((a, b) => (a.kickoff || '').localeCompare(b.kickoff || ''));
-      } else {
-        // Random sort using stable random values
-        dateMatches.sort((a, b) => getRandomOrder(a.id) - getRandomOrder(b.id));
-      }
-      
-      dateMatches.forEach(match => {
-        flat.push({ match, date, globalIndex: index++ });
+        dateMatches.forEach(match => {
+          flat.push({ match, date, globalIndex: index++ });
+        });
       });
-    });
+    } else {
+      // Random: shuffle ALL matches across ALL dates together
+      const allMatches: Array<{ match: TotelepepMatch; date: string }> = [];
+      sortedDates.forEach(date => {
+        groupedMatches[date].forEach(match => {
+          allMatches.push({ match, date });
+        });
+      });
+      // Fisher-Yates shuffle using stable random values
+      for (let i = allMatches.length - 1; i > 0; i--) {
+        const rA = getRandomOrder(allMatches[i].match.id + '_shuffle');
+        const j = Math.floor(rA * (i + 1));
+        [allMatches[i], allMatches[j]] = [allMatches[j], allMatches[i]];
+      }
+      allMatches.forEach(({ match, date }) => {
+        flat.push({ match, date: '', globalIndex: index++ }); // date='' for flat rendering
+      });
+    }
     
     return flat;
   }, [groupedMatches, sortedDates, sortMode]);
@@ -104,15 +116,20 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
   const displayedGroupedMatches = React.useMemo(() => {
     const grouped: Record<string, TotelepepMatch[]> = {};
     
-    displayedMatches.forEach(({ match, date }) => {
-      if (!grouped[date]) {
-        grouped[date] = [];
-      }
-      grouped[date].push(match);
-    });
+    if (sortMode === 'random') {
+      // All matches under a single group (no date separation)
+      grouped['_random'] = displayedMatches.map(({ match }) => match);
+    } else {
+      displayedMatches.forEach(({ match, date }) => {
+        if (!grouped[date]) {
+          grouped[date] = [];
+        }
+        grouped[date].push(match);
+      });
+    }
     
     return grouped;
-  }, [displayedMatches]);
+  }, [displayedMatches, sortMode]);
 
   // Handle scroll for infinite loading
   const handleScroll = useCallback(() => {
@@ -179,13 +196,14 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
     >
       {Object.keys(displayedGroupedMatches).map((date) => {
         const matches = displayedGroupedMatches[date];
-        const dateHeader = formatDateHeader(date);
+        const isRandomGroup = date === '_random';
+        const dateHeader = isRandomGroup ? '' : formatDateHeader(date);
 
         return (
           <div key={date}>
             {/* Date Header - Sticky */}
             <div className="sticky top-0 z-10 bg-blue-600 text-white px-3 py-2 text-sm font-medium shadow-md flex items-center justify-between">
-              <span>{dateHeader}</span>
+              <span>{isRandomGroup ? 'All Matches (Random)' : dateHeader}</span>
               <button
                 onClick={handleSortToggle}
                 className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-700 hover:bg-blue-800 text-white text-xs transition-colors"
