@@ -624,58 +624,6 @@ function App() {
       }));
     }
     
-    // If date is already showing green (complete) and cache is not expired,
-    // use cache immediately and skip API re-fetch to prevent green → blue flash
-    if (dateToFetch && isShowingGreen && !forceFresh && existingCache && existingCache.length > 0 && !isExpired) {
-      const currentViewDate = (window as any).__currentSelectedDate || selectedDate;
-      if (dateToFetch === currentViewDate) {
-        // Filter out past matches and update display from cache
-        const now = new Date();
-        const validMatches = existingCache.filter((m: any) => {
-          const matchDate = m.date || dateToFetch;
-          if (matchDate !== dateToFetch) return false;
-          if (!m.kickoff) return true;
-          let kickoffTime: Date;
-          if (m.kickoff.includes('T')) {
-            kickoffTime = new Date(m.kickoff);
-          } else {
-            kickoffTime = new Date(`${matchDate}T${m.kickoff}`);
-          }
-          return kickoffTime > now;
-        });
-        
-        const sortedMatches = validMatches.sort((a, b) => {
-          const dateComparison = new Date(a.date || '').getTime() - new Date(b.date || '').getTime();
-          if (dateComparison !== 0) return dateComparison;
-          return a.kickoff.localeCompare(b.kickoff);
-        });
-        
-        setMatches(sortedMatches);
-        const grouped = totelepepService.groupMatchesByDate(sortedMatches);
-        setGroupedMatches(grouped);
-        setAllLoadedMatches(prev => ({ ...prev, ...grouped }));
-      }
-      
-      // Ensure progress stays green
-      setDateProgress(prev => ({
-        ...prev,
-        [dateToFetch]: {
-          loaded: existingCache.length,
-          total: existingCache.length,
-          isComplete: true
-        }
-      }));
-      
-      if (!isBackgroundLoad) setLoading(false);
-      
-      // Trigger auto-load chain (same as cache-hit path)
-      const loadSourceId = (totelepepExtractor as any).currentSourceId || selectedSource?.id || 'totelepep';
-      mergeDateIntoAllMatches(dateToFetch!, loadSourceId, catId || 'all', compId || 'all');
-      autoLoadNextDate(dateToFetch!, loadSourceId, selectedCategoryRef.current || 'all', selectedCompetitionRef.current || 'all');
-      
-      return;
-    }
-    
     // Prevent duplicate loads for the same date with same filters
     const loadKey = `${dateToFetch}_${catId}_${compId}_${sourceId}`;
     if ((window as any).__loadingDate === loadKey) {
