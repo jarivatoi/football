@@ -273,7 +273,7 @@ class TotelepepExtractor {
             this.onMarketProgress(date, cachedMatches.length, cachedMatches.length);
           }
         } else if (matchesWithMarkets > 0) {
-          // Some markets loaded - report partial progress
+          // Some markets loaded - report partial progress AND trigger background loading for remaining
           
           // Extract date from cacheKey
           const date = cacheKey.split('_')[1];
@@ -281,6 +281,14 @@ class TotelepepExtractor {
           if (this.onMarketProgress && date) {
             this.onMarketProgress(date, matchesWithMarkets, cachedMatches.length);
           }
+          
+          // Trigger background market loading for matches that don't have markets yet
+          // This ensures that when a date is clicked again, markets get fully loaded
+          // and onMarketProgress fires with loaded >= total to mark date as complete
+          this.fetchMarketsInBackground(cachedMatches, cacheKey, cachedMatches.length, cachedMatches.length);
+        } else {
+          // No markets loaded at all - trigger background loading
+          this.fetchMarketsInBackground(cachedMatches, cacheKey, cachedMatches.length, cachedMatches.length);
         }
         
         return cachedMatches;
