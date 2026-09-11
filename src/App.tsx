@@ -722,46 +722,41 @@ function App() {
         
         // If cache is valid, use it and return early (don't fall through to API fetch)
         // Background market loading (started by extractMatches) handles remaining markets
-        const allMatchesHaveMarkets = validMatches.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
+        // NOTE: Use validMatches.length (not cachedMatches.length) since validMatches
+        // already excludes past/stale matches that have passed kickoff
+        const allValidMatchesHaveMarkets = validMatches.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
         
         if (!expired && metadata?.isComplete) {
           const matchesWithMarkets = validMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
 
-          if (allMatchesHaveMarkets) {
-            // All markets loaded - mark as complete immediately
-            // Only update progress if NOT currently loading in background
-            const currentProgress = dateProgress[dateToFetch!];
-            const isBackgroundLoading = currentProgress && currentProgress.total > 0 && !currentProgress.isComplete;
-            
-            if (!isBackgroundLoading) {
-              setDateProgress(prev => ({
-                ...prev,
-                [dateToFetch!]: {
-                  loaded: matchesWithMarkets,
-                  total: cachedMatches.length,
-                  isComplete: validMatches.length === 0 || matchesWithMarkets === cachedMatches.length
-                }
-              }));
-              
-              // If date cache is complete, trigger auto-merge and auto-load next date
-              if (cachedMatches.length > 0 && (validMatches.length === 0 || matchesWithMarkets === cachedMatches.length)) {
-                mergeDateIntoAllMatches(dateToFetch!, loadSourceId, loadCategory, loadCompetition);
-                autoLoadNextDate(dateToFetch!, loadSourceId, selectedCategoryRef.current || 'all', selectedCompetitionRef.current || 'all');
+          if (validMatches.length === 0 || allValidMatchesHaveMarkets) {
+            // All future matches have markets (or no future matches remain) - mark as complete
+            setDateProgress(prev => ({
+              ...prev,
+              [dateToFetch!]: {
+                loaded: validMatches.length,
+                total: validMatches.length,
+                isComplete: true // Cache valid + all future markets = GREEN
               }
+            }));
+            
+            // Trigger auto-merge and auto-load next date
+            if (validMatches.length > 0) {
+              mergeDateIntoAllMatches(dateToFetch!, loadSourceId, loadCategory, loadCompetition);
             }
-          } else if (isShowingGreen) {
-            // Button is already GREEN - don't override to blue!
-            // Background market loading (started by extractMatches) will handle remaining markets.
-            // Keep green state until background task confirms completion.
+            autoLoadNextDate(dateToFetch!, loadSourceId, selectedCategoryRef.current || 'all', selectedCompetitionRef.current || 'all');
           } else {
-            // Not all markets loaded yet and button is NOT green - report current progress.
-            // The marketProgressHandler will set isComplete: true when loaded >= total.
+            // Cache is valid but not all future matches have markets in IndexedDB yet.
+            // EXPLICITLY set isComplete: true to preserve green button state.
+            // This prevents the progress initialization from overriding green to blue
+            // when IndexedDB hasn't saved allMarkets yet.
+            // Background market loading (started by extractMatches) handles remaining markets.
             setDateProgress(prev => ({
               ...prev,
               [dateToFetch!]: {
                 loaded: matchesWithMarkets,
-                total: cachedMatches.length,
-                isComplete: false // Still loading markets in background
+                total: validMatches.length,
+                isComplete: true // Preserve GREEN state - date was previously completed
               }
             }));
           }
