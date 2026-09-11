@@ -485,9 +485,12 @@ class BooksystemExtractor {
    * Get available dates with match counts (for date selector)
    */
   async getAvailableDates(): Promise<Array<{ date: string; matchCount: number; displayName: string }>> {
-    // Fetch odds metadata to get date list
+    // Booksystem only returns the date list when a date parameter is provided
+    // Use today's date to trigger the API to return the available dates array
     try {
-      const data = await this.fetchWithFallback(`${this.baseUrl}service/odds_json.php`);
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const data = await this.fetchWithFallback(`${this.baseUrl}service/odds_json.php?date=${todayStr}`);
       if (data.date) {
         this.dateList = data.date;
       }
