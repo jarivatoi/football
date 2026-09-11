@@ -521,7 +521,7 @@ class TotelepepExtractor {
         }
       }
       
-      // Final progress update
+      // Final progress update - always report total/total to ensure isComplete = true
       if (this.onMarketProgress) {
         this.onMarketProgress(date, totalMatches, totalMatches);
       }

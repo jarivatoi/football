@@ -720,43 +720,50 @@ function App() {
 
         }
         
-        // If cache is valid, mark as complete
-        // BUT only return early if ALL matches actually have markets loaded
-        // Otherwise, continue to fetch to complete the incomplete matches
+        // If cache is valid, use it and return early (don't fall through to API fetch)
+        // Background market loading (started by extractMatches) handles remaining markets
         const allMatchesHaveMarkets = validMatches.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
         
-        if (!expired && metadata?.isComplete && allMatchesHaveMarkets) {
+        if (!expired && metadata?.isComplete) {
           const matchesWithMarkets = validMatches.filter((m: any) => m.allMarkets && m.allMarkets.length > 0).length;
 
-          // Only update progress if NOT currently loading in background
-          // This prevents overwriting the live progress from background market loading
-          const currentProgress = dateProgress[dateToFetch!];
-          const isBackgroundLoading = currentProgress && currentProgress.total > 0 && !currentProgress.isComplete;
-          
-          if (!isBackgroundLoading) {
+          if (allMatchesHaveMarkets) {
+            // All markets loaded - mark as complete immediately
+            // Only update progress if NOT currently loading in background
+            const currentProgress = dateProgress[dateToFetch!];
+            const isBackgroundLoading = currentProgress && currentProgress.total > 0 && !currentProgress.isComplete;
+            
+            if (!isBackgroundLoading) {
+              setDateProgress(prev => ({
+                ...prev,
+                [dateToFetch!]: {
+                  loaded: matchesWithMarkets,
+                  total: cachedMatches.length,
+                  isComplete: validMatches.length === 0 || matchesWithMarkets === cachedMatches.length
+                }
+              }));
+              
+              // If date cache is complete, trigger auto-merge and auto-load next date
+              if (cachedMatches.length > 0 && (validMatches.length === 0 || matchesWithMarkets === cachedMatches.length)) {
+                mergeDateIntoAllMatches(dateToFetch!, loadSourceId, loadCategory, loadCompetition);
+                autoLoadNextDate(dateToFetch!, loadSourceId, selectedCategoryRef.current || 'all', selectedCompetitionRef.current || 'all');
+              }
+            }
+          } else if (isShowingGreen) {
+            // Button is already GREEN - don't override to blue!
+            // Background market loading (started by extractMatches) will handle remaining markets.
+            // Keep green state until background task confirms completion.
+          } else {
+            // Not all markets loaded yet and button is NOT green - report current progress.
+            // The marketProgressHandler will set isComplete: true when loaded >= total.
             setDateProgress(prev => ({
               ...prev,
               [dateToFetch!]: {
                 loaded: matchesWithMarkets,
                 total: cachedMatches.length,
-                isComplete: validMatches.length === 0 || matchesWithMarkets === cachedMatches.length
+                isComplete: false // Still loading markets in background
               }
             }));
-            
-            // If date cache is complete, trigger auto-merge and auto-load next date
-            // This must fire even when all matches are past (validMatches empty) to keep
-            // the sequential loading chain alive — otherwise dates served from cache with
-            // only past matches break the chain (matchesWithMarkets=0 !== cachedMatches.length)
-            if (cachedMatches.length > 0 && (validMatches.length === 0 || matchesWithMarkets === cachedMatches.length)) {
-
-              mergeDateIntoAllMatches(dateToFetch!, loadSourceId, loadCategory, loadCompetition);
-              // CRITICAL: Also trigger auto-load next date from cache-hit path
-              // Without this, the sequential chain breaks when dates are served from cache
-              // Use current filter refs so filter changes are picked up mid-load
-              autoLoadNextDate(dateToFetch!, loadSourceId, selectedCategoryRef.current || 'all', selectedCompetitionRef.current || 'all');
-            }
-          } else {
-
           }
           
           if (!isBackgroundLoad) setLoading(false);
