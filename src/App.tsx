@@ -873,7 +873,16 @@ function App() {
           // autoLoadNextDate uses CURRENT filters (refs) so filter changes are picked up mid-load
           const currentCat = selectedCategoryRef.current || 'all';
           const currentComp = selectedCompetitionRef.current || 'all';
-          autoLoadNextDate(date, loadSourceId, currentCat, currentComp);
+          
+          // Check if this was triggered by a long-press reload
+          // If so, scan from beginning for first incomplete date (chronological order)
+          const isLongPressReload = (window as any).__longPressReload === true;
+          if (isLongPressReload) {
+            (window as any).__longPressReload = null;
+            autoLoadNextDate(date, loadSourceId, currentCat, currentComp, true); // scanFromBeginning=true
+          } else {
+            autoLoadNextDate(date, loadSourceId, currentCat, currentComp);
+          }
         } catch (error) {
           console.error('onDateComplete error:', error);
         }
@@ -1155,7 +1164,9 @@ function App() {
   };
   
   // Auto-load next date in sequence (sequential loading)
-  const autoLoadNextDate = async (completedDate: string, sourceId: string, categoryId: string, competitionId: string) => {
+  // When scanFromBeginning is true, scans from index 0 for the first incomplete date
+  // (used after long-press reload to ensure chronological order)
+  const autoLoadNextDate = async (completedDate: string, sourceId: string, categoryId: string, competitionId: string, scanFromBeginning: boolean = false) => {
     try {
       // CRITICAL: Stop auto-load if source has changed (prevents cross-source loading)
       // Use extractor's currentSourceId (set dynamically, works for all sources including smspariaz)
@@ -1171,7 +1182,34 @@ function App() {
       const calList = calendarListRef.current || [];
       calendarEntries = calList.map((d: any) => ({ entryDate: d.date }));
       
-      // Find the index of the completed date
+      const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
+      
+      if (scanFromBeginning) {
+        // Scan from the beginning for the first incomplete date
+        for (const entry of calendarEntries) {
+          const date = entry.entryDate;
+          const cacheKey = `date_${date}_${categoryId || 'all'}_${competitionId || 'all'}_${sourceId}`;
+          const { matches: cache, metadata: cacheMetadata } = await getCachedMatches(cacheKey);
+          const expired = await isCacheExpired(cacheKey);
+          
+          const isComplete = cache && cache.length > 0 && 
+                            cacheMetadata?.isComplete && 
+                            !expired &&
+                            cache.every((m: any) => m.allMarkets && m.allMarkets.length > 0);
+          
+          if (!isComplete) {
+            // Found first incomplete date - load it
+            (totelepepExtractor as any).currentSourceId = sourceId;
+            loadData(date, categoryId === 'all' ? undefined : categoryId,
+                     competitionId === 'all' ? undefined : competitionId, false);
+            return;
+          }
+        }
+        // All dates are complete - nothing more to load
+        return;
+      }
+      
+      // Normal sequential mode: find the index of the completed date
       const completedIndex = calendarEntries.findIndex((d: any) => d.entryDate === completedDate);
       
       if (completedIndex === -1) {
@@ -1188,7 +1226,6 @@ function App() {
       const nextDate = nextDateEntry.entryDate;
 
       // Check if next date is already complete
-      const { getCachedMatches, isCacheExpired } = await import('./utils/matchCache');
       const nextCacheKey = `date_${nextDate}_${categoryId || 'all'}_${competitionId || 'all'}_${sourceId}`;
       const { matches: nextCache, metadata: nextMetadata } = await getCachedMatches(nextCacheKey);
       const nextExpired = await isCacheExpired(nextCacheKey);
@@ -3527,6 +3564,11 @@ function App() {
   
   // Handle long-press to clear cache for a specific date
   const handleClearCache = async (date: string) => {
+    // CRITICAL: Cancel ALL background loading tasks first
+    // This pauses the auto-load chain so the long-pressed date gets priority
+    totelepepExtractor.cancelAllBackgroundLoading();
+    smspariazExtractor.cancelProgressiveLoading();
+    
     const { clearCacheMatches } = await import('./utils/matchCache');
     const sourceId = selectedSource?.id || 'totelepep';
     const cacheKey = `date_${date}_${selectedCategory || 'all'}_${selectedCompetition || 'all'}_${sourceId}`;
@@ -3560,6 +3602,17 @@ function App() {
       return prev;
     });
     
+    // Set flag so dateCompleteHandler knows to scan from beginning after this reload
+    (window as any).__longPressReload = true;
+    // Clear auto-load flag to allow auto-load chain to restart
+    (window as any).__autoLoadCompleted = null;
+    // Clear loading guard so loadData doesn't get blocked
+    (window as any).__loadingDate = null;
+    
+    // Switch to the long-pressed date so user sees the fresh data loading
+    (window as any).__currentSelectedDate = date;
+    setSelectedDate(date);
+    
     // Show toast notification
     const toast = document.createElement('div');
     toast.style.cssText = `
@@ -3577,7 +3630,7 @@ function App() {
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       animation: slideDown 0.3s ease-out;
     `;
-    toast.textContent = `Cache cleared for ${date}. Reloading...`;
+    toast.textContent = `Cache cleared for ${date}. Reloading fresh data...`;
     document.body.appendChild(toast);
     
     // Remove toast after 3 seconds
@@ -3586,16 +3639,8 @@ function App() {
       setTimeout(() => toast.remove(), 300);
     }, 3000);
     
-    // Reload data from API
-    if (selectedDate === date) {
-      loadData(date, selectedCategory, selectedCompetition);
-    }
-    
-    // If All Matches is active, reload it to reflect the cleared date
-    if (showAllMatches) {
-
-      loadAllMatches(selectedCategory, selectedCompetition);
-    }
+    // Force-load this date with fresh API data
+    loadData(date, selectedCategory, selectedCompetition, true);
   };
   
   // Handle long-press on All Matches to clear ALL date caches
