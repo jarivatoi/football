@@ -451,7 +451,7 @@ const TicketVerifierModal: React.FC<TicketVerifierModalProps> = ({ isOpen, onClo
                 <h2 className={`text-xl font-bold mb-2 ${
                   booksystemResult.code == 1 ? 'text-green-800' : 'text-red-800'
                 }`}>
-                  {booksystemResult.msg || (booksystemResult.code == 1 ? 'Winning Ticket!' : 'Losing Ticket')}
+                  {(booksystemResult.msg || (booksystemResult.code == 1 ? 'Winning Ticket!' : 'Losing Ticket')).replace(/<[^>]*>/g, '')}
                 </h2>
                 {booksystemResult.id && (
                   <div className="text-sm text-gray-600 mt-2">
