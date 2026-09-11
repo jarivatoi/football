@@ -48,6 +48,13 @@ export const API_SOURCES: ApiSource[] = [
     displayName: 'Sms Pariaz',
     hasBonus: true,  // SMS Pariaz has bonus tiers (1.15x for 2-5, 1.20x for 6-10, etc.)
     bonusPercentage: 15  // Approximate starting bonus
+  },
+  {
+    id: 'booksystem',
+    name: 'Booksystem',
+    baseUrl: 'https://football.booksystem.mu/',
+    displayName: 'Booksystem',
+    hasBonus: false  // Booksystem does not provide bonus (update if needed)
   }
 ];
 

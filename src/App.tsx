@@ -24,6 +24,7 @@ import { MaintenanceMode } from './components/MaintenanceMode';
 import { totelepepService } from './services/totelepepService';
 import { totelepepExtractor } from './services/totelepepExtractor';
 import { smspariazExtractor } from './services/smspariazExtractor';
+import { booksystemExtractor } from './services/booksystemExtractor';
 import type { TotelepepMatch } from './services/totelepepExtractor';
 import { saveBetslip, loadBetslip, clearBetslip } from './utils/matchCache';
 import { registerServiceWorker, requestNotificationPermission, scheduleBackgroundSync } from './utils/pwaUtils';
@@ -213,10 +214,11 @@ function App() {
     // Save to localStorage
     localStorage.setItem('selectedApiSource', JSON.stringify(source));
     
-    // ALWAYS cancel ALL background loading from BOTH sources
+    // ALWAYS cancel ALL background loading from ALL sources
     // This prevents stale callbacks from overwriting new source data
     totelepepExtractor.cancelAllBackgroundLoading();
     smspariazExtractor.cancelProgressiveLoading();
+    booksystemExtractor.cancelProgressiveLoading();
     
     // CRITICAL: Clear ALL global flags to ensure clean state for new source
     (window as any).__autoLoadCompleted = null;
@@ -225,15 +227,18 @@ function App() {
     // Increment load generation to invalidate stale callbacks from old source
     loadGenerationRef.current += 1;
     
-    if (source.id !== 'smspariaz') {
+    if (source.id !== 'smspariaz' && source.id !== 'booksystem') {
       // Update the extractor base URL
       (totelepepExtractor as any).baseUrl = source.baseUrl;
       
       // Clear in-memory cache ONLY (keep IndexedDB caches for each source)
       totelepepExtractor.clearCache();
-    } else {
+    } else if (source.id === 'smspariaz') {
       // Switching to SMS Pariaz - clear its cache
       smspariazExtractor.clearCache();
+    } else if (source.id === 'booksystem') {
+      // Switching to Booksystem - clear its cache
+      booksystemExtractor.clearCache();
     }
     
     // IndexedDB caches will be cleared below after calendar loads
@@ -493,6 +498,9 @@ function App() {
         if (selectedSource?.id === 'smspariaz') {
           const smsDates = await smspariazExtractor.getAvailableDates();
           newFirstDate = smsDates && smsDates.length > 0 ? smsDates[0].date : undefined;
+        } else if (selectedSource?.id === 'booksystem') {
+          const bsDates = await booksystemExtractor.getAvailableDates();
+          newFirstDate = bsDates && bsDates.length > 0 ? bsDates[0].date : undefined;
         } else {
           newFirstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
         }
@@ -513,6 +521,10 @@ function App() {
       smspariazExtractor.getAvailableDates().then(dates => {
         (window as any).__lastCalendarFirstDate = dates && dates.length > 0 ? dates[0].date : undefined;
       });
+    } else if (selectedSource?.id === 'booksystem') {
+      booksystemExtractor.getAvailableDates().then(dates => {
+        (window as any).__lastCalendarFirstDate = dates && dates.length > 0 ? dates[0].date : undefined;
+      });
     } else {
       (window as any).__lastCalendarFirstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
     }
@@ -528,6 +540,12 @@ function App() {
   const isSmspariaz = () => {
     const effectiveSourceId = (totelepepExtractor as any).currentSourceId || selectedSource?.id || 'totelepep';
     return effectiveSourceId === 'smspariaz';
+  };
+
+  // Helper: check if current source is Booksystem
+  const isBooksystem = () => {
+    const effectiveSourceId = (totelepepExtractor as any).currentSourceId || selectedSource?.id || 'totelepep';
+    return effectiveSourceId === 'booksystem';
   };
 
   // Load generation counter - incremented on source switch to invalidate stale callbacks
@@ -857,9 +875,10 @@ function App() {
         }
       };
 
-      // Assign progress handler to both extractors
+      // Assign progress handler to all extractors
       totelepepExtractor.onMarketProgress = marketProgressHandler;
       smspariazExtractor.onMarketProgress = marketProgressHandler;
+      booksystemExtractor.onMarketProgress = marketProgressHandler;
       
       // onDateComplete: fires AFTER IndexedDB save — triggers auto-load next date
       // This replaces the autoLoadNextDate call from mergeDateIntoAllMatches (which had a race condition)
@@ -889,12 +908,16 @@ function App() {
       };
       totelepepExtractor.onDateComplete = dateCompleteHandler;
       smspariazExtractor.onDateComplete = dateCompleteHandler;
+      booksystemExtractor.onDateComplete = dateCompleteHandler;
 
       // Fetch matches from the appropriate API source
       let fetchedMatches: any[];
       if (isSmspariaz()) {
-        // SMS Pariaz source - use SMS Pariaz extractor (same params as Totelepep)
+        // SMS Pariaz source - use SMS Pariaz extractor
         fetchedMatches = await smspariazExtractor.extractMatches(dateToFetch, catId, compId);
+      } else if (isBooksystem()) {
+        // Booksystem source - use Booksystem extractor
+        fetchedMatches = await booksystemExtractor.extractMatches(dateToFetch, catId, compId);
       } else {
         // Totelepep-compatible sources
         fetchedMatches = await totelepepExtractor.extractMatches(dateToFetch, catId, compId, undefined, forceFresh);
@@ -1470,6 +1493,26 @@ function App() {
         return;
       }
 
+      // Booksystem source - use its own date list
+      if (effectiveSourceId === 'booksystem') {
+        const dates = await booksystemExtractor.getAvailableDates();
+        if (dates && dates.length > 0) {
+          const formattedCalendar = dates.map(d => ({
+            date: d.date,
+            matchCount: d.matchCount,
+            displayName: d.displayName,
+          }));
+          setCalendarList(formattedCalendar);
+          calendarListRef.current = formattedCalendar;
+          setAvailableDates(formattedCalendar);
+        } else {
+          setCalendarList([]);
+          calendarListRef.current = [];
+          setAvailableDates([]);
+        }
+        return;
+      }
+
       // We need to fetch with a date to get the calendar list
       // Use TODAY to ensure we get the full calendar with matches
       const today = new Date();
@@ -1533,6 +1576,7 @@ function App() {
     // This prevents multiple tasks from running simultaneously on app reload
     totelepepExtractor.cancelAllBackgroundLoading();
     smspariazExtractor.cancelProgressiveLoading();
+    booksystemExtractor.cancelProgressiveLoading();
     
     // Clear auto-load completion flags on app reload
     (window as any).__autoLoadCompleted = null;
@@ -1572,13 +1616,18 @@ function App() {
             return; // Source changed since startup began, don't interfere
           }
           
-          // Get first date based on source - SMS Pariaz uses state, Totelepep uses extractor
+          // Get first date based on source
           const isSmspariazSource = selectedSource?.id === 'smspariaz';
+          const isBooksystemSource = selectedSource?.id === 'booksystem';
           let firstDate: string | undefined;
           
           if (isSmspariazSource) {
             // For SMS Pariaz, get first date from the dates we just loaded
             const dates = await smspariazExtractor.getAvailableDates();
+            firstDate = dates && dates.length > 0 ? dates[0].date : undefined;
+          } else if (isBooksystemSource) {
+            // For Booksystem, get first date from the dates we just loaded
+            const dates = await booksystemExtractor.getAvailableDates();
             firstDate = dates && dates.length > 0 ? dates[0].date : undefined;
           } else {
             firstDate = (totelepepExtractor as any).calendarList?.[0]?.entryDate;
