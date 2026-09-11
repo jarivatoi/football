@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Calendar, Clock, Loader } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Calendar, Clock, Loader, ArrowUpDown, Shuffle } from 'lucide-react';
 import type { TotelepepMatch } from '../services/totelepepExtractor';
 import MatchCard from './MatchCard';
 
@@ -30,6 +30,28 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
   initialLoadCount = 50, // Show 50 matches initially
   loadMoreCount = 50 // Load 50 more each time
 }) => {
+  // Sort mode: chronological (by kickoff time) or random
+  const [sortMode, setSortMode] = useState<'chronological' | 'random'>('chronological');
+  const randomOrderRef = useRef<Map<string, number>>(new Map());
+
+  // Generate stable random order for matches (keyed by match ID)
+  const getRandomOrder = (matchId: string): number => {
+    if (!randomOrderRef.current.has(matchId)) {
+      randomOrderRef.current.set(matchId, Math.random());
+    }
+    return randomOrderRef.current.get(matchId)!;
+  };
+
+  // Regenerate random order when toggling to random
+  const handleSortToggle = () => {
+    if (sortMode === 'chronological') {
+      // Generate new random order
+      randomOrderRef.current.clear();
+      setSortMode('random');
+    } else {
+      setSortMode('chronological');
+    }
+  };
   const formatDateHeader = (dateString: string): string => {
     const date = new Date(dateString);
     
@@ -44,19 +66,29 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
 
   const sortedDates = Object.keys(groupedMatches).sort();
 
-  // Flatten all matches with date info for pagination
-  const allMatchesWithDates = React.useMemo(() => {
+  // Flatten all matches with date info for pagination (with sorting applied)
+  const allMatchesWithDates = useMemo(() => {
     const flat: Array<{ match: TotelepepMatch; date: string; globalIndex: number }> = [];
     let index = 0;
     
     sortedDates.forEach(date => {
-      groupedMatches[date].forEach(match => {
+      const dateMatches = [...groupedMatches[date]];
+      
+      if (sortMode === 'chronological') {
+        // Sort by kickoff time
+        dateMatches.sort((a, b) => (a.kickoff || '').localeCompare(b.kickoff || ''));
+      } else {
+        // Random sort using stable random values
+        dateMatches.sort((a, b) => getRandomOrder(a.id) - getRandomOrder(b.id));
+      }
+      
+      dateMatches.forEach(match => {
         flat.push({ match, date, globalIndex: index++ });
       });
     });
     
     return flat;
-  }, [groupedMatches, sortedDates]);
+  }, [groupedMatches, sortedDates, sortMode]);
 
   // Pagination state
   const [displayCount, setDisplayCount] = useState(initialLoadCount);
@@ -152,8 +184,25 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
         return (
           <div key={date}>
             {/* Date Header - Sticky */}
-            <div className="sticky top-0 z-10 bg-blue-600 text-white px-3 py-2 text-sm font-medium shadow-md">
-              {dateHeader}
+            <div className="sticky top-0 z-10 bg-blue-600 text-white px-3 py-2 text-sm font-medium shadow-md flex items-center justify-between">
+              <span>{dateHeader}</span>
+              <button
+                onClick={handleSortToggle}
+                className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-700 hover:bg-blue-800 text-white text-xs transition-colors"
+                title={sortMode === 'chronological' ? 'Sort by time' : 'Shuffle randomly'}
+              >
+                {sortMode === 'chronological' ? (
+                  <>
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Time</span>
+                  </>
+                ) : (
+                  <>
+                    <Shuffle className="w-3.5 h-3.5" />
+                    <span>Random</span>
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Match Cards */}
