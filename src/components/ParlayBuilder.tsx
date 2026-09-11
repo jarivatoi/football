@@ -407,6 +407,16 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
 
 // SMS Pariaz bet placement function
 const placeSmspariazBet = async (selections: ParlaySelection[], stake: number, selectedSource?: ApiSource) => {
+  return placeBooksystemStyleBet(selections, stake, selectedSource, 'https://www.smspariaz.com/smsfootball/service/validatebet.php');
+};
+
+// Booksystem bet placement function (same backend as SMS Pariaz, different URL)
+const placeBooksystemBet = async (selections: ParlaySelection[], stake: number, selectedSource?: ApiSource) => {
+  return placeBooksystemStyleBet(selections, stake, selectedSource, 'https://football.booksystem.mu/service/validatebet.php');
+};
+
+// Shared bet placement for SMS Pariaz-style backends
+const placeBooksystemStyleBet = async (selections: ParlaySelection[], stake: number, selectedSource: ApiSource | undefined, betEndpointUrl: string) => {
   try {
     // SMS Pariaz uses selection IDs for bet placement
     // selectionId is stored in the ParlaySelection.selectionId field
@@ -443,8 +453,7 @@ const placeSmspariazBet = async (selections: ParlaySelection[], stake: number, s
     formData.append('bet-payout', payoutAfterTax.toFixed(2));
 
     // Use CORS proxy for bet placement
-    const betUrl = 'https://www.smspariaz.com/smsfootball/service/validatebet.php';
-    const proxyUrl = 'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=' + encodeURIComponent(betUrl);
+    const proxyUrl = 'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=' + encodeURIComponent(betEndpointUrl);
 
     const response = await fetch(proxyUrl, {
       method: 'POST',
@@ -942,7 +951,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       try {
         // Place a Rs 50 reference bet - use source-appropriate bet function
         const referenceStake = 50;
-        const placeRefBet = selectedSource?.id === 'smspariaz' ? placeSmspariazBet : placeTotelepepBet;
+        const placeRefBet = selectedSource?.id === 'smspariaz' ? placeSmspariazBet
+          : selectedSource?.id === 'booksystem' ? placeBooksystemBet
+          : placeTotelepepBet;
         const result: any = await placeRefBet([mainBetSelection], referenceStake, selectedSource);
 
         // Check if reference bet was successful
@@ -1028,6 +1039,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         phoneNumber = '+23059590182';
       } else if (selectedSource?.id === 'smspariaz') {
         phoneNumber = '8685';
+      } else if (selectedSource?.id === 'booksystem') {
+        phoneNumber = '8601';
       }
       
       // iOS uses &body=, Android uses ?body=
@@ -1329,7 +1342,9 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
         return;
       }
 
-      const placeBet = selectedSource?.id === 'smspariaz' ? placeSmspariazBet : placeTotelepepBet;
+      const placeBet = selectedSource?.id === 'smspariaz' ? placeSmspariazBet
+        : selectedSource?.id === 'booksystem' ? placeBooksystemBet
+        : placeTotelepepBet;
       const mainBetResult: any = await placeBet(mainBetSelections, mainStake, selectedSource);
       
       // Place refund bet
@@ -1486,6 +1501,8 @@ const ParlayBuilder: React.FC<ParlayBuilderProps> = ({
       // Use the appropriate bet placement function based on source
       const bookingResult: any = selectedSource?.id === 'smspariaz'
         ? await placeSmspariazBet(selections, betAmount, selectedSource)
+        : selectedSource?.id === 'booksystem'
+        ? await placeBooksystemBet(selections, betAmount, selectedSource)
         : await placeTotelepepBet(selections, betAmount, selectedSource);
       // Enhanced success checking to handle cases where ticket is generated but errors are present
       const hasTicket = bookingResult.ticketNo && bookingResult.ticketNo.trim() !== '';
