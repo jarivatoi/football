@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Search, Ticket, Loader2 } from 'lucide-react';
+import { ApiSource } from './Header';
 
 interface TicketBet {
   betRef: string;
@@ -35,13 +36,21 @@ interface TicketVerifierModalProps {
   isOpen: boolean;
   onClose: () => void;
   apiBaseUrl: string;
+  selectedSource?: ApiSource | null;
 }
 
-const TicketVerifierModal: React.FC<TicketVerifierModalProps> = ({ isOpen, onClose, apiBaseUrl }) => {
+interface BooksystemTicketResult {
+  id: string;
+  msg: string;
+  code: number;
+}
+
+const TicketVerifierModal: React.FC<TicketVerifierModalProps> = ({ isOpen, onClose, apiBaseUrl, selectedSource }) => {
   const [ticketNumber, setTicketNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [transaction, setTransaction] = useState<TicketTransaction | null>(null);
+  const [booksystemResult, setBooksystemResult] = useState<BooksystemTicketResult | null>(null);
 
   if (!isOpen) return null;
 
@@ -85,8 +94,46 @@ const TicketVerifierModal: React.FC<TicketVerifierModalProps> = ({ isOpen, onClo
     setLoading(true);
     setError(null);
     setTransaction(null);
+    setBooksystemResult(null);
 
     try {
+      // Booksystem-style ticket verification (SMS Pariaz-style backend)
+      if (selectedSource?.id === 'booksystem' || selectedSource?.id === 'smspariaz') {
+        const domain = selectedSource.id === 'booksystem'
+          ? 'https://football.booksystem.mu'
+          : 'https://www.smspariaz.com/smsfootball';
+        const checkUrl = `${domain}/service/checkbet.php`;
+        const proxyUrl = `${SUPABASE_PROXY}${encodeURIComponent(checkUrl)}`;
+        
+        console.log('[TicketVerifier] Booksystem-style check:', proxyUrl);
+        const response = await fetch(proxyUrl, {
+          method: 'POST',
+          cache: 'no-store',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': '*/*',
+          },
+          body: `barcode=${encodeURIComponent(ticketNumber.trim())}`
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Ticket verification failed: HTTP ${response.status}`);
+        }
+        
+        const text = await response.text();
+        let result: BooksystemTicketResult;
+        try {
+          result = JSON.parse(text);
+        } catch {
+          throw new Error('Invalid response from ticket verification service');
+        }
+        
+        setBooksystemResult(result);
+        return;
+      }
+
+      // Totelepep-style ticket verification (default)
       const ticketParam = encodeURIComponent(ticketNumber.trim());
       const domain = getTargetDomain();
       const targetUrl = `${domain}/WebApi/GetTicketStatus`;
@@ -160,6 +207,7 @@ const TicketVerifierModal: React.FC<TicketVerifierModalProps> = ({ isOpen, onClo
     setTicketNumber('');
     setError(null);
     setTransaction(null);
+    setBooksystemResult(null);
     onClose();
   };
 
@@ -273,7 +321,9 @@ const TicketVerifierModal: React.FC<TicketVerifierModalProps> = ({ isOpen, onClo
                 value={ticketNumber}
                 onChange={(e) => setTicketNumber(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                placeholder="Enter ticket number (e.g., AC3-5943324)"
+                placeholder={selectedSource?.id === 'booksystem' || selectedSource?.id === 'smspariaz' 
+                  ? "Enter barcode (e.g., 437226-43187202)" 
+                  : "Enter ticket number (e.g., AC3-5943324)"}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={loading}
               />
@@ -375,6 +425,42 @@ const TicketVerifierModal: React.FC<TicketVerifierModalProps> = ({ isOpen, onClo
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* Booksystem/SMS Pariaz Ticket Result */}
+          {booksystemResult && (
+            <div className="p-4">
+              <div className={`border rounded-lg p-6 text-center ${
+                booksystemResult.code == 1
+                  ? 'bg-green-50 border-green-300'
+                  : 'bg-red-50 border-red-300'
+              }`}>
+                <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
+                  booksystemResult.code == 1
+                    ? 'bg-green-100'
+                    : 'bg-red-100'
+                }`}>
+                  {booksystemResult.code == 1 ? (
+                    <span className="text-3xl">&#10003;</span>
+                  ) : (
+                    <span className="text-3xl">&#10007;</span>
+                  )}
+                </div>
+                <h2 className={`text-xl font-bold mb-2 ${
+                  booksystemResult.code == 1 ? 'text-green-800' : 'text-red-800'
+                }`}>
+                  {booksystemResult.msg || (booksystemResult.code == 1 ? 'Winning Ticket!' : 'Losing Ticket')}
+                </h2>
+                {booksystemResult.id && (
+                  <div className="text-sm text-gray-600 mt-2">
+                    Ticket ID: <span className="font-mono font-semibold">{booksystemResult.id}</span>
+                  </div>
+                )}
+                <div className="text-sm text-gray-500 mt-2">
+                  Barcode: <span className="font-mono">{ticketNumber}</span>
+                </div>
               </div>
             </div>
           )}

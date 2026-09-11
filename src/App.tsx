@@ -4049,6 +4049,7 @@ function App() {
         isOpen={showTicketVerifier}
         onClose={() => setShowTicketVerifier(false)}
         apiBaseUrl={selectedSource?.baseUrl || 'https://www.totelepep.mu/webapi/GetSport'}
+        selectedSource={selectedSource}
       />
       
       {/* Repeat Bet Confirmation Modal */}
