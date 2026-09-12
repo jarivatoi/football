@@ -2550,39 +2550,143 @@ function App() {
     .reduce((sum, dateMatches) => sum + (dateMatches as TotelepepMatch[]).length, 0);
   
   // Calculate cumulative filtered count across ALL loaded dates (for All Matches button)
-  // Use filteredGroupedMatches which has markets loaded for accurate BTTS/UO filtering
+  // Always shows global cumulative counts regardless of which date is selected
   const cumulativeFilteredCount = React.useMemo(() => {
     // Only calculate when filter is active
     if (searchMode === 'matches' && !searchTerm) return undefined;
     
-    // Use filteredGroupedMatches which already has the correct filtering logic
-    // (including advanced filters like BTTS, UO, DC, etc. with markets loaded)
-    // When a specific date is selected, filteredGroupedMatches only has that date
-    // When All Matches is active, it has all dates - so filtered is always correct
+    // Numerator: cumulative filtered count across ALL loaded dates
+    // For dates in filteredGroupedMatches (currently viewed): use accurate count (includes market filtering)
+    // For other dates in allLoadedMatches (background-loaded): apply same filter logic as fallback
+    const viewedDates = new Set(Object.keys(filteredGroupedMatches));
     let totalFiltered = 0;
+    
+    // Count from filteredGroupedMatches (accurate - has markets loaded for BTTS/UO/etc filtering)
     Object.entries(filteredGroupedMatches).forEach(([date, dateMatches]) => {
       totalFiltered += (dateMatches as any[]).length;
     });
     
-    // Get total unfiltered count - must match the scope of filteredGroupedMatches
-    // When All Matches: sum all loaded dates
-    // When specific date selected: only count that date's matches
-    let totalMatches = 0;
-    if (showAllMatches) {
-      Object.entries(allLoadedMatches).forEach(([date, dateMatches]) => {
-        totalMatches += (dateMatches as any[]).length;
-      });
-    } else {
-      // Only count dates that are in filteredGroupedMatches (i.e., the currently viewed date)
-      Object.keys(filteredGroupedMatches).forEach(date => {
-        if (allLoadedMatches[date]) {
-          totalMatches += (allLoadedMatches[date] as any[]).length;
+    // Count from other loaded dates (not currently viewed) using fallback filter
+    Object.entries(allLoadedMatches).forEach(([date, dateMatches]) => {
+      if (viewedDates.has(date)) return; // Already counted from filteredGroupedMatches
+      
+      const filtered = (dateMatches as TotelepepMatch[]).filter(match => {
+        // Same filter logic as filteredGroupedMatches
+        if (searchMode === 'matches') {
+          return match.homeTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                 match.awayTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                 match.league.toLowerCase().includes(searchTerm.toLowerCase());
+        }
+        
+        // Strip operator prefix
+        let cleanSearchTerm = searchTerm;
+        if (cleanSearchTerm.startsWith('=') || cleanSearchTerm.startsWith('>') || cleanSearchTerm.startsWith('<')) {
+          cleanSearchTerm = cleanSearchTerm.substring(1);
+        }
+        
+        const upperSearch = cleanSearchTerm.toUpperCase().trim();
+        const hasAdvancedFilter = /\d{2,4}(H1|H2|2H|FT|ALL)/.test(upperSearch);
+        
+        if (hasAdvancedFilter) {
+          let targetOdds = 0;
+          const oddsMatch = upperSearch.match(/^(\d{2,4})/);
+          if (oddsMatch) {
+            targetOdds = parseFloat(oddsMatch[1]);
+            if (targetOdds > 10) targetOdds = targetOdds / 100;
+          }
+          
+          let targetPeriod = 'ALL';
+          if (upperSearch.includes('H1')) targetPeriod = 'H1';
+          else if (upperSearch.includes('H2') || upperSearch.includes('2H')) targetPeriod = 'H2';
+          else if (upperSearch.includes('FT')) targetPeriod = 'FT';
+          
+          let targetMarketType: string | null = null;
+          if (upperSearch.includes('UO')) targetMarketType = 'UO';
+          else if (upperSearch.includes('BTTS')) targetMarketType = 'BTTS';
+          else if (upperSearch.includes('DC')) targetMarketType = 'DC';
+          else if (upperSearch.includes('AH')) targetMarketType = 'AH';
+          else if (upperSearch.includes('CS')) targetMarketType = 'CS';
+          
+          let bttsOption: 'Y' | 'N' | null = null;
+          if (targetMarketType === 'BTTS') {
+            const lastChar = upperSearch.slice(-1);
+            if (lastChar === 'Y') bttsOption = 'Y';
+            else if (lastChar === 'N') bttsOption = 'N';
+          }
+          
+          let positionFilter: 'home' | 'draw' | 'away' | null = null;
+          const lastChar = upperSearch.slice(-1);
+          if (lastChar === 'H' && !bttsOption) positionFilter = 'home';
+          else if (lastChar === 'D') positionFilter = 'draw';
+          else if (lastChar === 'A') positionFilter = 'away';
+          
+          // 1X2 MARKET LOGIC
+          if (targetMarketType === '1X2' || (!targetMarketType && positionFilter)) {
+            if (targetPeriod === 'FT' || targetPeriod === 'ALL') {
+              const homeOdds = parseFloat(String(match.homeOdds));
+              const drawOdds = parseFloat(String(match.drawOdds));
+              const awayOdds = parseFloat(String(match.awayOdds));
+              if (positionFilter === 'home') return searchMode === 'eq' ? Math.abs(homeOdds - targetOdds) < 0.001 : searchMode === 'gte' ? homeOdds >= targetOdds : searchMode === 'lte' ? homeOdds <= targetOdds : false;
+              if (positionFilter === 'draw') return searchMode === 'eq' ? Math.abs(drawOdds - targetOdds) < 0.001 : searchMode === 'gte' ? drawOdds >= targetOdds : searchMode === 'lte' ? drawOdds <= targetOdds : false;
+              if (positionFilter === 'away') return searchMode === 'eq' ? Math.abs(awayOdds - targetOdds) < 0.001 : searchMode === 'gte' ? awayOdds >= targetOdds : searchMode === 'lte' ? awayOdds <= targetOdds : false;
+            }
+          }
+          
+          // SPECIFIC MARKET LOGIC
+          if (!match.allMarkets || match.allMarkets.length === 0) return false;
+          return match.allMarkets.some(market => {
+            if (targetPeriod !== 'ALL') {
+              if (targetPeriod === 'H1' && market.periodCode !== 'H1' && market.periodCode !== 'HT') return false;
+              if (targetPeriod === 'H2' && market.periodCode !== 'H2' && market.periodCode !== '2H') return false;
+              if (targetPeriod === 'FT' && market.periodCode && market.periodCode !== 'FT') return false;
+            }
+            const marketName = (market.name || '').toUpperCase();
+            const marketDisplayName = (market.marketDisplayName || '').toUpperCase();
+            const marketCode = (market.marketCode || '').toUpperCase();
+            if (targetMarketType === 'BTTS') {
+              const hasBTTS = marketName.includes('BTTS') || marketName.includes('BOTH') || marketDisplayName.includes('BTTS') || marketDisplayName.includes('BOTH') || marketCode === 'BT' || marketCode === 'BTTS';
+              if (!hasBTTS) return false;
+            }
+            if (targetMarketType === 'UO' && !marketName.includes('OVER') && !marketName.includes('UNDER')) return false;
+            if (targetMarketType === 'DC' && !marketName.includes('DOUBLE')) return false;
+            if (targetMarketType === 'AH' && !marketName.includes('ASIAN')) return false;
+            if (targetMarketType === 'CS' && !marketName.includes('CORRECT')) return false;
+            if (!market.selections || market.selections.length === 0) return false;
+            return market.selections.some(sel => {
+              const selOdds = parseFloat(String(sel.odds));
+              if (isNaN(selOdds)) return false;
+              if (bttsOption) {
+                const selName = (sel.name || '').toUpperCase();
+                if (bttsOption === 'Y' && !selName.includes('YES') && selName !== 'Y') return false;
+                if (bttsOption === 'N' && !selName.includes('NO') && selName !== 'N') return false;
+              }
+              return searchMode === 'eq' ? Math.abs(selOdds - targetOdds) < 0.001 : searchMode === 'gte' ? selOdds >= targetOdds : searchMode === 'lte' ? selOdds <= targetOdds : false;
+            });
+          });
+        } else {
+          // Simple odds filter
+          let targetOdds = parseFloat(cleanSearchTerm);
+          if (!isNaN(targetOdds) && targetOdds > 10) targetOdds = targetOdds / 100;
+          const homeOdds = parseFloat(String(match.homeOdds));
+          const drawOdds = parseFloat(String(match.drawOdds));
+          const awayOdds = parseFloat(String(match.awayOdds));
+          if (searchMode === 'eq') return Math.abs(homeOdds - targetOdds) < 0.001 || Math.abs(drawOdds - targetOdds) < 0.001 || Math.abs(awayOdds - targetOdds) < 0.001;
+          if (searchMode === 'gte') return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
+          if (searchMode === 'lte') return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
+          return false;
         }
       });
-    }
+      totalFiltered += filtered.length;
+    });
+    
+    // Denominator: always sum ALL loaded dates' total matches
+    let totalMatches = 0;
+    Object.entries(allLoadedMatches).forEach(([date, dateMatches]) => {
+      totalMatches += (dateMatches as any[]).length;
+    });
     
     return { filtered: totalFiltered, total: totalMatches };
-  }, [filteredGroupedMatches, allLoadedMatches, searchMode, searchTerm, showAllMatches]);
+  }, [filteredGroupedMatches, allLoadedMatches, searchMode, searchTerm]);
   
   // Store upcoming match counts by date for debug display
   if (typeof window !== 'undefined') {
