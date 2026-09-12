@@ -262,11 +262,29 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                                   selectionName = 'Draw';
                                 } else if (priceTypeLower === 'away' || priceTypeLower.startsWith('away-') || priceTypeLower.startsWith('away_')) {
                                   selectionName = selection.awayTeam;
+                                } else if (priceTypeLower === 'over' || priceTypeLower.startsWith('over')) {
+                                  selectionName = 'Over' + (selection.marketLine ? ` ${selection.marketLine}` : '');
+                                } else if (priceTypeLower === 'under' || priceTypeLower.startsWith('under')) {
+                                  selectionName = 'Under' + (selection.marketLine ? ` ${selection.marketLine}` : '');
+                                } else if (priceTypeLower === 'btts_yes' || priceTypeLower === 'yes') {
+                                  selectionName = 'Yes';
+                                } else if (priceTypeLower === 'btts_no' || priceTypeLower === 'no') {
+                                  selectionName = 'No';
                                 } else if (selection.optionName) {
                                   // Use optionName from API if available (e.g., "Yes", "No", "Over", "Under")
                                   selectionName = selection.optionName;
                                 } else {
-                                  selectionName = selection.priceType;
+                                  // For All Markets selections, priceType is "marketBookNo-selectionName"
+                                  // Extract just the human-readable name part (after the first dash)
+                                  const parts = selection.priceType.split('-');
+                                  if (parts.length > 1 && /^\d+$/.test(parts[0])) {
+                                    // First part is numeric (marketBookNo) - extract the name after it
+                                    const rawName = parts.slice(1).join('-');
+                                    // Capitalize first letter for display
+                                    selectionName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+                                  } else {
+                                    selectionName = selection.priceType;
+                                  }
                                 }
                               }
                               const odds = typeof selection?.odds === 'string' ? selection.odds : selection?.odds?.toFixed(2);
