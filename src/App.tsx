@@ -2357,22 +2357,16 @@ function App() {
   }, [groupedMatches, searchTerm, searchMode, selectedDate, calendarList, selectedCategory, selectedCompetition, showAllMatches]) : groupedMatches;
 
   const totalAllMatchesCount = React.useMemo(() => {
-    // Calculate TOTAL unfiltered count across all loaded dates
-    // This is the denominator for filtered display (e.g., 34/720)
-    if (showAllMatches) {
-      // Use allLoadedMatches to get the TOTAL unfiltered count across all dates
-      return Object.values(allLoadedMatches).reduce((sum, dateMatches) => 
-        sum + (Array.isArray(dateMatches) ? dateMatches.length : 0), 0);
+    // Always use allLoadedMatches to get the TOTAL unfiltered count across ALL dates
+    // This ensures the denominator is stable regardless of which date is selected
+    const total = Object.values(allLoadedMatches).reduce((sum, dateMatches) => 
+      sum + (Array.isArray(dateMatches) ? dateMatches.length : 0), 0);
+    // Fallback to matches/groupedMatches if allLoadedMatches is empty (e.g., initial load)
+    if (total === 0) {
+      return matches.length > 0 ? matches.length : Object.values(groupedMatches).flat().length;
     }
-    // When a competition filter is active, sum all per-date counts from allLoadedMatches
-    // This gives the total across ALL dates, not just the currently selected date
-    if (selectedCategory || selectedCompetition) {
-      return Object.values(allLoadedMatches).reduce((sum, dateMatches) => 
-        sum + (Array.isArray(dateMatches) ? dateMatches.length : 0), 0);
-    }
-    // For non-All Matches, use the loaded matches
-    return matches.length > 0 ? matches.length : Object.values(groupedMatches).flat().length;
-  }, [matches, groupedMatches, showAllMatches, selectedCategory, selectedCompetition, allLoadedMatches]);
+    return total;
+  }, [matches, groupedMatches, allLoadedMatches]);
     
     const totalMatches = matches.length;
   
@@ -3827,7 +3821,7 @@ function App() {
             // Always use cumulative count across ALL dates for All Matches button
             return cumulativeFilteredCount?.filtered;
           })()}
-          totalAllMatchesCount={cumulativeFilteredCount?.total || totalAllMatchesCount}
+          totalAllMatchesCount={totalAllMatchesCount}
           originalDateCounts={calendarList.reduce((acc, entry) => { acc[entry.date] = entry.matchCount; return acc; }, {} as Record<string, number>)}
           competitionFilteredDateCounts={competitionFilteredDateCounts}
         />
