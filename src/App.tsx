@@ -2557,19 +2557,32 @@ function App() {
     
     // Use filteredGroupedMatches which already has the correct filtering logic
     // (including advanced filters like BTTS, UO, DC, etc. with markets loaded)
+    // When a specific date is selected, filteredGroupedMatches only has that date
+    // When All Matches is active, it has all dates - so filtered is always correct
     let totalFiltered = 0;
     Object.entries(filteredGroupedMatches).forEach(([date, dateMatches]) => {
       totalFiltered += (dateMatches as any[]).length;
     });
     
-    // Get total unfiltered count from allLoadedMatches
+    // Get total unfiltered count - must match the scope of filteredGroupedMatches
+    // When All Matches: sum all loaded dates
+    // When specific date selected: only count that date's matches
     let totalMatches = 0;
-    Object.entries(allLoadedMatches).forEach(([date, dateMatches]) => {
-      totalMatches += (dateMatches as any[]).length;
-    });
+    if (showAllMatches) {
+      Object.entries(allLoadedMatches).forEach(([date, dateMatches]) => {
+        totalMatches += (dateMatches as any[]).length;
+      });
+    } else {
+      // Only count dates that are in filteredGroupedMatches (i.e., the currently viewed date)
+      Object.keys(filteredGroupedMatches).forEach(date => {
+        if (allLoadedMatches[date]) {
+          totalMatches += (allLoadedMatches[date] as any[]).length;
+        }
+      });
+    }
     
     return { filtered: totalFiltered, total: totalMatches };
-  }, [filteredGroupedMatches, allLoadedMatches, searchMode, searchTerm]);
+  }, [filteredGroupedMatches, allLoadedMatches, searchMode, searchTerm, showAllMatches]);
   
   // Store upcoming match counts by date for debug display
   if (typeof window !== 'undefined') {
