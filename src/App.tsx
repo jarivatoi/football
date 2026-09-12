@@ -2551,27 +2551,15 @@ function App() {
   
   // Calculate cumulative filtered count across ALL loaded dates (for All Matches button)
   // Always shows global cumulative counts regardless of which date is selected
+  // Uses allLoadedMatches for ALL dates consistently so the count never changes when switching dates
   const cumulativeFilteredCount = React.useMemo(() => {
     // Only calculate when filter is active
     if (searchMode === 'matches' && !searchTerm) return undefined;
     
-    // Numerator: cumulative filtered count across ALL loaded dates
-    // For dates in filteredGroupedMatches (currently viewed): use accurate count (includes market filtering)
-    // For other dates in allLoadedMatches (background-loaded): apply same filter logic as fallback
-    const viewedDates = new Set(Object.keys(filteredGroupedMatches));
+    // Apply the SAME filter logic to ALL loaded dates for consistent cumulative count
     let totalFiltered = 0;
-    
-    // Count from filteredGroupedMatches (accurate - has markets loaded for BTTS/UO/etc filtering)
-    Object.entries(filteredGroupedMatches).forEach(([date, dateMatches]) => {
-      totalFiltered += (dateMatches as any[]).length;
-    });
-    
-    // Count from other loaded dates (not currently viewed) using fallback filter
     Object.entries(allLoadedMatches).forEach(([date, dateMatches]) => {
-      if (viewedDates.has(date)) return; // Already counted from filteredGroupedMatches
-      
       const filtered = (dateMatches as TotelepepMatch[]).filter(match => {
-        // Same filter logic as filteredGroupedMatches
         if (searchMode === 'matches') {
           return match.homeTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
                  match.awayTeam.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -2686,7 +2674,7 @@ function App() {
     });
     
     return { filtered: totalFiltered, total: totalMatches };
-  }, [filteredGroupedMatches, allLoadedMatches, searchMode, searchTerm]);
+  }, [allLoadedMatches, searchMode, searchTerm]);
   
   // Store upcoming match counts by date for debug display
   if (typeof window !== 'undefined') {
