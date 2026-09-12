@@ -2678,9 +2678,25 @@ function App() {
         cleanSearchTerm = cleanSearchTerm.substring(1);
       }
       
-      let targetOdds = parseFloat(cleanSearchTerm);
-      let positionFilter: 'home' | 'draw' | 'away' | null = null;
       const upperSearch = cleanSearchTerm.toUpperCase().trim();
+      let positionFilter: 'home' | 'draw' | 'away' | null = null;
+      let targetOdds = 0;
+      let rangeLow = 0;
+      let rangeHigh = 0;
+      let isRange = false;
+      
+      // Detect range syntax (e.g., "250-160FTH", "150-180H1BTTS")
+      const rangeMatch = upperSearch.match(/^(\d{2,4})-(\d{2,4})/);
+      if (rangeMatch) {
+        isRange = true;
+        rangeLow = parseFloat(rangeMatch[1]);
+        rangeHigh = parseFloat(rangeMatch[2]);
+        if (rangeLow > 10) rangeLow = rangeLow / 100;
+        if (rangeHigh > 10) rangeHigh = rangeHigh / 100;
+        // Ensure low < high
+        if (rangeLow > rangeHigh) { const tmp = rangeLow; rangeLow = rangeHigh; rangeHigh = tmp; }
+      }
+      
       const hasAdvancedFilter = /\d{2,4}(H1|H2|2H|FT|ALL)/.test(upperSearch);
       
       if (hasAdvancedFilter) {
@@ -2689,24 +2705,36 @@ function App() {
         else if (lastChar === 'D') positionFilter = 'draw';
         else if (lastChar === 'A') positionFilter = 'away';
         
-        const oddsMatch = upperSearch.match(/^(\d{2,4})/);
-        if (oddsMatch) {
-          targetOdds = parseFloat(oddsMatch[1]);
+        if (!isRange) {
+          const oddsMatch = upperSearch.match(/^(\d{2,4})/);
+          if (oddsMatch) {
+            targetOdds = parseFloat(oddsMatch[1]);
+          }
         }
       } else if (upperSearch.endsWith('H')) {
         positionFilter = 'home';
-        targetOdds = parseFloat(upperSearch.slice(0, -1));
+        if (!isRange) targetOdds = parseFloat(upperSearch.slice(0, -1));
       } else if (upperSearch.endsWith('D')) {
         positionFilter = 'draw';
-        targetOdds = parseFloat(upperSearch.slice(0, -1));
+        if (!isRange) targetOdds = parseFloat(upperSearch.slice(0, -1));
       } else if (upperSearch.endsWith('A')) {
         positionFilter = 'away';
-        targetOdds = parseFloat(upperSearch.slice(0, -1));
+        if (!isRange) targetOdds = parseFloat(upperSearch.slice(0, -1));
       }
       
-      if (!isNaN(targetOdds) && targetOdds > 10) {
+      if (!isRange && !isNaN(targetOdds) && targetOdds > 10) {
         targetOdds = targetOdds / 100;
       }
+      
+      // Helper to check if odds match the criteria
+      const oddsMatchFilter = (odds: number): boolean => {
+        if (isNaN(odds)) return false;
+        if (isRange) return odds >= rangeLow && odds <= rangeHigh;
+        if (searchMode === 'eq') return Math.abs(odds - targetOdds) < 0.001;
+        if (searchMode === 'gte') return odds >= targetOdds;
+        if (searchMode === 'lte') return odds <= targetOdds;
+        return false;
+      };
       
       const filteredDateMatches = (dateMatches as any[]).filter((match: any) => {
         if (match.isOutright && !hasAdvancedFilter) return false;
@@ -2720,29 +2748,11 @@ function App() {
         }
         
         if (positionFilter) {
-          if (searchMode === 'eq') {
-            if (positionFilter === 'home') return Math.abs(homeOdds - targetOdds) < 0.001;
-            if (positionFilter === 'draw') return Math.abs(drawOdds - targetOdds) < 0.001;
-            if (positionFilter === 'away') return Math.abs(awayOdds - targetOdds) < 0.001;
-          } else if (searchMode === 'gte') {
-            if (positionFilter === 'home') return homeOdds >= targetOdds;
-            if (positionFilter === 'draw') return drawOdds >= targetOdds;
-            if (positionFilter === 'away') return awayOdds >= targetOdds;
-          } else if (searchMode === 'lte') {
-            if (positionFilter === 'home') return homeOdds <= targetOdds;
-            if (positionFilter === 'draw') return drawOdds <= targetOdds;
-            if (positionFilter === 'away') return awayOdds <= targetOdds;
-          }
+          if (positionFilter === 'home') return oddsMatchFilter(homeOdds);
+          if (positionFilter === 'draw') return oddsMatchFilter(drawOdds);
+          if (positionFilter === 'away') return oddsMatchFilter(awayOdds);
         } else {
-          if (searchMode === 'eq') {
-            return Math.abs(homeOdds - targetOdds) < 0.001 || 
-                   Math.abs(drawOdds - targetOdds) < 0.001 || 
-                   Math.abs(awayOdds - targetOdds) < 0.001;
-          } else if (searchMode === 'gte') {
-            return homeOdds >= targetOdds || drawOdds >= targetOdds || awayOdds >= targetOdds;
-          } else if (searchMode === 'lte') {
-            return homeOdds <= targetOdds || drawOdds <= targetOdds || awayOdds <= targetOdds;
-          }
+          return oddsMatchFilter(homeOdds) || oddsMatchFilter(drawOdds) || oddsMatchFilter(awayOdds);
         }
         return false;
       });
