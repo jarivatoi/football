@@ -34,6 +34,7 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
   const [sortMode, setSortMode] = useState<'chronological' | 'random'>('chronological');
   const randomOrderRef = useRef<Map<string, number>>(new Map());
   const [shuffleSeed, setShuffleSeed] = useState(0);
+  const [isSpinning, setIsSpinning] = useState(false);
 
   // Generate stable random order for matches (keyed by match ID + seed)
   const getRandomOrder = (matchId: string): number => {
@@ -58,8 +59,10 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
 
   // Refresh random order (re-shuffle)
   const handleShuffleRefresh = () => {
+    setIsSpinning(true);
     randomOrderRef.current.clear();
     setShuffleSeed(prev => prev + 1);
+    setTimeout(() => setIsSpinning(false), 600);
   };
   const formatDateHeader = (dateString: string): string => {
     const date = new Date(dateString);
@@ -237,7 +240,7 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
                     className="flex items-center justify-center p-0.5 rounded bg-blue-700 hover:bg-blue-800 text-white transition-colors"
                     title="Re-shuffle"
                   >
-                    <RefreshCw className="w-3.5 h-3.5" />
+                    <RefreshCw className={`w-3.5 h-3.5 ${isSpinning ? 'animate-spin' : ''}`} />
                   </button>
                 )}
               </div>
