@@ -243,7 +243,18 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
               
               {/* Matches - Inside booking ref container (no inner scroll - show all) */}
               <div className="border-2 border-green-500 rounded-lg overflow-hidden bg-white">
-                {selectedBooking.selections.map((selection, index) => {
+                {[...selectedBooking.selections].sort((a, b) => {
+                  // Sort by date first
+                  const dateA = new Date(a.matchDate || a.date || '2000-01-01');
+                  const dateB = new Date(b.matchDate || b.date || '2000-01-01');
+                  if (dateA.getTime() !== dateB.getTime()) {
+                    return dateA.getTime() - dateB.getTime();
+                  }
+                  // Then sort by kickoff time
+                  const timeA = a.kickoff || '00:00';
+                  const timeB = b.kickoff || '00:00';
+                  return timeA.localeCompare(timeB);
+                }).map((selection, index) => {
                     return (
                       <div key={index} className={`p-3 border-b bg-yellow-50 last:border-b-0 border-gray-200`}>
                         <div className="flex items-start justify-between">
