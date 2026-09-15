@@ -3,6 +3,15 @@ import { ChevronDown, ChevronRight, Clock, X, ChevronsRight } from 'lucide-react
 import { TotelepepMatch } from '../services/totelepepExtractor';
 import { totelepepExtractor } from '../services/totelepepExtractor';
 
+// Strip trailing bracketed metadata from team names for button display (e.g., "Kuwait - [Neutral] - [N]" → "Kuwait")
+const cleanTeamNameForButton = (name: string) => {
+  const bracketIndex = name.indexOf('[');
+  if (bracketIndex !== -1) {
+    return name.substring(0, bracketIndex).replace(/\s*-\s*$/, '').trim();
+  }
+  return name.trim();
+};
+
 interface MatchCardProps {
   match: TotelepepMatch;
   onPriceClick: (matchId: string, priceType: string, odds: number | string, marketBookNo?: string, marketCode?: string, marketId?: string, marketLine?: string, periodCode?: string, marketDisplayName?: string, optionCode?: string, optionNo?: string, optionName?: string, selectionId?: string) => void;
@@ -883,7 +892,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                   : 'bg-white text-gray-900 hover:bg-gray-50 border border-gray-200'
               }`}
             >
-              <span className="flex-1 text-left">{match.homeTeam}</span>
+              <span className="flex-1 text-left">{cleanTeamNameForButton(match.homeTeam)}</span>
               <span className="font-bold">{formatOdds(match.homeOdds)}</span>
             </button>
             <button
@@ -943,7 +952,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, onPriceClick, selectedPric
                   : 'bg-white text-gray-900 hover:bg-gray-50 border border-gray-200'
               }`}
             >
-              <span className="flex-1 text-left">{match.awayTeam}</span>
+              <span className="flex-1 text-left">{cleanTeamNameForButton(match.awayTeam)}</span>
               <span className="font-bold">{formatOdds(match.awayOdds)}</span>
             </button>
           </div>
