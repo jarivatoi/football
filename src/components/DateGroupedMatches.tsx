@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Calendar, Clock, Loader, ArrowUpDown, Shuffle } from 'lucide-react';
+import { Calendar, Clock, Loader, ArrowUpDown, Shuffle, RefreshCw } from 'lucide-react';
 import type { TotelepepMatch } from '../services/totelepepExtractor';
 import MatchCard from './MatchCard';
 
@@ -33,13 +33,15 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
   // Sort mode: chronological (by kickoff time) or random
   const [sortMode, setSortMode] = useState<'chronological' | 'random'>('chronological');
   const randomOrderRef = useRef<Map<string, number>>(new Map());
+  const [shuffleSeed, setShuffleSeed] = useState(0);
 
-  // Generate stable random order for matches (keyed by match ID)
+  // Generate stable random order for matches (keyed by match ID + seed)
   const getRandomOrder = (matchId: string): number => {
-    if (!randomOrderRef.current.has(matchId)) {
-      randomOrderRef.current.set(matchId, Math.random());
+    const key = `${matchId}_${shuffleSeed}`;
+    if (!randomOrderRef.current.has(key)) {
+      randomOrderRef.current.set(key, Math.random());
     }
-    return randomOrderRef.current.get(matchId)!;
+    return randomOrderRef.current.get(key)!;
   };
 
   // Regenerate random order when toggling to random
@@ -47,10 +49,17 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
     if (sortMode === 'chronological') {
       // Generate new random order
       randomOrderRef.current.clear();
+      setShuffleSeed(0);
       setSortMode('random');
     } else {
       setSortMode('chronological');
     }
+  };
+
+  // Refresh random order (re-shuffle)
+  const handleShuffleRefresh = () => {
+    randomOrderRef.current.clear();
+    setShuffleSeed(prev => prev + 1);
   };
   const formatDateHeader = (dateString: string): string => {
     const date = new Date(dateString);
@@ -204,23 +213,34 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
             {/* Date Header - Sticky */}
             <div className="sticky top-0 z-10 bg-blue-600 text-white px-3 py-2 text-sm font-medium shadow-md flex items-center justify-between">
               <span>{isRandomGroup ? 'All Matches (Random)' : dateHeader}</span>
-              <button
-                onClick={handleSortToggle}
-                className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-700 hover:bg-blue-800 text-white text-xs transition-colors"
-                title={sortMode === 'chronological' ? 'Sort by time' : 'Shuffle randomly'}
-              >
-                {sortMode === 'chronological' ? (
-                  <>
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>Time</span>
-                  </>
-                ) : (
-                  <>
-                    <Shuffle className="w-3.5 h-3.5" />
-                    <span>Random</span>
-                  </>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleSortToggle}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-700 hover:bg-blue-800 text-white text-xs transition-colors"
+                  title={sortMode === 'chronological' ? 'Sort by time' : 'Shuffle randomly'}
+                >
+                  {sortMode === 'chronological' ? (
+                    <>
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Time</span>
+                    </>
+                  ) : (
+                    <>
+                      <Shuffle className="w-3.5 h-3.5" />
+                      <span>Random</span>
+                    </>
+                  )}
+                </button>
+                {sortMode === 'random' && (
+                  <button
+                    onClick={handleShuffleRefresh}
+                    className="flex items-center justify-center p-0.5 rounded bg-blue-700 hover:bg-blue-800 text-white transition-colors"
+                    title="Re-shuffle"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
                 )}
-              </button>
+              </div>
             </div>
 
             {/* Match Cards */}
