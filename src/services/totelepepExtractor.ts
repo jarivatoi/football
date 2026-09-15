@@ -1530,14 +1530,19 @@ class TotelepepExtractor {
     if (!odds.bttsNo) odds.bttsNo = this.generateRealisticOdds();
   }
 
+  private cleanTeamName(name: string): string {
+    // Strip trailing bracketed metadata like " - [Neutral] - [N]"
+    return name.replace(/\s*-\s*\[.*$/g, '').trim();
+  }
+
   private extractTeamNamesFromTotelepepString(teamsString: string): { home: string; away: string } | null {
     // Totelepep uses " v " as separator
     if (teamsString.includes(' v ')) {
       const parts = teamsString.split(' v ');
       if (parts.length === 2) {
         return {
-          home: parts[0].trim(),
-          away: parts[1].trim()
+          home: this.cleanTeamName(parts[0]),
+          away: this.cleanTeamName(parts[1])
         };
       }
     }
@@ -1549,8 +1554,8 @@ class TotelepepExtractor {
         const parts = teamsString.split(separator);
         if (parts.length === 2) {
           return {
-            home: parts[0].trim(),
-            away: parts[1].trim()
+            home: this.cleanTeamName(parts[0]),
+            away: this.cleanTeamName(parts[1])
           };
         }
       }
@@ -1561,7 +1566,7 @@ class TotelepepExtractor {
     if (teamsString.trim().length > 0) {
       
       return {
-        home: teamsString.trim(),
+        home: this.cleanTeamName(teamsString),
         away: '' // Will be handled by isOutright logic
       };
     }
