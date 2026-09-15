@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { saveLastUsedIdNumber, getLastUsedIdNumber, saveUserSession } from '../utils/userSessionDB';
 import { gsap } from 'gsap';
 import SplitText from '../utils/SplitText';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import UserRegistration from './UserRegistration';
 
 // Animated Registration Button Component with SplitText
@@ -298,6 +298,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
   const [showNewPasscode, setShowNewPasscode] = useState(false)
   const [showConfirmPasscode, setShowConfirmPasscode] = useState(false)
   const [showRegistration, setShowRegistration] = useState(false)
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
 
   // GSAP SplitText wave zoom animation for "User Sign In" header
   useEffect(() => {
@@ -370,6 +371,8 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    if (isLoggingIn) return; // Prevent double submission
+    
     if (!checkOnlineStatus()) {
       setError('You are currently offline, please check your connectivity and try again...')
       return
@@ -382,6 +385,8 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
       return
     }
     
+    setIsLoggingIn(true)
+    
     // Admin 5274 login
     if (passcode === '5274' && idNumber === '5274') {
       try {
@@ -392,6 +397,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           .single();
         
         if (error || !userData) {
+          setIsLoggingIn(false);
           setError('Admin account not found in database');
           return;
         }
@@ -410,6 +416,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
         onLoginSuccess(session);
         return;
       } catch (error) {
+        setIsLoggingIn(false);
         setError('Failed to login as admin. Please try again.');
         return;
       }
@@ -449,6 +456,7 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
       
       onLoginSuccess(session)
     } catch (err: any) {
+      setIsLoggingIn(false);
       setError(err?.message ?? 'Login failed')
     }
   }
@@ -859,7 +867,22 @@ const UserLogin: React.FC<UserLoginProps> = ({ onLoginSuccess }) => {
           </button>
         </div>
         {error && <div style={{ color: 'red', textAlign: 'center' }}>{error}</div>}
-        <button type="submit" style={buttonStyle}>Login</button>
+        <button 
+          type="submit" 
+          disabled={isLoggingIn}
+          style={{
+            ...buttonStyle,
+            opacity: isLoggingIn ? 0.7 : 1,
+            cursor: isLoggingIn ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+          }}
+        >
+          {isLoggingIn && <Loader2 className="w-4 h-4 animate-spin" />}
+          {isLoggingIn ? 'Signing in...' : 'Login'}
+        </button>
       </form>
       <div style={{ display: 'grid', gap: '8px', width: '100%', maxWidth: 420, marginTop: '16px' }}>
         <AnimatedRegistrationButton onClick={() => setShowRegistration(true)} />
