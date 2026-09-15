@@ -215,25 +215,8 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
           <div key={date}>
             {/* Date Header - Sticky */}
             <div className="sticky top-0 z-10 bg-blue-600 text-white px-3 py-2 text-sm font-medium shadow-md flex items-center justify-between">
-              <span>{isRandomGroup ? 'All Matches (Random)' : dateHeader}</span>
               <div className="flex items-center gap-1">
-                <button
-                  onClick={handleSortToggle}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-700 hover:bg-blue-800 text-white text-xs transition-colors"
-                  title={sortMode === 'chronological' ? 'Sort by time' : 'Shuffle randomly'}
-                >
-                  {sortMode === 'chronological' ? (
-                    <>
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>Time</span>
-                    </>
-                  ) : (
-                    <>
-                      <Shuffle className="w-3.5 h-3.5" />
-                      <span>Random</span>
-                    </>
-                  )}
-                </button>
+                <span>{isRandomGroup ? 'All Matches (Random)' : dateHeader}</span>
                 {sortMode === 'random' && (
                   <button
                     onClick={handleShuffleRefresh}
@@ -244,6 +227,23 @@ const DateGroupedMatches: React.FC<DateGroupedMatchesProps> = ({
                   </button>
                 )}
               </div>
+              <button
+                onClick={handleSortToggle}
+                className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-700 hover:bg-blue-800 text-white text-xs transition-colors"
+                title={sortMode === 'chronological' ? 'Sort by time' : 'Shuffle randomly'}
+              >
+                {sortMode === 'chronological' ? (
+                  <>
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Time</span>
+                  </>
+                ) : (
+                  <>
+                    <Shuffle className="w-3.5 h-3.5" />
+                    <span>Random</span>
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Match Cards */}
