@@ -26,7 +26,7 @@ const BookingDiscoveryGuide: React.FC = () => {
               <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
               <div>
                 <h4 className="font-medium text-blue-800">Open Totelepep Website</h4>
-                <p className="text-blue-700 text-sm">Go to www.totelepep.mu in your browser</p>
+                <p className="text-blue-700 text-sm">Go to oldweb.totelepep.mu in your browser</p>
               </div>
             </div>
 

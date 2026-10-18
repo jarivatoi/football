@@ -4046,7 +4046,7 @@ function App() {
       <TicketVerifierModal
         isOpen={showTicketVerifier}
         onClose={() => setShowTicketVerifier(false)}
-        apiBaseUrl={selectedSource?.baseUrl || 'https://www.totelepep.mu/webapi/GetSport'}
+        apiBaseUrl={selectedSource?.baseUrl || 'https://oldweb.totelepep.mu/webapi/GetSport'}
         selectedSource={selectedSource}
       />
       

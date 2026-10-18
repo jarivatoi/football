@@ -12,7 +12,7 @@ exports.handler = async (event, context) => {
 
   try {
     // Forward the request to Totelepep API
-    const targetUrl = 'https://www.totelepep.mu/webapi/placebet';
+    const targetUrl = 'https://oldweb.totelepep.mu/webapi/placebet';
     
     console.log('📡 Proxying bet placement request');
     console.log('📝 Event body type:', typeof event.body);

@@ -16,7 +16,7 @@ export const API_SOURCES: ApiSource[] = [
   {
     id: 'totelepep',
     name: 'Totelepep',
-    baseUrl: 'https://www.totelepep.mu/webapi/GetSport',
+    baseUrl: 'https://oldweb.totelepep.mu/webapi/GetSport',
     displayName: 'Totelepep',
     hasBonus: false  // Totelepep does not provide bonus
   },

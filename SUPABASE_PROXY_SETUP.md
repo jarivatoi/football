@@ -63,10 +63,10 @@ private corsProxies = [
 
 ```typescript
 // Before (with public proxy):
-const url = 'https://corsproxy.io/?' + encodeURIComponent('https://www.totelepep.mu/webapi/GetSport?...');
+const url = 'https://corsproxy.io/?' + encodeURIComponent('https://oldweb.totelepep.mu/webapi/GetSport?...');
 
 // After (with your Supabase proxy):
-const url = 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/cors-proxy?url=' + encodeURIComponent('https://www.totelepep.mu/webapi/GetSport?...');
+const url = 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/cors-proxy?url=' + encodeURIComponent('https://oldweb.totelepep.mu/webapi/GetSport?...');
 ```
 
 ## Testing

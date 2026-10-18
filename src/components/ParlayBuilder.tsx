@@ -299,7 +299,7 @@ const placeTotelepepBet = async (selections: ParlaySelection[], stake: number, s
     
     // Place bet on API (with CORS proxy for GitHub Pages)
     // Use selected source or default to Totelepep
-    const baseUrl = selectedSource?.baseUrl.replace('/webapi/GetSport', '') || 'https://www.totelepep.mu';
+    const baseUrl = selectedSource?.baseUrl.replace('/webapi/GetSport', '') || 'https://oldweb.totelepep.mu';
     const betUrl = 'https://zaleugflzamrkrfkrcsa.supabase.co/functions/v1/cors-proxy?url=' + encodeURIComponent(`${baseUrl}/webapi/placebet`);
     
     const response = await fetch(betUrl, {

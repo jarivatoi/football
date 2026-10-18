@@ -14,7 +14,7 @@ export default defineConfig(({ command, mode }) => {
       proxy: {
         // Totelepep (default /api and /api/tp)
         '/api/tp': {
-          target: 'https://www.totelepep.mu',
+          target: 'https://oldweb.totelepep.mu',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/tp/, ''),
           secure: false,
@@ -66,7 +66,7 @@ export default defineConfig(({ command, mode }) => {
         },
         // Legacy /api → totelepep (backward compatible)
         '/api': {
-          target: 'https://www.totelepep.mu',
+          target: 'https://oldweb.totelepep.mu',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
           secure: false,

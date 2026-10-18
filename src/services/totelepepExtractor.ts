@@ -58,7 +58,7 @@ class TotelepepExtractor {
     'https://api.codetabs.com/v1/proxy?quest=',  // Fallback 3
   ];
   private currentProxyIndex = 0;
-  private baseUrl = 'https://www.totelepep.mu/webapi/GetSport';
+  private baseUrl = 'https://oldweb.totelepep.mu/webapi/GetSport';
   
   // Get current proxy URL with fallback support
   private getProxyUrl(): string {
@@ -418,7 +418,7 @@ class TotelepepExtractor {
     
     try {
 
-      // Extract domain from baseUrl (e.g., https://www.totelepep.mu/webapi/GetSport -> https://www.totelepep.mu)
+      // Extract domain from baseUrl (e.g., https://oldweb.totelepep.mu/webapi/GetSport -> https://oldweb.totelepep.mu)
       const baseUrl = this.baseUrl.replace('/webapi/GetSport', '');
       const apiUrl = `${baseUrl}/webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
       
@@ -559,7 +559,7 @@ class TotelepepExtractor {
       // Fetch all matches in this batch IN PARALLEL
       const fetchPromises = batch.map(async (match) => {
         try {
-          // Extract domain from baseUrl (e.g., https://www.totelepep.mu/webapi/GetSport -> https://www.totelepep.mu)
+          // Extract domain from baseUrl (e.g., https://oldweb.totelepep.mu/webapi/GetSport -> https://oldweb.totelepep.mu)
           const baseUrl = this.baseUrl.replace('/webapi/GetSport', '');
           const apiUrl = `${baseUrl}/webapi/GetMatch?sportId=soccer&competitionId=${match.competitionId}&matchId=${match.id}&periodCode=all`;
           
@@ -2878,7 +2878,7 @@ class TotelepepExtractor {
   public async fetchCategories(): Promise<Array<{id: string, name: string}>> {
     try {
 
-      // Extract domain from baseUrl (e.g., https://www.totelepep.mu/webapi/GetSport -> https://www.totelepep.mu)
+      // Extract domain from baseUrl (e.g., https://oldweb.totelepep.mu/webapi/GetSport -> https://oldweb.totelepep.mu)
       const baseUrl = this.baseUrl.replace('/webapi/GetSport', '');
       const apiUrl = `${baseUrl}/webapi/getcategories?SportId=1`;
 
@@ -2918,7 +2918,7 @@ class TotelepepExtractor {
   public async fetchCompetitionsForCategory(categoryName: string): Promise<Array<{id: string, name: string, matchCount?: number}>> {
     try {
 
-      // Extract domain from baseUrl (e.g., https://www.totelepep.mu/webapi/GetSport -> https://www.totelepep.mu)
+      // Extract domain from baseUrl (e.g., https://oldweb.totelepep.mu/webapi/GetSport -> https://oldweb.totelepep.mu)
       const baseUrl = this.baseUrl.replace('/webapi/GetSport', '');
       const apiUrl = `${baseUrl}/webapi/GetCompetitions?CategoryName=${encodeURIComponent(categoryName)}&SportId=1`;
 

@@ -23,7 +23,7 @@ exports.handler = async (event, context) => {
 
     // Decode the endpoint
     const decodedEndpoint = decodeURIComponent(endpoint);
-    const targetUrl = `https://www.totelepep.mu/${decodedEndpoint}`;
+    const targetUrl = `https://oldweb.totelepep.mu/${decodedEndpoint}`;
     
     console.log('📡 Proxying API request to:', targetUrl);
     

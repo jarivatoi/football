@@ -64,9 +64,9 @@ const TicketVerifierModal: React.FC<TicketVerifierModalProps> = ({ isOpen, onClo
   const getTargetDomain = () => {
     try {
       const url = new URL(apiBaseUrl);
-      return url.origin; // e.g., https://www.totelepep.mu
+      return url.origin; // e.g., https://oldweb.totelepep.mu
     } catch {
-      return 'https://www.totelepep.mu';
+      return 'https://oldweb.totelepep.mu';
     }
   };
 
