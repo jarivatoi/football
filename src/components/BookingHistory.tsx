@@ -27,6 +27,7 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
   const [selectedBooking, setSelectedBooking] = useState<SavedBooking | null>(null);
   const bookingDetailRef = React.useRef<HTMLDivElement>(null);
   const bookingContentRef = React.useRef<HTMLDivElement>(null);
+  const bookingModalRef = React.useRef<HTMLDivElement>(null);
 
   // Load bookings when modal opens
   useEffect(() => {
@@ -97,7 +98,7 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
 
   // Capture booking screenshot and save to device
   const captureBookingScreenshot = useCallback(async () => {
-    if (!bookingContentRef.current || !selectedBooking) return;
+    if (!bookingModalRef.current || !selectedBooking) return;
 
     try {
       // Show loading state
@@ -106,34 +107,56 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
       loadingToast.textContent = '📸 Capturing booking...';
       document.body.appendChild(loadingToast);
 
+      const modalElement = bookingModalRef.current;
+      const scrollContainer = bookingDetailRef.current;
+
       // Store original styles
-      const contentElement = bookingContentRef.current;
-      const originalMaxHeight = contentElement.style.maxHeight;
-      const originalOverflow = contentElement.style.overflow;
+      const origMaxHeight = modalElement.style.maxHeight;
+      const origOverflow = modalElement.style.overflow;
+      const origScrollContainerMaxH = scrollContainer ? scrollContainer.style.maxHeight : '';
+      const origScrollContainerOverflow = scrollContainer ? scrollContainer.style.overflow : '';
 
-      // Temporarily expand to show all content
-      contentElement.style.maxHeight = 'none';
-      contentElement.style.overflow = 'visible';
+      // Temporarily expand modal to show all content
+      modalElement.style.maxHeight = 'none';
+      modalElement.style.overflow = 'visible';
+      if (scrollContainer) {
+        scrollContainer.style.maxHeight = 'none';
+        scrollContainer.style.overflow = 'visible';
+      }
 
-      // Wait a bit for layout to update
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Hide action buttons and header buttons during capture
+      const actionButtons = modalElement.querySelector('[data-action-buttons]');
+      const headerButtons = modalElement.querySelector('[data-header-buttons]');
+      if (actionButtons) (actionButtons as HTMLElement).style.display = 'none';
+      if (headerButtons) (headerButtons as HTMLElement).style.display = 'none';
 
-      // Capture the booking content container
-      const canvas = await html2canvas(contentElement, {
+      // Wait for layout to update
+      await new Promise(resolve => setTimeout(resolve, 400));
+
+      // Capture the full modal
+      const canvas = await html2canvas(modalElement, {
         backgroundColor: '#ffffff',
-        scale: 2, // Higher quality
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         logging: false,
-        width: contentElement.scrollWidth,
-        height: contentElement.scrollHeight,
-        windowWidth: contentElement.scrollWidth,
-        windowHeight: contentElement.scrollHeight,
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: 0,
+        width: modalElement.offsetWidth,
+        height: modalElement.scrollHeight,
       });
 
       // Restore original styles
-      contentElement.style.maxHeight = originalMaxHeight;
-      contentElement.style.overflow = originalOverflow;
+      modalElement.style.maxHeight = origMaxHeight;
+      modalElement.style.overflow = origOverflow;
+      if (scrollContainer) {
+        scrollContainer.style.maxHeight = origScrollContainerMaxH;
+        scrollContainer.style.overflow = origScrollContainerOverflow;
+      }
+      if (actionButtons) (actionButtons as HTMLElement).style.display = '';
+      if (headerButtons) (headerButtons as HTMLElement).style.display = '';
 
       // Remove loading toast
       document.body.removeChild(loadingToast);
@@ -161,19 +184,18 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
             await writable.write(blob);
             await writable.close();
             
-            // Show success toast
             const successToast = document.createElement('div');
             successToast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[200]';
-            successToast.textContent = '✅ Booking saved successfully!';
+            successToast.textContent = '\u2705 Booking saved successfully!';
             document.body.appendChild(successToast);
             setTimeout(() => document.body.removeChild(successToast), 3000);
             return;
           } catch (err) {
-            // User cancelled or error occurred, fall through to download
+            // Fall through to download
           }
         }
 
-        // Fallback: Download the image (works on mobile)
+        // Fallback: Download
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -184,21 +206,18 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
-        // Show success toast
         const successToast = document.createElement('div');
         successToast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[200]';
-        successToast.textContent = '✅ Booking downloaded! Check your Downloads folder';
+        successToast.textContent = '\u2705 Booking downloaded! Check your Downloads folder';
         document.body.appendChild(successToast);
         setTimeout(() => document.body.removeChild(successToast), 3000);
       }, 'image/png');
 
     } catch (error) {
       console.error('Error capturing screenshot:', error);
-      
-      // Show error toast
       const errorToast = document.createElement('div');
       errorToast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg z-[200]';
-      errorToast.textContent = '❌ Failed to capture booking';
+      errorToast.textContent = '\u274c Failed to capture booking';
       document.body.appendChild(errorToast);
       setTimeout(() => document.body.removeChild(errorToast), 3000);
     }
@@ -318,6 +337,7 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
           style={{ pointerEvents: 'auto' }}
         >
           <div 
+            ref={bookingModalRef}
             className="bg-white w-full max-w-md max-h-[90vh] rounded-t-lg sm:rounded-lg overflow-hidden flex flex-col"
             onClick={(e) => {
               e.stopPropagation();
@@ -325,10 +345,10 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
             style={{ pointerEvents: 'auto' }}
           >
             {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-4">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4" data-header-buttons>
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-800">Saved Booking</h3>
                 <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-bold text-gray-800">Saved Booking</h3>
                   <button
                     onClick={captureBookingScreenshot}
                     className="p-2 hover:bg-purple-100 rounded-full transition-colors"
@@ -336,16 +356,16 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                   >
                     <Camera className="w-5 h-5 text-purple-600" />
                   </button>
-                  <button
-                    onClick={() => {
-                      setSelectedBooking(null);
-                    }}
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                    style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
                 </div>
+                <button
+                  onClick={() => {
+                    setSelectedBooking(null);
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
             </div>
             
@@ -712,7 +732,7 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
             </div>
             
             {/* Action Buttons */}
-            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4" data-action-buttons>
               {(() => {
                 // Check if at least one match hasn't kicked off yet
                 const now = new Date();
