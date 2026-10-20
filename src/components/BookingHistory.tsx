@@ -26,6 +26,7 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
   const [savedBookings, setSavedBookings] = useState<SavedBooking[]>([]);
   const [selectedBooking, setSelectedBooking] = useState<SavedBooking | null>(null);
   const bookingDetailRef = React.useRef<HTMLDivElement>(null);
+  const bookingContentRef = React.useRef<HTMLDivElement>(null);
 
   // Load bookings when modal opens
   useEffect(() => {
@@ -96,7 +97,7 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
 
   // Capture booking screenshot and save to device
   const captureBookingScreenshot = useCallback(async () => {
-    if (!bookingDetailRef.current || !selectedBooking) return;
+    if (!bookingContentRef.current || !selectedBooking) return;
 
     try {
       // Show loading state
@@ -105,21 +106,34 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
       loadingToast.textContent = '📸 Capturing booking...';
       document.body.appendChild(loadingToast);
 
-      // Wait a bit for any animations
+      // Store original styles
+      const contentElement = bookingContentRef.current;
+      const originalMaxHeight = contentElement.style.maxHeight;
+      const originalOverflow = contentElement.style.overflow;
+
+      // Temporarily expand to show all content
+      contentElement.style.maxHeight = 'none';
+      contentElement.style.overflow = 'visible';
+
+      // Wait a bit for layout to update
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Capture the booking detail container
-      const canvas = await html2canvas(bookingDetailRef.current, {
+      // Capture the booking content container
+      const canvas = await html2canvas(contentElement, {
         backgroundColor: '#ffffff',
         scale: 2, // Higher quality
         useCORS: true,
         allowTaint: true,
         logging: false,
-        width: bookingDetailRef.current.scrollWidth,
-        height: bookingDetailRef.current.scrollHeight,
-        windowWidth: bookingDetailRef.current.scrollWidth,
-        windowHeight: bookingDetailRef.current.scrollHeight,
+        width: contentElement.scrollWidth,
+        height: contentElement.scrollHeight,
+        windowWidth: contentElement.scrollWidth,
+        windowHeight: contentElement.scrollHeight,
       });
+
+      // Restore original styles
+      contentElement.style.maxHeight = originalMaxHeight;
+      contentElement.style.overflow = originalOverflow;
 
       // Remove loading toast
       document.body.removeChild(loadingToast);
@@ -314,20 +328,31 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
             <div className="sticky top-0 bg-white border-b border-gray-200 p-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-gray-800">Saved Booking</h3>
-                <button
-                  onClick={() => {
-                    setSelectedBooking(null);
-                  }}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={captureBookingScreenshot}
+                    className="p-2 hover:bg-purple-100 rounded-full transition-colors"
+                    title="Save booking as image"
+                  >
+                    <Camera className="w-5 h-5 text-purple-600" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedBooking(null);
+                    }}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             </div>
             
             {/* Booking Content */}
             <div ref={bookingDetailRef} className="flex-1 overflow-y-auto p-4">
+              {/* Inner wrapper for screenshot capture */}
+              <div ref={bookingContentRef}>
               {(() => { console.log('📋 Selected booking data:', selectedBooking); return null; })()}
               {/* Bet Refund Mode Indicator */}
               {selectedBooking.betRefundMode && (
@@ -683,6 +708,7 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                   </div>
                 </div>
               )}
+              </div>
             </div>
             
             {/* Action Buttons */}
@@ -714,16 +740,8 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                 const canRepeatBet = selectedBooking.apiSource === currentSourceId && hasUpcomingMatches;
                 
                 return canRepeatBet ? (
-                  // Show all three buttons when sources match AND there are upcoming matches
+                  // Show both buttons when sources match AND there are upcoming matches
                   <div className="flex gap-2">
-                    <button
-                      onClick={captureBookingScreenshot}
-                      className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-                      title="Save booking as image"
-                    >
-                      <Camera className="w-5 h-5" />
-                      <span className="hidden sm:inline">Save Image</span>
-                    </button>
                     <button
                       onClick={() => {
                         if (onRepeatBet) {
@@ -748,27 +766,17 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                     </button>
                   </div>
                 ) : (
-                  // Show Delete and Save Image buttons (full width) when sources don't match OR no upcoming matches
-                  <div className="flex gap-2">
-                    <button
-                      onClick={captureBookingScreenshot}
-                      className="flex-1 flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-                      title="Save booking as image"
-                    >
-                      <Camera className="w-5 h-5" />
-                      Save Image
-                    </button>
-                    <button
-                      onClick={() => {
-                        deleteBooking(selectedBooking.id);
-                        setSelectedBooking(null);
-                      }}
-                      className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                      Delete Booking
-                    </button>
-                  </div>
+                  // Show only Delete button (full width) when sources don't match OR no upcoming matches
+                  <button
+                    onClick={() => {
+                      deleteBooking(selectedBooking.id);
+                      setSelectedBooking(null);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                    Delete Booking
+                  </button>
                 );
               })()}
             </div>
