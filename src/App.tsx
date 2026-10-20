@@ -268,15 +268,10 @@ function App() {
     setParlaySelections([]);
     clearBetslip(); // Clear in-memory betslip state
     
-    // Then try to load saved betslip for the new source
-    const newSourceId = source.id;
-    loadBetslip(newSourceId).then(savedSelections => {
-      if (savedSelections && savedSelections.length > 0) {
-        setParlaySelections(savedSelections);
-      }
-    }).catch(() => {
-      // Ignore errors - selections already cleared
-    });
+    // DON'T auto-restore saved betslip after source switch
+    // This prevents race conditions where async load overwrites fresh user selections
+    // User can manually restore from Booking History if needed
+    // Per contract: source switch = complete reset, never restore persisted state
     
     setShowParlayBuilder(false);
     setShowAllMatches(true); // Keep All Matches active to show loading progress
@@ -310,7 +305,7 @@ function App() {
       const { clearCacheMatches } = await import('./utils/matchCache');
       
       // Clear all_matches cache
-      const staleAllMatchesKey = `all_matches_all_all_${newSourceId}`;
+      const staleAllMatchesKey = `all_matches_all_all_${source.id}`;
       await clearCacheMatches(staleAllMatchesKey);
       
       // Clear individual date caches for the new source
@@ -318,7 +313,7 @@ function App() {
       const datesToClear = (calendarListRef.current || []).map((e: any) => e.date);
       
       for (const date of datesToClear) {
-        const dateCacheKey = `date_${date}_all_all_${newSourceId}`;
+        const dateCacheKey = `date_${date}_all_all_${source.id}`;
         await clearCacheMatches(dateCacheKey);
       }
     } catch (e) {
