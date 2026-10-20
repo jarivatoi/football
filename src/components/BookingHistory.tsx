@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Trash2, History, X, Repeat } from 'lucide-react';
+import { Trash2, History, X, Repeat, Camera } from 'lucide-react';
 import { SavedBooking, getAllBookingsFromDB, deleteBookingFromDB, clearAllBookingsFromDB } from '../utils/bookingStorage';
 import { createPortal } from 'react-dom';
+import html2canvas from 'html2canvas';
 
 // Helper function to format currency
 const formatCurrency = (amount: number | string): string => {
@@ -92,6 +93,102 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
     } catch (error) {
     }
   }, [onBookingsCountChange]);
+
+  // Capture booking screenshot and save to device
+  const captureBookingScreenshot = useCallback(async () => {
+    if (!bookingDetailRef.current || !selectedBooking) return;
+
+    try {
+      // Show loading state
+      const loadingToast = document.createElement('div');
+      loadingToast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg z-[200]';
+      loadingToast.textContent = '📸 Capturing booking...';
+      document.body.appendChild(loadingToast);
+
+      // Wait a bit for any animations
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Capture the booking detail container
+      const canvas = await html2canvas(bookingDetailRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2, // Higher quality
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        width: bookingDetailRef.current.scrollWidth,
+        height: bookingDetailRef.current.scrollHeight,
+        windowWidth: bookingDetailRef.current.scrollWidth,
+        windowHeight: bookingDetailRef.current.scrollHeight,
+      });
+
+      // Remove loading toast
+      document.body.removeChild(loadingToast);
+
+      // Convert canvas to blob
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+
+        // Generate filename
+        const timestamp = new Date().getTime();
+        const bookingRef = selectedBooking.bookingRef.replace(/[^a-zA-Z0-9]/g, '_');
+        const filename = `booking_${bookingRef}_${timestamp}.png`;
+
+        // Try using File System Access API (modern browsers)
+        if ('showSaveFilePicker' in window) {
+          try {
+            const handle = await (window as any).showSaveFilePicker({
+              suggestedName: filename,
+              types: [{
+                description: 'PNG Image',
+                accept: { 'image/png': ['.png'] },
+              }],
+            });
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            
+            // Show success toast
+            const successToast = document.createElement('div');
+            successToast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[200]';
+            successToast.textContent = '✅ Booking saved successfully!';
+            document.body.appendChild(successToast);
+            setTimeout(() => document.body.removeChild(successToast), 3000);
+            return;
+          } catch (err) {
+            // User cancelled or error occurred, fall through to download
+          }
+        }
+
+        // Fallback: Download the image (works on mobile)
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        // Show success toast
+        const successToast = document.createElement('div');
+        successToast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-[200]';
+        successToast.textContent = '✅ Booking downloaded! Check your Downloads folder';
+        document.body.appendChild(successToast);
+        setTimeout(() => document.body.removeChild(successToast), 3000);
+      }, 'image/png');
+
+    } catch (error) {
+      console.error('Error capturing screenshot:', error);
+      
+      // Show error toast
+      const errorToast = document.createElement('div');
+      errorToast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg z-[200]';
+      errorToast.textContent = '❌ Failed to capture booking';
+      document.body.appendChild(errorToast);
+      setTimeout(() => document.body.removeChild(errorToast), 3000);
+    }
+  }, [selectedBooking]);
 
   if (!showHistory) return null;
 
@@ -617,8 +714,16 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                 const canRepeatBet = selectedBooking.apiSource === currentSourceId && hasUpcomingMatches;
                 
                 return canRepeatBet ? (
-                  // Show both buttons when sources match AND there are upcoming matches
+                  // Show all three buttons when sources match AND there are upcoming matches
                   <div className="flex gap-2">
+                    <button
+                      onClick={captureBookingScreenshot}
+                      className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                      title="Save booking as image"
+                    >
+                      <Camera className="w-5 h-5" />
+                      <span className="hidden sm:inline">Save Image</span>
+                    </button>
                     <button
                       onClick={() => {
                         if (onRepeatBet) {
@@ -639,21 +744,31 @@ const BookingHistory: React.FC<BookingHistoryProps> = ({ showHistory, onClose, o
                       className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-5 h-5" />
-                      Delete Booking
+                      Delete
                     </button>
                   </div>
                 ) : (
-                  // Show only Delete button (full width) when sources don't match OR no upcoming matches
-                  <button
-                    onClick={() => {
-                      deleteBooking(selectedBooking.id);
-                      setSelectedBooking(null);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                    Delete Booking
-                  </button>
+                  // Show Delete and Save Image buttons (full width) when sources don't match OR no upcoming matches
+                  <div className="flex gap-2">
+                    <button
+                      onClick={captureBookingScreenshot}
+                      className="flex-1 flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                      title="Save booking as image"
+                    >
+                      <Camera className="w-5 h-5" />
+                      Save Image
+                    </button>
+                    <button
+                      onClick={() => {
+                        deleteBooking(selectedBooking.id);
+                        setSelectedBooking(null);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                      Delete Booking
+                    </button>
+                  </div>
                 );
               })()}
             </div>
